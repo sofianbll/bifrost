@@ -421,6 +421,8 @@ type ChatTool struct {
 	Custom       *ChatToolCustom     `json:"custom,omitempty"`        // Custom tool definition (shape 2)
 	CacheControl *CacheControl       `json:"cache_control,omitempty"` // Cache control for the tool
 	Annotations  *MCPToolAnnotations `json:"-"`                       // MCP tool annotations (Bifrost-internal, never forwarded to providers)
+	MCPRawTool   json.RawMessage     `json:"-"`                       // Original MCP definition for the /mcp gateway, never sent to LLM providers
+	MCPAppOnly   bool                `json:"-"`                       // MCP Apps visibility: callable by the app but hidden from the model
 
 	// Anthropic-native tool flags promoted to the neutral layer. All optional;
 	// ignored by providers that don't support them. Gating per ProviderFeatures

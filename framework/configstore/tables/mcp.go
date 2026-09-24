@@ -209,7 +209,7 @@ func (c *TableMCPClient) BeforeSave(tx *gorm.DB) error {
 	}
 
 	if c.DiscoveredTools != nil {
-		data, err := json.Marshal(c.DiscoveredTools)
+		data, err := schemas.MarshalStoredMCPTools(c.DiscoveredTools)
 		if err != nil {
 			return err
 		}
@@ -377,7 +377,8 @@ func (c *TableMCPClient) AfterFind(tx *gorm.DB) error {
 		}
 	}
 	if c.DiscoveredToolsJSON != "" {
-		if err := sonic.Unmarshal([]byte(c.DiscoveredToolsJSON), &c.DiscoveredTools); err != nil {
+		var err error
+		if c.DiscoveredTools, err = schemas.UnmarshalStoredMCPTools([]byte(c.DiscoveredToolsJSON)); err != nil {
 			return err
 		}
 	}

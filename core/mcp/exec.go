@@ -168,6 +168,12 @@ func (m *MCPManager) prepareToolExecution(ctx *schemas.BifrostContext, request *
 	if shouldSkipToolForRequest(ctx, clientName, toolName) {
 		return nil, nil, nil, fmt.Errorf("tool '%s' is not permitted (filtered by request context)", toolName)
 	}
+	m.mu.RLock()
+	tool := state.ToolMap[toolName]
+	m.mu.RUnlock()
+	if tool.MCPAppOnly && ctx.Value(schemas.BifrostContextKeyIsMCPGateway) != true {
+		return nil, nil, nil, fmt.Errorf("tool '%s' is reserved for MCP Apps", toolName)
+	}
 	// NeedsReauth is the one hard gate left besides Disabled: the credential
 	// is confirmed permanently dead (see connectToMCPClient's typed
 	// ErrOAuth2TokenExpired classification), so there's no point attempting

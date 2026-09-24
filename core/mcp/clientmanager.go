@@ -164,7 +164,7 @@ func (m *MCPManager) AcquireClientConn(ctx *schemas.BifrostContext, state *schem
 				if err != nil {
 					return fmt.Errorf("failed to create HTTP transport: %w", err)
 				}
-				tempClient = client.NewClient(httpTransport)
+				tempClient = newMCPAppClient(httpTransport)
 				if err := tempClient.Start(ctx); err != nil {
 					return err
 				}
@@ -795,7 +795,7 @@ func (m *MCPManager) VerifyPerUserOAuthConnection(ctx context.Context, config *s
 		if hErr != nil {
 			return nil, fmt.Errorf("failed to create HTTP transport for verification: %w", hErr)
 		}
-		tempClient = client.NewClient(httpTransport)
+		tempClient = newMCPAppClient(httpTransport)
 		if startErr := tempClient.Start(verifyCtx); startErr != nil {
 			return nil, fmt.Errorf("failed to start MCP connection for verification: %w", startErr)
 		}
@@ -966,7 +966,7 @@ func (m *MCPManager) VerifyHeadersConnection(ctx context.Context, config *schema
 		if hErr != nil {
 			return nil, fmt.Errorf("failed to create HTTP transport for verification: %w", hErr)
 		}
-		tempClient = client.NewClient(httpTransport)
+		tempClient = newMCPAppClient(httpTransport)
 		if startErr := tempClient.Start(verifyCtx); startErr != nil {
 			return nil, fmt.Errorf("failed to start MCP connection for verification: %w", startErr)
 		}
@@ -2784,7 +2784,7 @@ func (m *MCPManager) createHTTPConnection(ctx context.Context, config *schemas.M
 		Type:          config.ConnectionType,
 		ConnectionURL: &url,
 	}
-	return client.NewClient(httpTransport), connectionInfo, nil
+	return newMCPAppClient(httpTransport), connectionInfo, nil
 }
 
 // createSTDIOConnection creates a STDIO-based MCP client connection without holding locks.
@@ -2833,7 +2833,7 @@ func (m *MCPManager) createSTDIOConnection(_ context.Context, config *schemas.MC
 	}
 
 	// Return nil for cmd since mark3labs/mcp-go manages the process internally
-	return client.NewClient(stdioTransport), connectionInfo, nil
+	return newMCPAppClient(stdioTransport), connectionInfo, nil
 }
 
 // createSSEConnection creates a SSE-based MCP client connection without holding locks.
@@ -2890,7 +2890,7 @@ func (m *MCPManager) createSSEConnection(ctx context.Context, config *schemas.MC
 		Type:          config.ConnectionType,
 		ConnectionURL: &url,
 	}
-	return client.NewClient(sseTransport), connectionInfo, nil
+	return newMCPAppClient(sseTransport), connectionInfo, nil
 }
 
 // createInProcessConnection creates an in-process MCP client connection without holding locks.

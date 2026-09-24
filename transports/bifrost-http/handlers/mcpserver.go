@@ -174,9 +174,22 @@ func (h *MCPServerHandler) handleMCPServer(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
+	requestBody := ctx.PostBody()
+	var appAliases map[string]mcpAppToolAlias
+	if _, ok := h.toolManager.(MCPAppManager); ok {
+		var request struct {
+			Method string `json:"method"`
+		}
+		if sonic.Unmarshal(requestBody, &request) == nil && (request.Method == "tools/list" || request.Method == "tools/call") {
+			appAliases = collectMCPAppAliases(h.toolManager.GetAvailableMCPTools(bifrostCtx))
+			if request.Method == "tools/call" {
+				requestBody = resolveMCPAppCallAlias(requestBody, appAliases)
+			}
+		}
+	}
 	// Use mcp-go server to handle the request
 	// HandleMessage processes JSON-RPC messages and returns appropriate responses
-	response := mcpServer.HandleMessage(bifrostCtx, ctx.PostBody())
+	response := mcpServer.HandleMessage(bifrostCtx, requestBody)
 
 	// Check if response is nil (notification - no response needed)
 	if response == nil {
@@ -190,6 +203,10 @@ func (h *MCPServerHandler) handleMCPServer(ctx *fasthttp.RequestCtx) {
 		logger.Warn(fmt.Sprintf("Failed to marshal MCP response: %v", err))
 		SendError(ctx, fasthttp.StatusInternalServerError, fmt.Sprintf("Failed to encode response: %v", err))
 		return
+	}
+	if _, ok := h.toolManager.(MCPAppManager); ok {
+		responseJSON = addMCPAppInitializeCapability(ctx.PostBody(), responseJSON)
+		responseJSON = addMCPAppAliasesToList(ctx.PostBody(), responseJSON, appAliases)
 	}
 
 	ctx.SetContentType("application/json")
@@ -354,11 +371,35 @@ func (h *MCPServerHandler) server() *server.MCPServer {
 // about the caller: what a request may see and call rides on its context, and both the tool filter
 // and the executor read it from there.
 func (h *MCPServerHandler) buildServer(availableTools []schemas.ChatTool) *server.MCPServer {
+	appManager, appsSupported := h.toolManager.(MCPAppManager)
+	options := []server.ServerOption{server.WithToolCapabilities(true)}
+	if appsSupported {
+		options = append(options, server.WithResourceCapabilities(false, false))
+	}
 	mcpServer := server.NewMCPServer(
 		mcpServerName,
 		version,
-		server.WithToolCapabilities(true),
+		options...,
 	)
+	resources := make(map[string]*mcpAppResourceRoute)
+	if appsSupported {
+		mcpServer.AddResourceTemplate(mcp.NewResourceTemplate("ui://bifrost/{client}/{resource}", "Bifrost MCP App", mcp.WithTemplateMIMEType(mcpAppMIME)),
+			func(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+				route := resources[request.Params.URI]
+				if route == nil {
+					return nil, fmt.Errorf("app resource is not available")
+				}
+				var lastErr error
+				for _, toolName := range route.toolNames {
+					result, err := appManager.ReadMCPAppResource(ctx, toolName, route.originalURI)
+					if err == nil && result != nil {
+						return rewriteMCPAppContents(result.Contents, request.Params.URI), nil
+					}
+					lastErr = err
+				}
+				return nil, fmt.Errorf("app resource is not permitted: %v", lastErr)
+			})
+	}
 	// Per-request tool filter so tools/list answers with what this request may see.
 	server.WithToolFilter(h.makeIncludeClientsFilter())(mcpServer)
 
@@ -374,6 +415,9 @@ func (h *MCPServerHandler) buildServer(availableTools []schemas.ChatTool) *serve
 
 		handler := func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			logger.Debug("[mcp-server] tool handler start tool=%q arg_count=%d", toolName, len(request.GetArguments()))
+			if bifrostCtx, ok := ctx.(*schemas.BifrostContext); ok && request.Params.Meta != nil {
+				bifrostCtx.SetValue(schemas.MCPContextKeyToolCallMeta, request.Params.Meta)
+			}
 			// Convert to Bifrost tool call format
 			toolCallType := "function"
 			toolCallID := fmt.Sprintf("mcp-%s", toolName)
@@ -391,31 +435,17 @@ func (h *MCPServerHandler) buildServer(availableTools []schemas.ChatTool) *serve
 			}
 
 			// Execute the tool via tool executor
+			if appsSupported && len(tool.MCPRawTool) > 0 {
+				result, nativeErr := appManager.ExecuteNativeMCPTool(ctx, &toolCall)
+				if nativeErr != nil {
+					return mcpToolFailureResult(nativeErr), nil
+				}
+				return result, nil
+			}
 			toolMessage, err := h.toolManager.ExecuteChatMCPTool(ctx, &toolCall)
 			if err != nil {
 				logger.Debug("[mcp-server] tool handler error tool=%q error=%s", toolName, bifrost.GetErrorMessage(err))
-				if authReq := err.ExtraFields.MCPAuthRequired; authReq != nil {
-					// Two surfaces share this error: per-user OAuth uses
-					// AuthorizeURL (the upstream provider's authorize page);
-					// per-user headers uses SubmitURL (the workspace landing
-					// page where the user submits their header values).
-					// Pick whichever Kind populated.
-					url := authReq.AuthorizeURL
-					action := "connect your account"
-					if authReq.Kind == schemas.MCPAuthRequiredKindHeaders {
-						url = authReq.SubmitURL
-						action = "submit the required headers"
-					}
-					message := fmt.Sprintf(
-						"Authentication required for %s. Open this URL to %s: %s",
-						authReq.MCPClientName, action, url,
-					)
-					if schemas.MCPAuthURLHasTempTokenFragment(url) {
-						message += schemas.MCPAuthTempTokenReminder
-					}
-					return mcp.NewToolResultError(message), nil
-				}
-				return mcp.NewToolResultError(fmt.Sprintf("Tool execution failed: %v", bifrost.GetErrorMessage(err))), nil
+				return mcpToolFailureResult(err), nil
 			}
 			logger.Debug("[mcp-server] tool handler success tool=%q", toolName)
 
@@ -460,14 +490,45 @@ func (h *MCPServerHandler) buildServer(availableTools []schemas.ChatTool) *serve
 		}
 
 		// Register tool with the server
-		mcpServer.AddTool(mcp.Tool{
+		published := mcp.Tool{
 			Name:        toolName,
 			Description: description,
 			InputSchema: inputSchema,
 			Annotations: toolAnnotation,
-		}, handler)
+		}
+		if appsSupported && len(tool.MCPRawTool) > 0 {
+			if original, sourceURI, publicURI, err := rewriteMCPAppTool(tool.MCPRawTool, toolName); err == nil {
+				published = original
+				if publicURI != "" {
+					route := resources[publicURI]
+					if route == nil {
+						route = &mcpAppResourceRoute{originalURI: sourceURI}
+						resources[publicURI] = route
+					}
+					route.toolNames = append(route.toolNames, toolName)
+				}
+			}
+		}
+		mcpServer.AddTool(published, handler)
 	}
 	return mcpServer
+}
+
+func mcpToolFailureResult(err *schemas.BifrostError) *mcp.CallToolResult {
+	if authReq := err.ExtraFields.MCPAuthRequired; authReq != nil {
+		url := authReq.AuthorizeURL
+		action := "connect your account"
+		if authReq.Kind == schemas.MCPAuthRequiredKindHeaders {
+			url = authReq.SubmitURL
+			action = "submit the required headers"
+		}
+		message := fmt.Sprintf("Authentication required for %s. Open this URL to %s: %s", authReq.MCPClientName, action, url)
+		if schemas.MCPAuthURLHasTempTokenFragment(url) {
+			message += schemas.MCPAuthTempTokenReminder
+		}
+		return mcp.NewToolResultError(message)
+	}
+	return mcp.NewToolResultError(fmt.Sprintf("Tool execution failed: %v", bifrost.GetErrorMessage(err)))
 }
 
 // makeIncludeClientsFilter returns a ToolFilterFunc that narrows tools/list to what the request's
