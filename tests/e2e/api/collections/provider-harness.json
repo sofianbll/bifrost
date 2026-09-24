@@ -166866,17 +166866,17 @@
       ]
     },
     {
-      "name": "112. MCP Apps initialize extension (mcp-apps)",
+      "name": "112. MCP Apps Excalidraw (mcp-apps)",
       "item": [
         {
-          "name": "MCP Apps capability advertised on /mcp",
+          "name": "[PREVIEW] Excalidraw initialize UI extension (mcp-apps)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('MCP Apps extension advertised', function () {",
+                  "pm.test('Excalidraw MCP Apps extension advertised', function () {",
                   "  pm.expect(pm.response.code, pm.response.text()).to.equal(200);",
                   "  var body = pm.response.json();",
                   "  pm.expect(body.result, pm.response.text()).to.be.an('object');",
@@ -166907,17 +166907,263 @@
               "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-06-18\",\"capabilities\":{\"extensions\":{\"io.modelcontextprotocol/ui\":{\"mimeTypes\":[\"text/html;profile=mcp-app\"]}}},\"clientInfo\":{\"name\":\"bifrost-harness\",\"version\":\"1.0\"}}}"
             },
             "url": {
-              "raw": "{{baseUrl}}/mcp",
+              "raw": "{{baseUrl}}/mcp/excalidraw",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
-                "mcp"
+                "mcp",
+                "excalidraw"
+              ]
+            }
+          }
+        },
+        {
+          "name": "[PREVIEW] Excalidraw tools/list UI metadata (mcp-apps)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Excalidraw create_view and private callback are published', function () {",
+                  "  pm.expect(pm.response.code, pm.response.text()).to.equal(200);",
+                  "  var b = pm.response.json();",
+                  "  var tools = (b.result || {}).tools || [];",
+                  "  var view = tools.find(function (t) { return t.name === 'create_view'; });",
+                  "  var save = tools.find(function (t) { return t.name === 'save_checkpoint'; });",
+                  "  pm.expect(view, pm.response.text()).to.be.an('object');",
+                  "  pm.expect(view._meta.ui.resourceUri).to.match(/^ui:\\/\\//);",
+                  "  pm.expect(save, pm.response.text()).to.be.an('object');",
+                  "  pm.expect(save._meta.ui.visibility).to.include('app');",
+                  "  pm.collectionVariables.set('mcpAppsResourceUri', view._meta.ui.resourceUri);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\",\"params\":{}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp/excalidraw",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp",
+                "excalidraw"
+              ]
+            }
+          }
+        },
+        {
+          "name": "[PREVIEW] Excalidraw resources/read app HTML (mcp-apps)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Excalidraw app HTML and MIME are relayed', function () {",
+                  "  pm.expect(pm.response.code, pm.response.text()).to.equal(200);",
+                  "  var b = pm.response.json();",
+                  "  var content = ((b.result || {}).contents || [])[0];",
+                  "  pm.expect(content, pm.response.text()).to.be.an('object');",
+                  "  pm.expect(content.uri).to.equal(pm.collectionVariables.get('mcpAppsResourceUri'));",
+                  "  pm.expect(content.mimeType).to.equal('text/html;profile=mcp-app');",
+                  "  pm.expect(content.text).to.be.a('string').that.is.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"resources/read\",\"params\":{\"uri\":\"{{mcpAppsResourceUri}}\"}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp/excalidraw",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp",
+                "excalidraw"
+              ]
+            }
+          }
+        },
+        {
+          "name": "[PREVIEW] Excalidraw create_view structured checkpoint (mcp-apps)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Excalidraw checkpoint remains structured', function () {",
+                  "  pm.expect(pm.response.code, pm.response.text()).to.equal(200);",
+                  "  var b = pm.response.json();",
+                  "  var result = b.result || {};",
+                  "  pm.expect(result.isError, pm.response.text()).to.not.equal(true);",
+                  "  pm.expect(result.content, pm.response.text()).to.be.an('array').that.is.not.empty;",
+                  "  pm.expect(result.structuredContent.checkpointId, pm.response.text()).to.be.a('string').that.is.not.empty;",
+                  "  pm.collectionVariables.set('mcpAppsCheckpointId', result.structuredContent.checkpointId);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":4,\"method\":\"tools/call\",\"params\":{\"name\":\"create_view\",\"arguments\":{\"elements\":\"[]\"}}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp/excalidraw",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp",
+                "excalidraw"
+              ]
+            }
+          }
+        },
+        {
+          "name": "[PREVIEW] Excalidraw save_checkpoint callback (mcp-apps)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Excalidraw edit callback accepts the original name', function () {",
+                  "  pm.expect(pm.response.code, pm.response.text()).to.equal(200);",
+                  "  var b = pm.response.json();",
+                  "  pm.expect(b.result, pm.response.text()).to.be.an('object');",
+                  "  pm.expect(b.result.isError, pm.response.text()).to.not.equal(true);",
+                  "  pm.expect(b.result.content, pm.response.text()).to.be.an('array').that.is.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":5,\"method\":\"tools/call\",\"params\":{\"name\":\"save_checkpoint\",\"arguments\":{\"id\":\"{{mcpAppsCheckpointId}}\",\"data\":\"[]\"}}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp/excalidraw",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp",
+                "excalidraw"
+              ]
+            }
+          }
+        },
+        {
+          "name": "[PREVIEW] Excalidraw read_checkpoint callback (mcp-apps)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Excalidraw app callback is callable by its original name', function () {",
+                  "  pm.expect(pm.response.code, pm.response.text()).to.equal(200);",
+                  "  var b = pm.response.json();",
+                  "  pm.expect(b.result, pm.response.text()).to.be.an('object');",
+                  "  pm.expect(b.result.isError, pm.response.text()).to.not.equal(true);",
+                  "  pm.expect(b.result.content, pm.response.text()).to.be.an('array').that.is.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":6,\"method\":\"tools/call\",\"params\":{\"name\":\"read_checkpoint\",\"arguments\":{\"id\":\"{{mcpAppsCheckpointId}}\"}}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp/excalidraw",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp",
+                "excalidraw"
               ]
             }
           }
         }
-      ]
+      ],
+      "description": "Optional live MCP Apps contract against Excalidraw configured as the direct MCP client named excalidraw in Bifrost. Run only with FEATURE=mcp-apps and include_preview=1 after configuring that client with Code Mode disabled. The normal provider profile does not include Excalidraw."
     }
   ]
 }

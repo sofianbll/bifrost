@@ -171,7 +171,7 @@ func (m *MCPManager) prepareToolExecution(ctx *schemas.BifrostContext, request *
 	m.mu.RLock()
 	tool := state.ToolMap[toolName]
 	m.mu.RUnlock()
-	if tool.MCPAppOnly && ctx.Value(schemas.BifrostContextKeyIsMCPGateway) != true {
+	if tool.MCPAppOnly && ctx.Value(schemas.MCPContextKeyAllowAppOnly) != true {
 		return nil, nil, nil, fmt.Errorf("tool '%s' is reserved for MCP Apps", toolName)
 	}
 	// NeedsReauth is the one hard gate left besides Disabled: the credential

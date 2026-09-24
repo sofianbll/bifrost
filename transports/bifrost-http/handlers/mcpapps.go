@@ -30,6 +30,35 @@ type mcpAppToolAlias struct {
 	tool       mcp.Tool
 }
 
+// An app iframe sees every tool on its MCP connection. Keep that connection
+// scoped to one upstream before exposing UI or app-only callbacks.
+func singleMCPAppSource(tools []schemas.ChatTool) bool {
+	clientName := ""
+	for _, tool := range tools {
+		if tool.Function == nil {
+			continue
+		}
+		if len(tool.MCPRawTool) == 0 {
+			return false
+		}
+		var original mcp.Tool
+		if json.Unmarshal(tool.MCPRawTool, &original) != nil {
+			return false
+		}
+		current, ok := mcpAppClientName(tool.Function.Name, original.Name)
+		if !ok || (clientName != "" && clientName != current) {
+			return false
+		}
+		clientName = current
+	}
+	return clientName != ""
+}
+
+func mcpAppClientName(publicToolName, originalToolName string) (string, bool) {
+	clientName := strings.TrimSuffix(publicToolName, "-"+originalToolName)
+	return clientName, originalToolName != "" && clientName != "" && clientName != publicToolName
+}
+
 // Aliases are derived from the caller's admitted tools, so equal callback
 // names in different upstream apps work on their separate /mcp/<slug> routes.
 func collectMCPAppAliases(tools []schemas.ChatTool) map[string]mcpAppToolAlias {
@@ -103,7 +132,7 @@ func resolveMCPAppCallAlias(requestBody []byte, aliases map[string]mcpAppToolAli
 	return updated
 }
 
-func addMCPAppAliasesToList(requestBody, responseBody []byte, aliases map[string]mcpAppToolAlias, tools []schemas.ChatTool) []byte {
+func addMCPAppAliasesToList(requestBody, responseBody []byte, aliases map[string]mcpAppToolAlias, appSafe bool) []byte {
 	var request struct {
 		Method string `json:"method"`
 	}
@@ -122,43 +151,12 @@ func addMCPAppAliasesToList(requestBody, responseBody []byte, aliases map[string
 	if !ok {
 		return responseBody
 	}
-	// A bare callback name cannot identify its source when two upstream apps
-	// share it. Their dedicated /mcp/<slug> routes remain fully interactive;
-	// the aggregate route must not advertise a UI with broken callbacks.
-	byName := make(map[string][]string)
-	byClient := make(map[string][]string)
-	for _, tool := range tools {
-		if tool.Function == nil || len(tool.MCPRawTool) == 0 {
-			continue
-		}
-		_, sourceURI, _, err := rewriteMCPAppTool(tool.MCPRawTool, tool.Function.Name)
-		if err != nil || (!tool.MCPAppOnly && sourceURI == "") {
-			continue
-		}
-		var original mcp.Tool
-		if json.Unmarshal(tool.MCPRawTool, &original) != nil {
-			continue
-		}
-		clientName := strings.TrimSuffix(tool.Function.Name, "-"+original.Name)
-		byName[original.Name] = append(byName[original.Name], clientName)
-		byClient[clientName] = append(byClient[clientName], tool.Function.Name)
-	}
-	blocked := make(map[string]bool)
-	for _, clients := range byName {
-		if len(clients) > 1 {
-			for _, clientName := range clients {
-				for _, publicName := range byClient[clientName] {
-					blocked[publicName] = true
-				}
-			}
-		}
-	}
 	listedNames := make(map[string]bool, len(listed))
 	for _, item := range listed {
 		if tool, ok := item.(map[string]any); ok {
 			if name, ok := tool["name"].(string); ok {
 				listedNames[name] = true
-				if blocked[name] {
+				if !appSafe {
 					if meta, ok := tool["_meta"].(map[string]any); ok {
 						if ui, ok := meta["ui"].(map[string]any); ok {
 							delete(ui, "resourceUri")
@@ -167,6 +165,9 @@ func addMCPAppAliasesToList(requestBody, responseBody []byte, aliases map[string
 				}
 			}
 		}
+	}
+	if !appSafe {
+		aliases = nil
 	}
 	names := make([]string, 0, len(aliases))
 	for name := range aliases {
@@ -199,8 +200,8 @@ func rewriteMCPAppTool(raw json.RawMessage, publicToolName string) (mcp.Tool, st
 	if err := json.Unmarshal(raw, &tool); err != nil {
 		return tool, "", "", err
 	}
-	clientName := strings.TrimSuffix(publicToolName, "-"+tool.Name)
-	if clientName == publicToolName || clientName == "" {
+	clientName, ok := mcpAppClientName(publicToolName, tool.Name)
+	if !ok {
 		return tool, "", "", fmt.Errorf("tool name does not match its MCP client")
 	}
 	tool.Name = publicToolName
@@ -236,7 +237,10 @@ func rewriteMCPAppContents(contents []mcp.ResourceContents, publicURI string) []
 
 // mcp-go v0.43.2 has no extensions field on InitializeResult. Preserve the
 // pinned SDK and add the standard MCP Apps capability to its wire response.
-func addMCPAppInitializeCapability(requestBody, responseBody []byte) []byte {
+func addMCPAppInitializeCapability(requestBody, responseBody []byte, appSafe bool) []byte {
+	if !appSafe {
+		return responseBody
+	}
 	var request struct {
 		Method string `json:"method"`
 		Params struct {

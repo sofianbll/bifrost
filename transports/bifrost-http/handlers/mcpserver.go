@@ -176,13 +176,15 @@ func (h *MCPServerHandler) handleMCPServer(ctx *fasthttp.RequestCtx) {
 
 	requestBody := ctx.PostBody()
 	var appAliases map[string]mcpAppToolAlias
-	var appTools []schemas.ChatTool
+	appSafe := false
 	if _, ok := h.toolManager.(MCPAppManager); ok {
+		appTools := h.toolManager.GetAvailableMCPTools(bifrostCtx)
+		appSafe = singleMCPAppSource(appTools)
+		bifrostCtx.SetValue(schemas.MCPContextKeyAllowAppOnly, appSafe)
 		var request struct {
 			Method string `json:"method"`
 		}
-		if sonic.Unmarshal(requestBody, &request) == nil && (request.Method == "tools/list" || request.Method == "tools/call") {
-			appTools = h.toolManager.GetAvailableMCPTools(bifrostCtx)
+		if appSafe && sonic.Unmarshal(requestBody, &request) == nil && (request.Method == "tools/list" || request.Method == "tools/call") {
 			appAliases = collectMCPAppAliases(appTools)
 			if request.Method == "tools/call" {
 				requestBody = resolveMCPAppCallAlias(requestBody, appAliases)
@@ -207,8 +209,8 @@ func (h *MCPServerHandler) handleMCPServer(ctx *fasthttp.RequestCtx) {
 		return
 	}
 	if _, ok := h.toolManager.(MCPAppManager); ok {
-		responseJSON = addMCPAppInitializeCapability(ctx.PostBody(), responseJSON)
-		responseJSON = addMCPAppAliasesToList(ctx.PostBody(), responseJSON, appAliases, appTools)
+		responseJSON = addMCPAppInitializeCapability(ctx.PostBody(), responseJSON, appSafe)
+		responseJSON = addMCPAppAliasesToList(ctx.PostBody(), responseJSON, appAliases, appSafe)
 	}
 
 	ctx.SetContentType("application/json")
@@ -387,6 +389,9 @@ func (h *MCPServerHandler) buildServer(availableTools []schemas.ChatTool) *serve
 	if appsSupported {
 		mcpServer.AddResourceTemplate(mcp.NewResourceTemplate("ui://bifrost/{client}/{resource}", "Bifrost MCP App", mcp.WithTemplateMIMEType(mcpAppMIME)),
 			func(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+				if ctx.Value(schemas.MCPContextKeyAllowAppOnly) != true {
+					return nil, fmt.Errorf("app resource is not available")
+				}
 				route := resources[request.Params.URI]
 				if route == nil {
 					return nil, fmt.Errorf("app resource is not available")
@@ -537,13 +542,14 @@ func mcpToolFailureResult(err *schemas.BifrostError) *mcp.CallToolResult {
 // same key. When the context carries neither the filter is a no-op.
 func (h *MCPServerHandler) makeIncludeClientsFilter() server.ToolFilterFunc {
 	return func(ctx context.Context, tools []mcp.Tool) []mcp.Tool {
-		if ctx.Value(schemas.MCPContextKeyIncludeClients) == nil && ctx.Value(schemas.MCPContextKeyIncludeTools) == nil {
+		appSafe := ctx.Value(schemas.MCPContextKeyAllowAppOnly) == true
+		if appSafe && ctx.Value(schemas.MCPContextKeyIncludeClients) == nil && ctx.Value(schemas.MCPContextKeyIncludeTools) == nil {
 			return tools
 		}
 		allowed := h.toolManager.GetAvailableMCPTools(ctx)
 		allowedNames := make(map[string]bool, len(allowed))
 		for _, t := range allowed {
-			if t.Function != nil {
+			if t.Function != nil && (appSafe || !t.MCPAppOnly) {
 				allowedNames[t.Function.Name] = true
 			}
 		}
