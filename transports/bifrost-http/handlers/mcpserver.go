@@ -176,12 +176,14 @@ func (h *MCPServerHandler) handleMCPServer(ctx *fasthttp.RequestCtx) {
 
 	requestBody := ctx.PostBody()
 	var appAliases map[string]mcpAppToolAlias
+	var appTools []schemas.ChatTool
 	if _, ok := h.toolManager.(MCPAppManager); ok {
 		var request struct {
 			Method string `json:"method"`
 		}
 		if sonic.Unmarshal(requestBody, &request) == nil && (request.Method == "tools/list" || request.Method == "tools/call") {
-			appAliases = collectMCPAppAliases(h.toolManager.GetAvailableMCPTools(bifrostCtx))
+			appTools = h.toolManager.GetAvailableMCPTools(bifrostCtx)
+			appAliases = collectMCPAppAliases(appTools)
 			if request.Method == "tools/call" {
 				requestBody = resolveMCPAppCallAlias(requestBody, appAliases)
 			}
@@ -206,7 +208,7 @@ func (h *MCPServerHandler) handleMCPServer(ctx *fasthttp.RequestCtx) {
 	}
 	if _, ok := h.toolManager.(MCPAppManager); ok {
 		responseJSON = addMCPAppInitializeCapability(ctx.PostBody(), responseJSON)
-		responseJSON = addMCPAppAliasesToList(ctx.PostBody(), responseJSON, appAliases)
+		responseJSON = addMCPAppAliasesToList(ctx.PostBody(), responseJSON, appAliases, appTools)
 	}
 
 	ctx.SetContentType("application/json")
@@ -389,15 +391,13 @@ func (h *MCPServerHandler) buildServer(availableTools []schemas.ChatTool) *serve
 				if route == nil {
 					return nil, fmt.Errorf("app resource is not available")
 				}
-				var lastErr error
 				for _, toolName := range route.toolNames {
 					result, err := appManager.ReadMCPAppResource(ctx, toolName, route.originalURI)
 					if err == nil && result != nil {
 						return rewriteMCPAppContents(result.Contents, request.Params.URI), nil
 					}
-					lastErr = err
 				}
-				return nil, fmt.Errorf("app resource is not permitted: %v", lastErr)
+				return nil, fmt.Errorf("app resource is not available")
 			})
 	}
 	// Per-request tool filter so tools/list answers with what this request may see.

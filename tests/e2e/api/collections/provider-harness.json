@@ -155,6 +155,9 @@
           "    } else if (typeof j.text === 'string' && !j.choices && !j.candidates && !j.output) {",
           "        shape = 'audio-transcription';",
           "        hasContent = j.text.length > 0;",
+          "    } else if (j.jsonrpc === '2.0' && j.result && j.result.capabilities) {",
+          "        shape = 'mcp-initialize';",
+          "        hasContent = true;",
           "    } else if (Array.isArray(j.data)) {",
           "        shape = 'list-data';",
           "        hasContent = j.data.length >= 0;",
@@ -166856,6 +166859,60 @@
               "path": [
                 "v1",
                 "responses"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "112. MCP Apps initialize extension (mcp-apps)",
+      "item": [
+        {
+          "name": "MCP Apps capability advertised on /mcp",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('MCP Apps extension advertised', function () {",
+                  "  pm.expect(pm.response.code, pm.response.text()).to.equal(200);",
+                  "  var body = pm.response.json();",
+                  "  pm.expect(body.result, pm.response.text()).to.be.an('object');",
+                  "  var caps = body.result.capabilities || {};",
+                  "  var ui = (caps.extensions || {})['io.modelcontextprotocol/ui'];",
+                  "  pm.expect(ui, pm.response.text()).to.be.an('object');",
+                  "  pm.expect(ui.mimeTypes).to.include('text/html;profile=mcp-app');",
+                  "  pm.expect(caps.resources, pm.response.text()).to.be.an('object');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-06-18\",\"capabilities\":{\"extensions\":{\"io.modelcontextprotocol/ui\":{\"mimeTypes\":[\"text/html;profile=mcp-app\"]}}},\"clientInfo\":{\"name\":\"bifrost-harness\",\"version\":\"1.0\"}}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp"
               ]
             }
           }

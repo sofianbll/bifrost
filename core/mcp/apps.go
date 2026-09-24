@@ -33,9 +33,12 @@ func (t appTransport) SendRequest(ctx context.Context, request transport.JSONRPC
 			capabilities = make(map[string]any)
 			params["capabilities"] = capabilities
 		}
-		capabilities["extensions"] = map[string]any{
-			"io.modelcontextprotocol/ui": map[string]any{"mimeTypes": []string{mcpAppMIME}},
+		extensions, ok := capabilities["extensions"].(map[string]any)
+		if !ok {
+			extensions = make(map[string]any)
+			capabilities["extensions"] = extensions
 		}
+		extensions["io.modelcontextprotocol/ui"] = map[string]any{"mimeTypes": []string{mcpAppMIME}}
 		request.Params = params
 	}
 	return t.Interface.SendRequest(ctx, request)

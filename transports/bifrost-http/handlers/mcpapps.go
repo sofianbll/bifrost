@@ -103,10 +103,7 @@ func resolveMCPAppCallAlias(requestBody []byte, aliases map[string]mcpAppToolAli
 	return updated
 }
 
-func addMCPAppAliasesToList(requestBody, responseBody []byte, aliases map[string]mcpAppToolAlias) []byte {
-	if len(aliases) == 0 {
-		return responseBody
-	}
+func addMCPAppAliasesToList(requestBody, responseBody []byte, aliases map[string]mcpAppToolAlias, tools []schemas.ChatTool) []byte {
 	var request struct {
 		Method string `json:"method"`
 	}
@@ -125,11 +122,49 @@ func addMCPAppAliasesToList(requestBody, responseBody []byte, aliases map[string
 	if !ok {
 		return responseBody
 	}
+	// A bare callback name cannot identify its source when two upstream apps
+	// share it. Their dedicated /mcp/<slug> routes remain fully interactive;
+	// the aggregate route must not advertise a UI with broken callbacks.
+	byName := make(map[string][]string)
+	byClient := make(map[string][]string)
+	for _, tool := range tools {
+		if tool.Function == nil || len(tool.MCPRawTool) == 0 {
+			continue
+		}
+		_, sourceURI, _, err := rewriteMCPAppTool(tool.MCPRawTool, tool.Function.Name)
+		if err != nil || (!tool.MCPAppOnly && sourceURI == "") {
+			continue
+		}
+		var original mcp.Tool
+		if json.Unmarshal(tool.MCPRawTool, &original) != nil {
+			continue
+		}
+		clientName := strings.TrimSuffix(tool.Function.Name, "-"+original.Name)
+		byName[original.Name] = append(byName[original.Name], clientName)
+		byClient[clientName] = append(byClient[clientName], tool.Function.Name)
+	}
+	blocked := make(map[string]bool)
+	for _, clients := range byName {
+		if len(clients) > 1 {
+			for _, clientName := range clients {
+				for _, publicName := range byClient[clientName] {
+					blocked[publicName] = true
+				}
+			}
+		}
+	}
 	listedNames := make(map[string]bool, len(listed))
 	for _, item := range listed {
 		if tool, ok := item.(map[string]any); ok {
 			if name, ok := tool["name"].(string); ok {
 				listedNames[name] = true
+				if blocked[name] {
+					if meta, ok := tool["_meta"].(map[string]any); ok {
+						if ui, ok := meta["ui"].(map[string]any); ok {
+							delete(ui, "resourceUri")
+						}
+					}
+				}
 			}
 		}
 	}
@@ -204,8 +239,16 @@ func rewriteMCPAppContents(contents []mcp.ResourceContents, publicURI string) []
 func addMCPAppInitializeCapability(requestBody, responseBody []byte) []byte {
 	var request struct {
 		Method string `json:"method"`
+		Params struct {
+			Capabilities struct {
+				Extensions map[string]struct {
+					MIMETypes []string `json:"mimeTypes"`
+				} `json:"extensions"`
+			} `json:"capabilities"`
+		} `json:"params"`
 	}
-	if json.Unmarshal(requestBody, &request) != nil || request.Method != "initialize" {
+	if json.Unmarshal(requestBody, &request) != nil || request.Method != "initialize" ||
+		!slices.Contains(request.Params.Capabilities.Extensions["io.modelcontextprotocol/ui"].MIMETypes, mcpAppMIME) {
 		return responseBody
 	}
 	var response map[string]any

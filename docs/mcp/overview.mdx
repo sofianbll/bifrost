@@ -135,6 +135,14 @@ This feature is only available in the **Gateway** deployment. It is not availabl
 
 Bifrost can act as an **MCP server**, exposing all your connected MCP tools to external MCP clients like Claude Desktop, Cursor, or any other MCP-compatible application.
 
+### MCP Apps
+
+When the host supports [MCP Apps](https://modelcontextprotocol.io/extensions/apps/overview), Bifrost relays an upstream tool's `_meta.ui`, its `ui://` HTML resource, and its complete tool result (including `structuredContent`). The host renders the UI; Bifrost serves its MCP resource and forwards app callbacks through the existing tool permissions. A host without MCP Apps still receives the tool's text result.
+
+Connect the app server as an ordinary MCP client with **Code Mode disabled** and grant its tools to the caller's Virtual Key. For Excalidraw, a host can connect to Bifrost at `/mcp/excalidraw` (the client's endpoint slug). This route keeps the app's original callback names, such as `read_checkpoint`, scoped to that client. The aggregate `/mcp` route also works while those names are unique. If two connected apps use the same callback name, Bifrost omits their UI references on `/mcp`; connect each app through its dedicated `/mcp/<slug>` route instead. These routes are all served by Bifrost.
+
+The Virtual Key's `mcp_configs` allowlist applies to tool calls and UI resource reads. The MCP Apps host must advertise `io.modelcontextprotocol/ui` with `text/html;profile=mcp-app` in `initialize` to negotiate the extension.
+
 This enables a powerful pattern:
 - Connect Bifrost to multiple MCP servers (filesystem, web search, databases, etc.)
 - Expose all those tools through a single MCP endpoint

@@ -1,12 +1,38 @@
 package schemas
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/bytedance/sonic"
 )
+
+func TestStoredMCPToolsPreserveAppMetadataAndReadLegacyRows(t *testing.T) {
+	raw := json.RawMessage(`{"name":"read_checkpoint","_meta":{"ui":{"visibility":["app"]}}}`)
+	current := map[string]ChatTool{"excalidraw-read_checkpoint": {Type: ChatToolTypeFunction, MCPRawTool: raw, MCPAppOnly: true}}
+	encoded, err := MarshalStoredMCPTools(current)
+	if err != nil {
+		t.Fatal(err)
+	}
+	decoded, err := UnmarshalStoredMCPTools(encoded)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tool := decoded["excalidraw-read_checkpoint"]
+	if !tool.MCPAppOnly || string(tool.MCPRawTool) != string(raw) {
+		t.Fatalf("app metadata lost on round-trip: %+v", tool)
+	}
+	legacy, err := json.Marshal(map[string]ChatTool{"echo": {Type: ChatToolTypeFunction}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	decoded, err = UnmarshalStoredMCPTools(legacy)
+	if err != nil || decoded["echo"].Type != ChatToolTypeFunction {
+		t.Fatalf("legacy tool row did not load: %v, %+v", err, decoded)
+	}
+}
 
 func TestMCPConfigUnmarshalToolSyncIntervalString(t *testing.T) {
 	raw := []byte(`{"tool_sync_interval":"10m"}`)
