@@ -1,0 +1,133 @@
+name: Fork Docker image
+
+on:
+  push:
+    branches: [dev]
+    tags: ['image/**']
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    if: github.repository == 'sofianbll/bifrost'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Image identity
+        id: identity
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF_TYPE" == tag ]]; then
+            tag="${GITHUB_REF_NAME#image/}"
+          else
+            tag="dev-${GITHUB_SHA:0:12}-${GITHUB_RUN_NUMBER}"
+          fi
+          [[ "$tag" =~ ^[a-z0-9_][a-z0-9_.-]{0,79}$ ]] || { echo 'Invalid image tag'; exit 1; }
+          version="$(cat transports/version)-${GITHUB_SHA:0:12}"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - uses: step-security/setup-buildx-action@f931205d68723ad9589fd2a7e2ece238bf9de341 # v4.0.0
+      - name: Build gateway and UI
+        uses: step-security/docker-build-push-action@846549baaf047e867d038826129a64d81df0f704 # v7.1.0
+        with:
+          context: .
+          file: transports/Dockerfile.local
+          platforms: linux/${{ matrix.arch }}
+          load: true
+          tags: bifrost:candidate
+          build-args: |
+            DYNAMIC=1
+            VERSION=${{ steps.identity.outputs.version }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ steps.identity.outputs.version }}
+          cache-from: type=gha,scope=fork-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=fork-${{ matrix.arch }}
+      - name: Run existing Go tests and compile example plugin
+        uses: step-security/docker-build-push-action@846549baaf047e867d038826129a64d81df0f704 # v7.1.0
+        with:
+          context: .
+          file: transports/Dockerfile.local
+          target: plugin-artifact
+          platforms: linux/${{ matrix.arch }}
+          outputs: type=local,dest=${{ runner.temp }}/plugin
+          build-args: |
+            DYNAMIC=1
+            VERSION=${{ steps.identity.outputs.version }}
+          cache-from: type=gha,scope=fork-${{ matrix.arch }}
+      - name: Test the image
+        env:
+          PLUGIN_DIR: ${{ runner.temp }}/plugin
+        run: bash .github/workflows/scripts/test-dynamic-image.sh bifrost:candidate "$PLUGIN_DIR/hello-world.so"
+      - uses: step-security/docker-login-action@870af644803bf9f204aed474adbad2958fec048b # v4.1.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Push the tested image without rebuilding
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: |
+          image="ghcr.io/$GITHUB_REPOSITORY:build-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-$ARCH"
+          docker tag bifrost:candidate "$image"
+          docker push "$image"
+          mkdir -p "$RUNNER_TEMP/digests"
+          docker inspect --format '{{index .RepoDigests 0}}' "$image" > "$RUNNER_TEMP/digests/$ARCH.txt"
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: digest-${{ matrix.arch }}
+          path: ${{ runner.temp }}/digests/*.txt
+          retention-days: 7
+    outputs:
+      tag: ${{ steps.identity.outputs.tag }}
+
+  publish:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      packages: write
+    steps:
+      - uses: step-security/setup-buildx-action@f931205d68723ad9589fd2a7e2ece238bf9de341 # v4.0.0
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          pattern: digest-*
+          merge-multiple: true
+          path: digests
+      - uses: step-security/docker-login-action@870af644803bf9f204aed474adbad2958fec048b # v4.1.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish multi-platform image
+        env:
+          IMAGE_TAG: ${{ needs.build.outputs.tag }}
+        run: |
+          image="ghcr.io/$GITHUB_REPOSITORY:$IMAGE_TAG"
+          docker buildx imagetools create --tag "$image" "$(cat digests/amd64.txt)" "$(cat digests/arm64.txt)"
+          docker buildx imagetools inspect "$image"
+          digest=$(docker buildx imagetools inspect "$image" --format '{{json .Manifest}}' | jq -r .digest)
+          [[ "$digest" =~ ^sha256:[a-f0-9]{64}$ ]]
+          {
+            echo '### Published image (AMD64 + ARM64)'
+            echo "\`$image\`"
+            echo 'Pin this exact image in Compose:'
+            echo "\`ghcr.io/$GITHUB_REPOSITORY@$digest\`"
+            echo "Source commit: \`$GITHUB_SHA\`"
+          } >> "$GITHUB_STEP_SUMMARY"

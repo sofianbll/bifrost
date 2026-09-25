@@ -50,18 +50,36 @@
   # Copy UI build output into transports
   COPY --from=ui-builder /app/out ./transports/bifrost-http/ui
 
-  # Build the binary with CGO enabled and static SQLite linking
+  # Static by default; DYNAMIC=1 enables loading custom Go plugins (.so).
   ARG VERSION=unknown
+  ARG DYNAMIC=0
   RUN cd /build/transports && \
+    case "$DYNAMIC" in \
+      0) set -- -tags sqlite_static -ldflags="-w -s -X main.Version=v${VERSION} -extldflags '-static'" ;; \
+      1) set -- -ldflags="-w -s -X main.Version=v${VERSION}" ;; \
+      *) echo 'DYNAMIC must be 0 or 1' >&2; exit 1 ;; \
+    esac && \
     go build \
-      -ldflags="-w -s -X main.Version=v${VERSION} -extldflags '-static'" \
-      -a -trimpath \
-      -tags "sqlite_static" \
+      -a -trimpath "$@" \
       -o /app/main \
       ./bifrost-http
 
   # Verify build succeeded
   RUN test -f /app/main || (echo "Build failed" && exit 1)
+
+  # Opt-in CI target: existing tests and example plugin, built with the host's
+  # exact toolchain, workspace dependencies and trimpath setting.
+  FROM builder AS dynamic-check
+  RUN test "$DYNAMIC" = 1
+  RUN go test -race -count=1 -timeout=10m \
+    ./core/mcp/... ./core/schemas/... \
+    ./transports/bifrost-http/handlers/... ./transports/bifrost-http/server/...
+  COPY examples/plugins/hello-world/main.go ./transports/pluginprobe/main.go
+  RUN cd /build/transports && \
+    go build -trimpath -buildmode=plugin -o /app/hello-world.so ./pluginprobe
+
+  FROM scratch AS plugin-artifact
+  COPY --from=dynamic-check /app/hello-world.so /hello-world.so
 
   # --- Runtime Stage: Minimal runtime image ---
   FROM alpine:3.23.5@sha256:fd791d74b68913cbb027c6546007b3f0d3bc45125f797758156952bc2d6daf40
