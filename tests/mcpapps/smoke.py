@@ -83,7 +83,8 @@ def main():
         status, body = rpc("resources/list")
         observations["resources_list_error"] = body.get("error")
         if args.expect_apps:
-            check("resources/list is supported", success(status, body))
+            check("resources/list returns an array", success(status, body) and
+                  isinstance(body.get("result", {}).get("resources"), list))
             status, body = rpc("resources/templates/list")
             check("UI resource template advertised", success(status, body) and
                   "ui://bifrost/{client}/{resource}" in
@@ -128,14 +129,16 @@ def main():
             aggregate = body.get("result", {}).get("tools", [])
             check("aggregate lists both upstreams", success(status, body) and
                   all(any(t["name"].startswith(prefix) for t in aggregate) for prefix in ["excalidraw-", "second-"]))
-            check("aggregate exposes no UI or app-only callbacks", all(
-                not t.get("_meta", {}).get("ui", {}).get("resourceUri") and
-                t.get("_meta", {}).get("ui", {}).get("visibility") != ["app"] for t in aggregate))
+            check("aggregate preserves admitted UI", any(
+                t["name"] == "excalidraw-create_view" and
+                t.get("_meta", {}).get("ui", {}).get("resourceUri") for t in aggregate))
             status, body = rpc("initialize", init, path="/mcp")
-            check("aggregate does not negotiate UI", "io.modelcontextprotocol/ui" not in
+            check("aggregate negotiates UI", "io.modelcontextprotocol/ui" in
                   body.get("result", {}).get("capabilities", {}).get("extensions", {}))
             status, body = rpc("tools/call", {"name": "read_checkpoint", "arguments": {"id": checkpoint}}, path="/mcp")
-            check("aggregate rejects unscoped callback", not success(status, body))
+            callback_sources = [t for t in aggregate if t["name"].endswith("-read_checkpoint")]
+            check("aggregate routes only unambiguous callback", success(status, body) if len(callback_sources) == 1
+                  else body.get("error", {}).get("code") == -32602)
     except Exception as error:
         # Only the exception type is persisted: HTTP errors must not leak credentials.
         check("completed all probes (" + type(error).__name__ + ")", False)

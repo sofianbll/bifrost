@@ -1,0 +1,11 @@
+{
+  "checks": {
+    "ui_negotiated": true,
+    "native_ui_tool": true,
+    "callback_present": true,
+    "structured_result": true,
+    "html_resource": true
+  },
+  "passed": 5,
+  "total": 5
+}

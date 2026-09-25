@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/mark3labs/mcp-go/mcp"
+	providerUtils "github.com/maximhq/bifrost/core/providers/utils"
 	"github.com/maximhq/bifrost/core/schemas"
 )
 
@@ -30,28 +31,22 @@ type mcpAppToolAlias struct {
 	tool       mcp.Tool
 }
 
-// An app iframe sees every tool on its MCP connection. Keep that connection
-// scoped to one upstream before exposing UI or app-only callbacks.
-func singleMCPAppSource(tools []schemas.ChatTool) bool {
-	clientName := ""
+// The admitted Virtual MCP tool set is the shared authorization boundary.
+// Synthetic Code Mode tools must not disable native Apps on that connection.
+func hasMCPAppSource(tools []schemas.ChatTool) bool {
 	for _, tool := range tools {
 		if tool.Function == nil {
 			continue
 		}
 		if len(tool.MCPRawTool) == 0 {
-			return false
+			continue
 		}
-		var original mcp.Tool
-		if json.Unmarshal(tool.MCPRawTool, &original) != nil {
-			return false
+		_, uri, _, err := rewriteMCPAppTool(tool.MCPRawTool, tool.Function.Name)
+		if err == nil && uri != "" {
+			return true
 		}
-		current, ok := mcpAppClientName(tool.Function.Name, original.Name)
-		if !ok || (clientName != "" && clientName != current) {
-			return false
-		}
-		clientName = current
 	}
-	return clientName != ""
+	return false
 }
 
 func mcpAppClientName(publicToolName, originalToolName string) (string, bool) {
@@ -74,62 +69,68 @@ func collectMCPAppAliases(tools []schemas.ChatTool) map[string]mcpAppToolAlias {
 		if tool.Function == nil || len(tool.MCPRawTool) == 0 {
 			continue
 		}
-		published, sourceURI, _, err := rewriteMCPAppTool(tool.MCPRawTool, tool.Function.Name)
-		if err != nil || (!tool.MCPAppOnly && sourceURI == "") {
+		published, _, _, err := rewriteMCPAppTool(tool.MCPRawTool, tool.Function.Name)
+		if err != nil {
 			continue
 		}
 		var original mcp.Tool
-		if json.Unmarshal(tool.MCPRawTool, &original) != nil || publicNames[original.Name] {
+		if json.Unmarshal(tool.MCPRawTool, &original) != nil {
 			continue
+		}
+		// rewriteMCPAppTool decoded a fresh tool; these maps are privately owned.
+		if published.Meta == nil {
+			published.Meta = &mcp.Meta{}
+		}
+		if published.Meta.AdditionalFields == nil {
+			published.Meta.AdditionalFields = make(map[string]any)
+		}
+		ui, _ := published.Meta.AdditionalFields["ui"].(map[string]any)
+		if ui == nil {
+			ui = make(map[string]any)
+		}
+		if visibility, explicit := ui["visibility"]; explicit {
+			allowed := false
+			if targets, ok := visibility.([]any); ok {
+				for _, target := range targets {
+					allowed = allowed || target == "app"
+				}
+			}
+			if !allowed {
+				continue
+			}
 		}
 		counts[original.Name]++
 		published.Name = original.Name
-		meta := &mcp.Meta{AdditionalFields: make(map[string]any)}
-		if published.Meta != nil {
-			meta.ProgressToken = published.Meta.ProgressToken
-			for key, value := range published.Meta.AdditionalFields {
-				meta.AdditionalFields[key] = value
-			}
-		}
-		ui := map[string]any{"visibility": []string{"app"}}
-		if originalUI, ok := meta.AdditionalFields["ui"].(map[string]any); ok {
-			for key, value := range originalUI {
-				ui[key] = value
-			}
-		}
 		ui["visibility"] = []string{"app"}
-		meta.AdditionalFields["ui"] = ui
-		published.Meta = meta
+		published.Meta.AdditionalFields["ui"] = ui
 		aliases[original.Name] = mcpAppToolAlias{publicName: tool.Function.Name, tool: published}
 	}
 	for name, count := range counts {
-		if count != 1 {
-			delete(aliases, name)
+		if count != 1 || publicNames[name] {
+			// Keep a tombstone so a collision cannot fall through to another public tool.
+			aliases[name] = mcpAppToolAlias{}
 		}
 	}
 	return aliases
 }
 
-func resolveMCPAppCallAlias(requestBody []byte, aliases map[string]mcpAppToolAlias) []byte {
-	var request map[string]any
-	if json.Unmarshal(requestBody, &request) != nil || request["method"] != "tools/call" {
-		return requestBody
+func resolveMCPAppCallAlias(requestBody []byte, aliases map[string]mcpAppToolAlias) ([]byte, error) {
+	if !json.Valid(requestBody) || providerUtils.GetJSONField(requestBody, "method").String() != "tools/call" {
+		return requestBody, nil
 	}
-	params, ok := request["params"].(map[string]any)
+	alias, ok := aliases[providerUtils.GetJSONField(requestBody, "params.name").String()]
 	if !ok {
-		return requestBody
+		return requestBody, nil
 	}
-	name, _ := params["name"].(string)
-	alias, ok := aliases[name]
-	if !ok {
-		return requestBody
+	if alias.publicName == "" {
+		return nil, fmt.Errorf("ambiguous MCP App callback name; use a namespaced tool or a narrower Virtual MCP")
 	}
-	params["name"] = alias.publicName
-	updated, err := json.Marshal(request)
+	name, _ := json.Marshal(alias.publicName)
+	updated, err := providerUtils.SetRawJSONField(requestBody, "params.name", name)
 	if err != nil {
-		return requestBody
+		return requestBody, nil
 	}
-	return updated
+	return updated, nil
 }
 
 func addMCPAppAliasesToList(requestBody, responseBody []byte, aliases map[string]mcpAppToolAlias, appSafe bool) []byte {

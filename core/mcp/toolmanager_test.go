@@ -2,6 +2,8 @@ package mcp
 
 import (
 	"context"
+	"encoding/json"
+	"slices"
 	"testing"
 	"time"
 
@@ -16,7 +18,8 @@ import (
 // mockToolClientManager is a ClientManager that returns a pre-defined set of MCP tools.
 // It is used to drive ParseAndAddToolsToRequest without a real MCP server.
 type mockToolClientManager struct {
-	tools []schemas.ChatTool
+	tools    []schemas.ChatTool
+	codeMode bool
 }
 
 func (m *mockToolClientManager) GetClientByName(clientName string) *schemas.MCPClientState {
@@ -26,7 +29,7 @@ func (m *mockToolClientManager) GetClientByName(clientName string) *schemas.MCPC
 			ExecutionConfig: &schemas.MCPClientConfig{
 				ID:               "test-client",
 				Name:             "test-client",
-				IsCodeModeClient: false,
+				IsCodeModeClient: m.codeMode,
 				ToolsToExecute:   []string{"*"},
 			},
 		}
@@ -125,6 +128,59 @@ func newToolsManagerForTest(cm ClientManager) *ToolsManager {
 		nil, // oauth2Provider
 		&MockLogger{},
 	)
+}
+
+type listingCodeMode struct{ CodeMode }
+
+func (listingCodeMode) GetTools() []schemas.ChatTool {
+	return []schemas.ChatTool{makeTool("executeToolCode")}
+}
+
+func TestGatewayExposesCodeModeAppClientNatively(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		raw  string
+		app  bool
+	}{
+		{"app", `{"name":"view","_meta":{"ui":{"resourceUri":"ui://app/view"}}}`, true},
+		{"ordinary", `{"name":"view"}`, false},
+		{"invalid uri", `{"name":"view","_meta":{"ui":{"resourceUri":"https://example.com"}}}`, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			view, helper, callback := makeTool("test-client-view"), makeTool("test-client-helper"), makeTool("test-client-callback")
+			view.MCPRawTool = json.RawMessage(tc.raw)
+			callback.MCPAppOnly = true
+			cm := &mockToolClientManager{tools: []schemas.ChatTool{view, helper, callback}, codeMode: true}
+			manager := newToolsManagerForTest(cm)
+			manager.SetCodeMode(listingCodeMode{})
+			ctx := schemas.NewBifrostContext(context.Background(), schemas.NoDeadline)
+			for _, gateway := range []bool{false, true} {
+				var tools []schemas.ChatTool
+				if gateway {
+					tools = manager.GetAvailableGatewayTools(ctx)
+				} else {
+					tools = manager.GetAvailableTools(ctx)
+				}
+				names := make([]string, 0, len(tools))
+				for _, tool := range tools {
+					names = append(names, tool.Function.Name)
+				}
+				want := []string{"executeToolCode"}
+				if gateway && tc.app {
+					want = []string{"test-client-view", "test-client-helper", "test-client-callback", "executeToolCode"}
+				}
+				if !slices.Equal(names, want) {
+					t.Fatalf("gateway=%v: got %v, want %v", gateway, names, want)
+				}
+			}
+			// With the App tool absent from the admitted set, its remaining
+			// helpers must not make this Code Mode client native by themselves.
+			cm.tools = []schemas.ChatTool{helper, callback}
+			if tools := manager.GetAvailableGatewayTools(ctx); len(tools) != 1 || tools[0].Function.Name != "executeToolCode" {
+				t.Fatalf("unadmitted App exposed native helpers: %v", tools)
+			}
+		})
+	}
 }
 
 // contextWithUserAgent creates a BifrostContext with BifrostContextKeyUserAgent set.

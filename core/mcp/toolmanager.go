@@ -15,6 +15,7 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/maximhq/bifrost/core/mcp/credstore"
 	"github.com/maximhq/bifrost/core/schemas"
+	"github.com/tidwall/gjson"
 )
 
 // ClientManager interface for accessing MCP clients and tools
@@ -270,6 +271,12 @@ func (m *ToolsManager) getAvailableTools(ctx *schemas.BifrostContext, includeApp
 		if client.ExecutionConfig.IsCodeModeClient {
 			includeCodeModeTools = true
 		}
+		// Apps need native results and their ordinary callback tools even when
+		// this client uses Code Mode. Inspect only the caller's admitted tools.
+		nativeAppClient := includeAppOnly && slices.ContainsFunc(clientTools, func(tool schemas.ChatTool) bool {
+			uri := gjson.GetBytes(tool.MCPRawTool, "_meta.ui.resourceUri")
+			return uri.Type == gjson.String && strings.HasPrefix(uri.Str, "ui://")
+		})
 		// Add tools from this client, checking for duplicates
 		for _, tool := range clientTools {
 			if tool.MCPAppOnly && !includeAppOnly {
@@ -278,7 +285,7 @@ func (m *ToolsManager) getAvailableTools(ctx *schemas.BifrostContext, includeApp
 			if tool.Function != nil && tool.Function.Name != "" && !seenToolNames[tool.Function.Name] {
 				seenToolNames[tool.Function.Name] = true
 				schemas.AppendToContextList(ctx, schemas.BifrostContextKeyMCPAddedTools, tool.Function.Name)
-				if !client.ExecutionConfig.IsCodeModeClient {
+				if !client.ExecutionConfig.IsCodeModeClient || nativeAppClient {
 					availableTools = append(availableTools, tool)
 				}
 			}

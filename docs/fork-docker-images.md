@@ -90,3 +90,84 @@ d'un plugin précompilé ailleurs.
 
 Sources : [événement push et tags](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#push),
 [GHCR et visibilité](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry).
+
+## Diagnostic MCP Apps
+
+Utiliser le logger natif de Bifrost, sans ajouter de service de logs. Pour une
+session de diagnostic, définir `LOG_LEVEL=debug` dans l'environnement du service
+`gateway`, puis recréer ce service. L'option binaire `-log-level debug` existe
+aussi ; si présente, elle prend priorité sur la variable d'environnement.
+
+```sh
+docker compose up -d --no-deps --force-recreate gateway
+docker compose logs --since=10m gateway | grep -E '\[mcp-apps\]|\[mcp-server\]'
+```
+
+Les traces `[mcp-apps]` de ce correctif indiquent l'admission des Apps, les
+collisions de callbacks, le résultat des appels natifs et la lecture des
+ressources. Elles ne contiennent ni arguments, ni HTML, ni credentials, ni URL
+upstream. Ce périmètre ne constitue pas un audit de toutes les traces debug de
+Bifrost : ne pas publier des logs complets sans les vérifier et les expurger.
+Revenir à `LOG_LEVEL=info` après le diagnostic et recréer le service.
+
+La validation doit distinguer : découverte des outils et métadonnées UI,
+`resources/list` avec un tableau JSON (y compris vide), `resources/read` avec
+le MIME `text/html;profile=mcp-app`, résultat structuré de l'outil, puis rendu et
+interactions dans un véritable client MCP Apps. Un message « Diagram displayed »
+seul ne valide pas ce dernier point.
+
+### Virtual MCP et Code Mode
+
+Le correctif d'audit expose les Apps sur le même endpoint Virtual MCP que les
+autres outils. Son ensemble d'outils admis reste le périmètre d'autorisation
+partagé : il n'ajoute pas un périmètre d'isolation distinct pour chaque iframe.
+Les ressources UI gardent leurs URI préfixées par source ; leurs lectures et les
+appels restent soumis aux permissions Bifrost.
+
+Pour un client upstream configuré en Code Mode, ses outils admis sont aussi
+exposés directement par le gateway lorsqu'un outil App admis est présent. Les
+outils ordinaires des autres clients restent en Code Mode et le comportement de
+l'inférence n'est pas changé. Une App appelée directement dispose ainsi de ses
+métadonnées UI et de son résultat structuré. Un appel imbriqué dans
+`executeToolCode` reste une exécution de script retournant du texte : son rendu
+App n'est pas pris en charge par ce correctif.
+
+Les callbacks au nom upstream ne sont routés que si ce nom est sans ambiguïté
+parmi les outils admis. Une collision entre sources, ou avec un nom public, est
+rejetée explicitement. Des noms préfixés restent disponibles lorsqu'ils ne sont
+pas eux-mêmes en collision. Une App qui impose un nom de callback ambigu doit
+utiliser un Virtual MCP plus restreint ou des noms upstream distincts.
+
+Comparaison vérifiée : [agentgateway MCP Apps](https://agentgateway.dev/docs/standalone/latest/documentation/mcp/apps/)
+documente fédération et URI réécrites, ainsi que les limites du préfixage des
+callbacks. Son [Code Mode](https://docs.solo.io/agentgateway/standalone/latest/documentation/mcp/tool-mode/)
+documente le retour final du script ; ces pages ne prouvent pas le rendu d'une
+App appelée à l'intérieur de ce script.
+
+### Audit du 25 septembre 2026 — correctif local
+
+Diagnostic reproduit sur Pulsar : `resources/list` répondait HTTP 200 avec
+`{"resources":null}`. Le test de régression a échoué avec ce résultat avant le
+correctif, puis réussi avec `[]`. Un second test a reproduit l'absence d'alias
+pour les callbacks auxiliaires ordinaires avant sa correction.
+
+L'audit de complexité a inventorié l'arbre du dépôt et examiné l'intégration et
+son diff depuis `transports/v2.2.3` ; il ne constitue pas une revue exhaustive
+de tout le code upstream. Deux simplifications ont été appliquées : modifier
+uniquement `params.name` avec le helper JSON existant, et réutiliser les maps de
+métadonnées privées au lieu de les recopier. Aucun ajout de dépendance.
+
+Validation locale : tests ciblés MCP Apps et Code Mode réussis ; suites complètes
+`go test -race ./core/mcp/... ./core/schemas/...` et
+`go test -race ./transports/bifrost-http/handlers/... ./transports/bifrost-http/server/...`
+réussies après autorisation des sockets de test hors sandbox. Le premier refus
+`EPERM` était une limitation d'exécution, pas un échec de régression.
+Compilation Python du smoke test réussie. Image candidate dynamique Linux arm64
+`bifrost:mcp-apps-candidate-20260925`, digest
+`sha256:f35db922ddef8acf612655f11ed4cfd6ff6dcefa5beef000a03087bc8f4eb8d0`.
+Sur conteneur isolé avec Excalidraw réel : 23/23 contrôles mono-source, 27/27
+agrégés, 5/5 Code Mode (appel natif de l'App avec Code Mode activé).
+Rapports expurgés dans `docs/qa/bifrost-2.2.3/mcp-apps-candidate-*-2026-09-25.json`.
+Conteneur de test et clés temporaires supprimés. Le rendu interactif de cette
+candidate dans Codex et sa validation AMD64 restent à faire ; aucun déploiement
+sur Pulsar n'a eu lieu dans cet audit.

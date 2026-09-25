@@ -4,6 +4,7 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"sync/atomic"
@@ -179,15 +180,29 @@ func (h *MCPServerHandler) handleMCPServer(ctx *fasthttp.RequestCtx) {
 	appSafe := false
 	if _, ok := h.toolManager.(MCPAppManager); ok {
 		appTools := h.toolManager.GetAvailableMCPTools(bifrostCtx)
-		appSafe = singleMCPAppSource(appTools)
+		appSafe = hasMCPAppSource(appTools)
+		logger.Debug("[mcp-apps] admission app_safe=%t tool_count=%d", appSafe, len(appTools))
 		bifrostCtx.SetValue(schemas.MCPContextKeyAllowAppOnly, appSafe)
 		var request struct {
-			Method string `json:"method"`
+			Method string          `json:"method"`
+			ID     json.RawMessage `json:"id"`
 		}
 		if appSafe && sonic.Unmarshal(requestBody, &request) == nil && (request.Method == "tools/list" || request.Method == "tools/call") {
 			appAliases = collectMCPAppAliases(appTools)
 			if request.Method == "tools/call" {
-				requestBody = resolveMCPAppCallAlias(requestBody, appAliases)
+				var aliasErr error
+				requestBody, aliasErr = resolveMCPAppCallAlias(requestBody, appAliases)
+				if aliasErr != nil {
+					logger.Debug("[mcp-apps] callback rejected reason=ambiguous_name")
+					if len(request.ID) == 0 {
+						ctx.SetStatusCode(fasthttp.StatusAccepted)
+						return
+					}
+					body, _ := json.Marshal(map[string]any{"jsonrpc": "2.0", "id": request.ID, "error": map[string]any{"code": mcp.INVALID_PARAMS, "message": aliasErr.Error()}})
+					ctx.SetContentType("application/json")
+					ctx.SetBody(body)
+					return
+				}
 			}
 		}
 	}
@@ -378,7 +393,14 @@ func (h *MCPServerHandler) buildServer(availableTools []schemas.ChatTool) *serve
 	appManager, appsSupported := h.toolManager.(MCPAppManager)
 	options := []server.ServerOption{server.WithToolCapabilities(true)}
 	if appsSupported {
-		options = append(options, server.WithResourceCapabilities(false, false))
+		hooks := &server.Hooks{}
+		hooks.AddAfterListResources(func(_ context.Context, _ any, _ *mcp.ListResourcesRequest, result *mcp.ListResourcesResult) {
+			// mcp-go encodes an empty registry as null; MCP clients require an array.
+			if result.Resources == nil {
+				result.Resources = []mcp.Resource{}
+			}
+		})
+		options = append(options, server.WithResourceCapabilities(false, false), server.WithHooks(hooks))
 	}
 	mcpServer := server.NewMCPServer(
 		mcpServerName,
@@ -390,18 +412,22 @@ func (h *MCPServerHandler) buildServer(availableTools []schemas.ChatTool) *serve
 		mcpServer.AddResourceTemplate(mcp.NewResourceTemplate("ui://bifrost/{client}/{resource}", "Bifrost MCP App", mcp.WithTemplateMIMEType(mcpAppMIME)),
 			func(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
 				if ctx.Value(schemas.MCPContextKeyAllowAppOnly) != true {
+					logger.Debug("[mcp-apps] resource read denied reason=no_admitted_app")
 					return nil, fmt.Errorf("app resource is not available")
 				}
 				route := resources[request.Params.URI]
 				if route == nil {
+					logger.Debug("[mcp-apps] resource read denied reason=unknown_resource")
 					return nil, fmt.Errorf("app resource is not available")
 				}
 				for _, toolName := range route.toolNames {
 					result, err := appManager.ReadMCPAppResource(ctx, toolName, route.originalURI)
 					if err == nil && result != nil {
+						logger.Debug("[mcp-apps] resource read success content_count=%d", len(result.Contents))
 						return rewriteMCPAppContents(result.Contents, request.Params.URI), nil
 					}
 				}
+				logger.Debug("[mcp-apps] resource read failed candidate_count=%d", len(route.toolNames))
 				return nil, fmt.Errorf("app resource is not available")
 			})
 	}
@@ -443,8 +469,10 @@ func (h *MCPServerHandler) buildServer(availableTools []schemas.ChatTool) *serve
 			if appsSupported && len(tool.MCPRawTool) > 0 {
 				result, nativeErr := appManager.ExecuteNativeMCPTool(ctx, &toolCall)
 				if nativeErr != nil {
+					logger.Debug("[mcp-apps] native tool failed tool=%q", toolName)
 					return mcpToolFailureResult(nativeErr), nil
 				}
+				logger.Debug("[mcp-apps] native tool completed tool=%q result_present=%t is_error=%t", toolName, result != nil, result != nil && result.IsError)
 				return result, nil
 			}
 			toolMessage, err := h.toolManager.ExecuteChatMCPTool(ctx, &toolCall)
