@@ -2,7 +2,17 @@
 
 Vérifié le **25 septembre 2026**, sur macOS ARM64, avec Go 1.27.1.
 
-**Résultat : aucune régression détectée dans les tests exécutés du candidat local 2.2.3 + MCP Apps. Le binaire officiel 2.2.3 ne fournit toujours pas notre relais MCP Apps.** La production et la branche de travail n'ont pas été mises à jour.
+**Résultat : aucune régression détectée dans les tests exécutés du candidat local 2.2.3 + MCP Apps. Le binaire officiel 2.2.3 ne fournit toujours pas notre relais MCP Apps.** Lors de cette campagne initiale, ni la production ni la branche de travail n'avaient été mises à jour.
+
+## Fusion sur la branche de travail — 25 septembre 2026
+
+Le tag officiel `transports/v2.2.3` (`411d62b`) est maintenant fusionné dans `feature/mcp-apps-native`, à partir du commit personnel `df5d01136`. L'historique local tronqué a d'abord été complété avec `git fetch --unshallow upstream`, puis la fusion a été lancée avec `git pull --no-rebase upstream transports/v2.2.3`.
+
+Le seul conflit concernait les ajouts au catalogue HTTP `provider-harness.json`. Les **127 dossiers officiels** et notre dossier de **six requêtes MCP Apps** sont conservés. La reconnaissance des réponses MCP `initialize` est également conservée. Le contenu des ajouts et suppressions de notre diff personnel a été comparé avant/après : aucun changement du patch MCP Apps.
+
+Les suites Go existantes ont été relancées avec `-race -count=1` sur `core/mcp/...`, `core/schemas/...`, les handlers et le serveur HTTP, `framework/configstore/...` et `plugins/governance/...` : **2 267 tests de premier niveau réussis, soit 4 166 avec les sous-tests ; zéro échec ; 12 tests ignorés** (10 nécessitent PostgreSQL, absent de cette relance, et 2 tests de performance explicitement désactivés). [Journal de cette relance](qa/bifrost-2.2.3/merged-branch-race.jsonl.gz).
+
+Les runners existants `augment-provider-harness.mjs` et `filter-collection.mjs --feature mcp-apps --include-preview` valident la structure du catalogue fusionné et sélectionnent les six requêtes. Cette étape ne relance pas le harness HTTP en direct, le dashboard ni les fournisseurs LLM réels ; les observations HTTP ci-dessous restent celles de la campagne initiale. Aucun nouveau script de test ni changement de CI n'a été ajouté pour cette fusion.
 
 ## Où en était le projet ?
 
@@ -102,7 +112,7 @@ Les six scénarios existants ont été extraits sans modification de leurs asser
 
 - **Validé :** code de la passerelle, protocole MCP Apps, contrôle d'accès, connexions persistantes, migration SQLite et tests PostgreSQL concernés.
 - **Non validé :** rendu visuel/animation progressive dans Codex ou ChatGPT, dashboard compilé, autres fournisseurs LLM réels, autres suites du monorepo et instance de production. Le dessin progressif exige une vérification des événements hôte → iframe ; un succès HTTP ne le prouve pas.
-- **Modifications du dépôt :** documentation, preuves et sonde de test uniquement. Branche, commits et code produit conservés ; aucune mise à jour de production.
+- **Modifications du dépôt lors de la campagne initiale :** documentation, preuves et sonde de test uniquement. La fusion ultérieure sur la branche de travail est décrite en début de document ; aucune mise à jour de production.
 - Les serveurs QA et le conteneur PostgreSQL dédiés sont arrêtés et supprimés après les mesures ; les preuves sans clés sont conservées dans `docs/qa/bifrost-2.2.3/`.
 
 Les premiers essais de la nouvelle sonde ont révélé deux erreurs de **fixture de test**, corrigées avant les résultats retenus : préfixe de VK incorrect et attente d'une ressource statique alors que le relais utilise un template. Les erreurs initiales de ports/cache Go du sandbox ont été résolues en exécutant les tests avec les permissions nécessaires. Aucun de ces essais n'est présenté comme une régression produit.
