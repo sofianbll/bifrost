@@ -1,0 +1,11 @@
+{
+  "baseline_commit": "1463c93a75985b4623da63eda5098eecf58cea62",
+  "upstream_base": "fdeef8e3f31a3b18a61666ba49247d07bae3600a",
+  "release_tag": "transports/v2.2.3",
+  "release_commit": "411d62b28b03b03bd3b4025b2cfab50af45f05f4",
+  "go_version": "go1.27.1 darwin/arm64",
+  "official_binary_url": "https://downloads.getmaxim.ai/bifrost/v2.2.3/darwin/arm64/bifrost-http",
+  "official_binary_sha256": "dd596a79d556baaa4a295da1727e9e5f98c852aefedbd808f7556e965db33b4a",
+  "patch_sha256": "6db31c885ddccdb5a4104dffd6823d8194995331a4188dc76afacd66cbb78bd7",
+  "candidate_build": "API only, temporary embedded UI placeholder; dashboard not validated"
+}

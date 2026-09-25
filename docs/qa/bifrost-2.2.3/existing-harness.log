@@ -1,0 +1,48 @@
+newman
+
+Bifrost MCP Apps existing regression harness
+
+❏ 112. MCP Apps Excalidraw (mcp-apps)
+↳ [PREVIEW] Excalidraw initialize UI extension (mcp-apps)
+  POST http://127.0.0.1:18771/mcp/excalidraw [200 OK, 1.03kB, 47ms]
+  ✓  Excalidraw MCP Apps extension advertised
+
+↳ [PREVIEW] Excalidraw tools/list UI metadata (mcp-apps)
+  POST http://127.0.0.1:18771/mcp/excalidraw [200 OK, 3.98kB, 5ms]
+  ✓  Excalidraw create_view and private callback are published
+
+↳ [PREVIEW] Excalidraw resources/read app HTML (mcp-apps)
+  POST http://127.0.0.1:18771/mcp/excalidraw [200 OK, 464.25kB, 767ms]
+  ✓  Excalidraw app HTML and MIME are relayed
+
+↳ [PREVIEW] Excalidraw create_view structured checkpoint (mcp-apps)
+  POST http://127.0.0.1:18771/mcp/excalidraw [200 OK, 1.7kB, 626ms]
+  ✓  Excalidraw checkpoint remains structured
+
+↳ [PREVIEW] Excalidraw save_checkpoint callback (mcp-apps)
+  POST http://127.0.0.1:18771/mcp/excalidraw [200 OK, 822B, 485ms]
+  ✓  Excalidraw edit callback accepts the original name
+
+↳ [PREVIEW] Excalidraw read_checkpoint callback (mcp-apps)
+  POST http://127.0.0.1:18771/mcp/excalidraw [200 OK, 822B, 493ms]
+  ✓  Excalidraw app callback is callable by its original name
+
+┌─────────────────────────┬────────────────────┬───────────────────┐
+│                         │           executed │            failed │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│              iterations │                  1 │                 0 │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│                requests │                  6 │                 0 │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│            test-scripts │                  6 │                 0 │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│      prerequest-scripts │                  0 │                 0 │
+├─────────────────────────┼────────────────────┼───────────────────┤
+│              assertions │                  6 │                 0 │
+├─────────────────────────┴────────────────────┴───────────────────┤
+│ total run duration: 2.5s                                         │
+├──────────────────────────────────────────────────────────────────┤
+│ total data received: 468.1kB (approx)                            │
+├──────────────────────────────────────────────────────────────────┤
+│ average response time: 403ms [min: 5ms, max: 767ms, s.d.: 283ms] │
+└──────────────────────────────────────────────────────────────────┘

@@ -1,0 +1,323 @@
+{
+  "baseline-focused": {
+    "pass": 846,
+    "fail": 0,
+    "skip": 2,
+    "top_level_pass": 429,
+    "packages": {
+      "github.com/maximhq/bifrost/core/mcp/credstore": "pass",
+      "github.com/maximhq/bifrost/core/schemas": "pass",
+      "github.com/maximhq/bifrost/core/mcp/codemode/starlark": "pass",
+      "github.com/maximhq/bifrost/core/mcp": "pass",
+      "github.com/maximhq/bifrost/framework/configstore/tables": "pass",
+      "github.com/maximhq/bifrost/transports/bifrost-http/server": "pass",
+      "github.com/maximhq/bifrost/plugins/governance": "pass",
+      "github.com/maximhq/bifrost/transports/bifrost-http/handlers": "pass",
+      "github.com/maximhq/bifrost/framework/configstore": "pass"
+    },
+    "skips": [
+      {
+        "package": "github.com/maximhq/bifrost/framework/configstore",
+        "test": "TestMigrationCreateMCPOauthFlowsTablePerf",
+        "reason": "migrations_perf_test.go:588: set BIFROST_RUN_MIGRATION_PERF_TESTS=1 to run this migration performance test (seeds ~1,000,000 rows; slow by design)"
+      },
+      {
+        "package": "github.com/maximhq/bifrost/framework/configstore",
+        "test": "TestPostgresDeleteMCPClientConfig_LegacyOauthUserTokenRow",
+        "reason": "127.0.0.1:5432 (localhost): dial error: dial tcp 127.0.0.1:5432: connect: connection refused"
+      }
+    ]
+  },
+  "patched-focused": {
+    "pass": 854,
+    "fail": 0,
+    "skip": 2,
+    "top_level_pass": 432,
+    "packages": {
+      "github.com/maximhq/bifrost/core/mcp/codemode/starlark": "pass",
+      "github.com/maximhq/bifrost/core/mcp/credstore": "pass",
+      "github.com/maximhq/bifrost/core/schemas": "pass",
+      "github.com/maximhq/bifrost/core/mcp": "pass",
+      "github.com/maximhq/bifrost/framework/configstore/tables": "pass",
+      "github.com/maximhq/bifrost/plugins/governance": "pass",
+      "github.com/maximhq/bifrost/transports/bifrost-http/server": "pass",
+      "github.com/maximhq/bifrost/framework/configstore": "pass",
+      "github.com/maximhq/bifrost/transports/bifrost-http/handlers": "pass"
+    },
+    "skips": [
+      {
+        "package": "github.com/maximhq/bifrost/framework/configstore",
+        "test": "TestMigrationCreateMCPOauthFlowsTablePerf",
+        "reason": "migrations_perf_test.go:588: set BIFROST_RUN_MIGRATION_PERF_TESTS=1 to run this migration performance test (seeds ~1,000,000 rows; slow by design)"
+      },
+      {
+        "package": "github.com/maximhq/bifrost/framework/configstore",
+        "test": "TestPostgresDeleteMCPClientConfig_LegacyOauthUserTokenRow",
+        "reason": "127.0.0.1:5432 (localhost): dial error: dial tcp 127.0.0.1:5432: connect: connection refused"
+      }
+    ]
+  },
+  "patched-mcp-all-race": {
+    "pass": 669,
+    "fail": 0,
+    "skip": 29,
+    "top_level_pass": 426,
+    "packages": {
+      "github.com/maximhq/bifrost/core/internal/mcptests": "pass"
+    },
+    "skips": [
+      {
+        "package": "github.com/maximhq/bifrost/core/internal/mcptests",
+        "test": "TestAgent_ContextClientFilter_MultipleClients",
+        "reason": "agent_context_filtering_test.go:345: Requires STDIO servers to be built"
+      },
+      {
+        "package": "github.com/maximhq/bifrost/core/internal/mcptests",
+        "test": "TestAgentHelpers_Example_MultiConnectionTypes",
+        "reason": "agent_test_helpers_example_test.go:67: Example test - requires STDIO servers to be built"
+      },
+      {
+        "package": "github.com/maximhq/bifrost/core/internal/mcptests",
+        "test": "TestProtocol_BasicToolExecution",
+        "reason": "mcp_protocol_integration_test.go:39: Skipping due to mark3labs/mcp-go <-> @modelcontextprotocol/sdk compatibility issue (broken pipe)"
+      },
+      {
+        "package": "github.com/maximhq/bifrost/core/internal/mcptests",
+        "test": "TestProtocol_ParallelExecution",
+        "reason": "mcp_protocol_integration_test.go:128: Skipping due to mark3labs/mcp-go <-> @modelcontextprotocol/sdk compatibility issue (broken pipe)"
+      },
+      {
+        "package": "github.com/maximhq/bifrost/core/internal/mcptests",
+        "test": "TestProtocol_ErrorHandling",
+        "reason": "mcp_protocol_integration_test.go:198: Skipping due to mark3labs/mcp-go <-> @modelcontextprotocol/sdk compatibility issue (broken pipe)"
+      },
+      {
+        "package": "github.com/maximhq/bifrost/core/internal/mcptests",
+        "test": "TestProtocol_EdgeCases",
+        "reason": "mcp_protocol_integration_test.go:291: Skipping due to mark3labs/mcp-go <-> @modelcontextprotocol/sdk compatibility issue (broken pipe)"
+      },
+      {
+        "package": "github.com/maximhq/bifrost/core/internal/mcptests",
+        "test": "TestProtocol_ToolCallIDPreservation",
+        "reason": "mcp_protocol_integration_test.go:446: Skipping due to mark3labs/mcp-go <-> @modelcontextprotocol/sdk compatibility issue (broken pipe)"
+      },
+      {
+        "package": "github.com/maximhq/bifrost/core/internal/mcptests",
+        "test": "TestIntegration_HealthRecoveryDuringAgent",
+        "reason": "integration_test.go:324: TODO: Implement health recovery during agent test"
+      },
+      {
+        "package": "github.com/maximhq/bifrost/core/internal/mcptests",
+        "test": "TestIntegration_CodeModeCallingTools",
+        "reason": "integration_test.go:189: TODO: Implement code mode calling tools integration test"
+      },
+      {
+        "package": "github.com/maximhq/bifrost/core/internal/mcptests",
+        "test": "TestIntegration_CodeModeWithAgent",
+        "reason": "integration_test.go:179: TODO: Implement code mode with agent integration test"
+      },
+      {
+        "package": "github.com/maximhq/bifrost/core/internal/mcptests",
+        "test": "TestIntegration_EndToEnd_ComplexTask",
+        "reason": "integration_test.go:432: Real LLM not configured"
+      },
+      {
+        "package": "github.com/maximhq/bifrost/core/internal/mcptests",
+        "test": "TestIntegration_EndToEnd_WithCodeMode",
+        "reason": "integration_test.go:451: Real LLM not configured"
+      },
+      {
+        "package": "github.com/maximhq/bifrost/core/internal/mcptests",
+        "test": "TestConcurrent_CodeModeWithToolCalls",
+        "reason": "concurrency_test.go:1031: TODO: Implement code mode with tool calls test"
+      },
+      {
+        "package": "github.com/maximhq/bifrost/core/internal/mcptests",
+        "test": "TestAgent_WithRealLLM_Simple",
+        "reason": "agent_basic_test.go:640: Real LLM not configured"
+      },
+      {
+        "package": "github.com/maximhq/bifrost/core/internal/mcptests",
+        "test": "TestAgent_WithRealLLM_MultiStep",
+        "reason": "agent_basic_test.go:697: Real LLM not configured"
+      },
+      {
+        "package": "github.com/maximhq/bifrost/core/internal/mcptests",
+        "test": "TestIntegration_AgentWithPlugins",
+        "reason": "integration_test.go:154: TODO: Implement agent with plugins integration test"
+      },
+      {
+        "package": "github.com/maximhq/bifrost/core/internal/mcptests",
+        "test": "TestDynamicLLMMocker_MultiTurnScenario",
+        "reason": "dynamic_llm_mocker_example_test.go:99: Example test - demonstrates usage pattern, requires completion of mock setup"
+      },
+      {
+        "package": "github.com/maximhq/bifrost/core/internal/mcptests",
+        "test": "TestIntegration_EndToEnd_SimpleTask",
+        "reason": "integration_test.go:414: Real LLM not configured"
+      },
+      {
+        "package": "github.com/maximhq/bifrost/core/internal/mcptests",
+        "test": "TestConcurrent_AgentModeWithToolExecution",
+        "reason": "concurrency_test.go:1007: TODO: Implement agent + direct execution test"
+      },
+      {
+        "package": "github.com/maximhq/bifrost/core/internal/mcptests",
+        "test": "TestConcurrent_MixedOperations",
+        "reason": "concurrency_test.go:1050: TODO: Implement mixed operations test"
+      },
+      {
+        "package": "github.com/maximhq/bifrost/core/internal/mcptests",
+        "test": "TestPlugin_WithCodeMode",
+        "reason": "plugin_test.go:583: Code mode plugin integration requires extensive test setup"
+      },
+      {
+        "package": "github.com/maximhq/bifrost/core/internal/mcptests",
+        "test": "TestConcurrent_CodeMode",
+        "reason": "concurrency_test.go:1021: TODO: Implement code mode concurrency test"
+      },
+      {
+        "package": "github.com/maximhq/bifrost/core/internal/mcptests",
+        "test": "TestDynamicLLMMocker_ConditionalResponse",
+        "reason": "dynamic_llm_mocker_example_test.go:63: Example test - demonstrates usage pattern, requires completion of mock setup"
+      },
+      {
+        "package": "github.com/maximhq/bifrost/core/internal/mcptests",
+        "test": "TestDynamicLLMMocker_BasicValidation",
+        "reason": "dynamic_llm_mocker_example_test.go:18: Example test - demonstrates usage pattern, requires completion of mock setup"
+      },
+      {
+        "package": "github.com/maximhq/bifrost/core/internal/mcptests",
+        "test": "TestIntegration_AgentWithGovernance",
+        "reason": "integration_test.go:164: TODO: Implement agent with governance test"
+      },
+      {
+        "package": "github.com/maximhq/bifrost/core/internal/mcptests",
+        "test": "TestConcurrent_AgentMode",
+        "reason": "concurrency_test.go:997: TODO: Implement agent mode concurrency test"
+      },
+      {
+        "package": "github.com/maximhq/bifrost/core/internal/mcptests",
+        "test": "TestDynamicLLMMocker_CallCount",
+        "reason": "dynamic_llm_mocker_example_test.go:206: Example test - demonstrates usage pattern, requires completion of mock setup"
+      },
+      {
+        "package": "github.com/maximhq/bifrost/core/internal/mcptests",
+        "test": "TestDynamicLLMMocker_HelperFunctions",
+        "reason": "dynamic_llm_mocker_example_test.go:160: Example test - demonstrates usage pattern, requires completion of mock setup"
+      },
+      {
+        "package": "github.com/maximhq/bifrost/core/internal/mcptests",
+        "test": "TestPlugin_WithAgentMode",
+        "reason": "plugin_test.go:594: Agent mode plugin integration requires LLM and extensive test setup"
+      }
+    ]
+  },
+  "patched-full-race": {
+    "pass": 4166,
+    "fail": 0,
+    "skip": 12,
+    "top_level_pass": 2267,
+    "packages": {
+      "github.com/maximhq/bifrost/core/mcp/credstore": "pass",
+      "github.com/maximhq/bifrost/core/mcp/codemode/starlark": "pass",
+      "github.com/maximhq/bifrost/core/schemas": "pass",
+      "github.com/maximhq/bifrost/core/mcp": "pass",
+      "github.com/maximhq/bifrost/transports/bifrost-http/server": "pass",
+      "github.com/maximhq/bifrost/framework/configstore/tables": "pass",
+      "github.com/maximhq/bifrost/plugins/governance": "pass",
+      "github.com/maximhq/bifrost/framework/configstore": "pass",
+      "github.com/maximhq/bifrost/transports/bifrost-http/handlers": "pass"
+    },
+    "skips": [
+      {
+        "package": "github.com/maximhq/bifrost/framework/configstore/tables",
+        "test": "TestPostgres_EncryptedColumns_AreText",
+        "reason": "encryption_test.go:1997: Postgres unavailable \u2014 skipping Postgres-specific test (start tests/docker-compose.yml to run it)"
+      },
+      {
+        "package": "github.com/maximhq/bifrost/framework/configstore",
+        "test": "TestEncryptPlaintextOAuthConfigs_WaitsForHolderThenConverges",
+        "reason": "127.0.0.1:5432 (localhost): dial error: dial tcp 127.0.0.1:5432: connect: connection refused"
+      },
+      {
+        "package": "github.com/maximhq/bifrost/framework/configstore",
+        "test": "TestEncryptPlaintextOAuthConfigs_ConcurrentPodsDoNotDeadlock",
+        "reason": "127.0.0.1:5432 (localhost): dial error: dial tcp 127.0.0.1:5432: connect: connection refused"
+      },
+      {
+        "package": "github.com/maximhq/bifrost/framework/configstore",
+        "test": "TestEncryptPlaintextKeys_OverlapsVaultWrites",
+        "reason": "127.0.0.1:5432 (localhost): dial error: dial tcp 127.0.0.1:5432: connect: connection refused"
+      },
+      {
+        "package": "github.com/maximhq/bifrost/framework/configstore",
+        "test": "TestEncryptPlaintextKeys_ConcurrentPodsHookEachRowOnce",
+        "reason": "127.0.0.1:5432 (localhost): dial error: dial tcp 127.0.0.1:5432: connect: connection refused"
+      },
+      {
+        "package": "github.com/maximhq/bifrost/framework/configstore",
+        "test": "TestEncryptPlaintextKeys_ResolvesVaultRefsOncePerRow",
+        "reason": "127.0.0.1:5432 (localhost): dial error: dial tcp 127.0.0.1:5432: connect: connection refused"
+      },
+      {
+        "package": "github.com/maximhq/bifrost/framework/configstore",
+        "test": "TestMigrationMergeOauthTokenTablesPerf",
+        "reason": "migrations_perf_test.go:354: set BIFROST_RUN_MIGRATION_PERF_TESTS=1 to run this migration performance test (seeds ~1,000,000 rows; slow by design)"
+      },
+      {
+        "package": "github.com/maximhq/bifrost/framework/configstore",
+        "test": "TestMigrationCreateMCPOauthFlowsTablePerf",
+        "reason": "migrations_perf_test.go:588: set BIFROST_RUN_MIGRATION_PERF_TESTS=1 to run this migration performance test (seeds ~1,000,000 rows; slow by design)"
+      },
+      {
+        "package": "github.com/maximhq/bifrost/framework/configstore",
+        "test": "TestPostgresRoutingRuleUpdateDeleteDoesNotDeadlock",
+        "reason": "127.0.0.1:5432 (localhost): dial error: dial tcp 127.0.0.1:5432: connect: connection refused"
+      },
+      {
+        "package": "github.com/maximhq/bifrost/framework/configstore",
+        "test": "TestPostgresProviderGraphConcurrentMutationsDoNotDeadlock",
+        "reason": "127.0.0.1:5432 (localhost): dial error: dial tcp 127.0.0.1:5432: connect: connection refused"
+      },
+      {
+        "package": "github.com/maximhq/bifrost/framework/configstore",
+        "test": "TestPostgresVirtualKeyBudgetConcurrentMutationsDoNotDeadlock",
+        "reason": "127.0.0.1:5432 (localhost): dial error: dial tcp 127.0.0.1:5432: connect: connection refused"
+      },
+      {
+        "package": "github.com/maximhq/bifrost/framework/configstore",
+        "test": "TestPostgresDeleteMCPClientConfig_LegacyOauthUserTokenRow",
+        "reason": "127.0.0.1:5432 (localhost): dial error: dial tcp 127.0.0.1:5432: connect: connection refused"
+      }
+    ]
+  },
+  "patched-configstore-postgres-race": {
+    "pass": 927,
+    "fail": 0,
+    "skip": 2,
+    "top_level_pass": 638,
+    "packages": {
+      "github.com/maximhq/bifrost/framework/configstore/tables": "pass",
+      "github.com/maximhq/bifrost/framework/configstore": "pass"
+    },
+    "skips": [
+      {
+        "package": "github.com/maximhq/bifrost/framework/configstore",
+        "test": "TestMigrationMergeOauthTokenTablesPerf",
+        "reason": "migrations_perf_test.go:354: set BIFROST_RUN_MIGRATION_PERF_TESTS=1 to run this migration performance test (seeds ~1,000,000 rows; slow by design)"
+      },
+      {
+        "package": "github.com/maximhq/bifrost/framework/configstore",
+        "test": "TestMigrationCreateMCPOauthFlowsTablePerf",
+        "reason": "migrations_perf_test.go:588: set BIFROST_RUN_MIGRATION_PERF_TESTS=1 to run this migration performance test (seeds ~1,000,000 rows; slow by design)"
+      }
+    ]
+  },
+  "unique_final": {
+    "pass": 4858,
+    "fail": 0,
+    "skip": 31,
+    "top_level_pass": 2703
+  }
+}

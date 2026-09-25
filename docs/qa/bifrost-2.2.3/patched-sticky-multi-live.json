@@ -1,0 +1,224 @@
+{
+  "url": "http://127.0.0.1:18773",
+  "expect_apps": true,
+  "observations": {
+    "server": {
+      "name": "bifrost",
+      "version": "v2.2.3-mcp-apps-qa"
+    },
+    "capabilities": {
+      "extensions": {
+        "io.modelcontextprotocol/ui": {
+          "mimeTypes": [
+            "text/html;profile=mcp-app"
+          ]
+        }
+      },
+      "resources": {},
+      "tools": {
+        "listChanged": true
+      }
+    },
+    "tools": [
+      {
+        "name": "excalidraw-create_view",
+        "meta": {
+          "ui": {
+            "resourceUri": "ui://bifrost/ZXhjYWxpZHJhdw/dWk6Ly9leGNhbGlkcmF3L21jcC1hcHAuaHRtbA"
+          },
+          "ui/resourceUri": "ui://excalidraw/mcp-app.html"
+        }
+      },
+      {
+        "name": "excalidraw-export_to_excalidraw",
+        "meta": {
+          "ui": {
+            "visibility": [
+              "app"
+            ]
+          }
+        }
+      },
+      {
+        "name": "excalidraw-read_checkpoint",
+        "meta": {
+          "ui": {
+            "visibility": [
+              "app"
+            ]
+          }
+        }
+      },
+      {
+        "name": "excalidraw-read_me",
+        "meta": null
+      },
+      {
+        "name": "excalidraw-save_checkpoint",
+        "meta": {
+          "ui": {
+            "visibility": [
+              "app"
+            ]
+          }
+        }
+      },
+      {
+        "name": "create_view",
+        "meta": {
+          "ui": {
+            "resourceUri": "ui://bifrost/ZXhjYWxpZHJhdw/dWk6Ly9leGNhbGlkcmF3L21jcC1hcHAuaHRtbA",
+            "visibility": [
+              "app"
+            ]
+          },
+          "ui/resourceUri": "ui://excalidraw/mcp-app.html"
+        }
+      },
+      {
+        "name": "export_to_excalidraw",
+        "meta": {
+          "ui": {
+            "visibility": [
+              "app"
+            ]
+          }
+        }
+      },
+      {
+        "name": "read_checkpoint",
+        "meta": {
+          "ui": {
+            "visibility": [
+              "app"
+            ]
+          }
+        }
+      },
+      {
+        "name": "save_checkpoint",
+        "meta": {
+          "ui": {
+            "visibility": [
+              "app"
+            ]
+          }
+        }
+      }
+    ],
+    "structured_checkpoint": true,
+    "resources_list_error": null
+  },
+  "checks": [
+    {
+      "name": "initialize succeeds",
+      "passed": true
+    },
+    {
+      "name": "UI negotiation matches variant",
+      "passed": true
+    },
+    {
+      "name": "tools/list succeeds",
+      "passed": true
+    },
+    {
+      "name": "UI resource metadata matches variant",
+      "passed": true
+    },
+    {
+      "name": "read_me succeeds",
+      "passed": true
+    },
+    {
+      "name": "create_view succeeds",
+      "passed": true
+    },
+    {
+      "name": "structured result matches variant",
+      "passed": true
+    },
+    {
+      "name": "resources/list is supported",
+      "passed": true
+    },
+    {
+      "name": "UI resource template advertised",
+      "passed": true
+    },
+    {
+      "name": "resources/read returns HTML and MIME",
+      "passed": true
+    },
+    {
+      "name": "save_checkpoint is app-only",
+      "passed": true
+    },
+    {
+      "name": "save_checkpoint original-name callback succeeds",
+      "passed": true
+    },
+    {
+      "name": "read_checkpoint is app-only",
+      "passed": true
+    },
+    {
+      "name": "read_checkpoint original-name callback succeeds",
+      "passed": true
+    },
+    {
+      "name": "unknown resource rejected",
+      "passed": true
+    },
+    {
+      "name": "limited key sees only read_me",
+      "passed": true
+    },
+    {
+      "name": "limited key cannot call excalidraw-create_view",
+      "passed": true
+    },
+    {
+      "name": "limited key cannot call create_view",
+      "passed": true
+    },
+    {
+      "name": "limited key cannot call read_checkpoint",
+      "passed": true
+    },
+    {
+      "name": "limited key cannot call save_checkpoint",
+      "passed": true
+    },
+    {
+      "name": "limited key cannot read UI",
+      "passed": true
+    },
+    {
+      "name": "denied key rejected",
+      "passed": true
+    },
+    {
+      "name": "invalid key rejected",
+      "passed": true
+    },
+    {
+      "name": "aggregate lists both upstreams",
+      "passed": true
+    },
+    {
+      "name": "aggregate exposes no UI or app-only callbacks",
+      "passed": true
+    },
+    {
+      "name": "aggregate does not negotiate UI",
+      "passed": true
+    },
+    {
+      "name": "aggregate rejects unscoped callback",
+      "passed": true
+    }
+  ],
+  "passed": 27,
+  "total": 27
+}

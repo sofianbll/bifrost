@@ -1,0 +1,114 @@
+{
+  "url": "http://127.0.0.1:18770",
+  "expect_apps": false,
+  "observations": {
+    "server": {
+      "name": "bifrost",
+      "version": "v2.2.3"
+    },
+    "capabilities": {
+      "tools": {
+        "listChanged": true
+      }
+    },
+    "tools": [
+      {
+        "name": "excalidraw-create_view",
+        "meta": null
+      },
+      {
+        "name": "excalidraw-export_to_excalidraw",
+        "meta": null
+      },
+      {
+        "name": "excalidraw-read_checkpoint",
+        "meta": null
+      },
+      {
+        "name": "excalidraw-read_me",
+        "meta": null
+      },
+      {
+        "name": "excalidraw-save_checkpoint",
+        "meta": null
+      }
+    ],
+    "structured_checkpoint": false,
+    "resources_list_error": {
+      "code": -32601,
+      "message": "resources not supported"
+    },
+    "resources_read_error": {
+      "code": -32601,
+      "message": "resources not supported"
+    }
+  },
+  "checks": [
+    {
+      "name": "initialize succeeds",
+      "passed": true
+    },
+    {
+      "name": "UI negotiation matches variant",
+      "passed": true
+    },
+    {
+      "name": "tools/list succeeds",
+      "passed": true
+    },
+    {
+      "name": "UI resource metadata matches variant",
+      "passed": true
+    },
+    {
+      "name": "read_me succeeds",
+      "passed": true
+    },
+    {
+      "name": "create_view succeeds",
+      "passed": true
+    },
+    {
+      "name": "structured result matches variant",
+      "passed": true
+    },
+    {
+      "name": "official resources/list remains unsupported",
+      "passed": true
+    },
+    {
+      "name": "official resources/read remains unsupported",
+      "passed": true
+    },
+    {
+      "name": "limited key sees only read_me",
+      "passed": true
+    },
+    {
+      "name": "limited key cannot call excalidraw-create_view",
+      "passed": true
+    },
+    {
+      "name": "limited key cannot call create_view",
+      "passed": true
+    },
+    {
+      "name": "limited key cannot call read_checkpoint",
+      "passed": true
+    },
+    {
+      "name": "limited key cannot call save_checkpoint",
+      "passed": true
+    },
+    {
+      "name": "denied key rejected",
+      "passed": true
+    },
+    {
+      "name": "invalid key rejected",
+      "passed": true
+    }
+  ],
+  "passed": 16,
+  "total": 16
+}
