@@ -13,8 +13,8 @@ were not rerun.
 
 ### Excalidraw plugin resource failure — 2026-09-27
 
-The architecture diagram did **not** render in the selected Bifrost plugin.
-Only the standalone SVG export was visually verified.
+The architecture diagram initially did **not** render in the selected remote
+Bifrost plugin. At that stage, only the standalone SVG export was visually verified.
 
 Codex's desktop log records `resources/read` failures for
 `ui://excalidraw/mcp-app.html`. A separate read-only probe of the configured
@@ -43,8 +43,18 @@ passed the UI build, Go race suites, runtime image tests and publication on both
 architectures. Immutable image reference:
 `ghcr.io/sofianbll/bifrost@sha256:4deff429c615077ed6f7e8beeef254c5719cb5cc8814c8ddd085e964a1f5af3a`.
 The previous `.2` image lacks this fix and remains available for rollback.
-Production has not been modified, and rendering through the selected plugin
-remains unverified until the new image is installed and the host is retested.
+The agent did not deploy the image; the user subsequently reported installing it.
+
+**Post-update host retest:** the dedicated gateway now advertises identical
+namespaced URIs in both metadata fields and serves the App HTML. The remote
+Bifrost plugin still requested the old URI and failed. The user clarified that
+the intended connection was the locally configured `codex-bifrost` MCP server.
+Through that connection, the same architecture diagram produced checkpoint
+`7ce4b433891c41d197`. Codex logs at 18:30:14–18:30:19 UTC record a successful
+resource read and `widget_running` for `server=codex-bifrost`; the user explicitly
+confirmed seeing the actual blocks and arrows. This verifies rendering through
+`codex-bifrost`, not through the separate remote plugin. The remote plugin's
+retained URI remains unexplained; no cache or connection settings were changed.
 
 ### Fork version and rebuilt UI — 2026-09-27
 
