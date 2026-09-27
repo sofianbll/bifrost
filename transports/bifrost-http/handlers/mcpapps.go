@@ -219,6 +219,10 @@ func rewriteMCPAppTool(raw json.RawMessage, publicToolName string) (mcp.Tool, st
 	}
 	publicURI := "ui://bifrost/" + base64.RawURLEncoding.EncodeToString([]byte(clientName)) + "/" + base64.RawURLEncoding.EncodeToString([]byte(originalURI))
 	ui["resourceUri"] = publicURI
+	// Hosts using the compatibility field must read the same authorized gateway route.
+	if _, exists := tool.Meta.AdditionalFields["ui/resourceUri"]; exists {
+		tool.Meta.AdditionalFields["ui/resourceUri"] = publicURI
+	}
 	return tool, originalURI, publicURI, nil
 }
 

@@ -83,8 +83,7 @@ def main():
         uri = view.get("_meta", {}).get("ui", {}).get("resourceUri")
         check("UI resource metadata matches variant", bool(uri) == args.expect_apps)
         if args.expect_apps:
-            check("raw upstream UI metadata preserved", view.get("_meta", {}).get("ui/resourceUri") ==
-                  "ui://excalidraw/mcp-app.html")
+            check("compatibility UI URI matches gateway route", view.get("_meta", {}).get("ui/resourceUri") == uri)
             for name in ("excalidraw-read_checkpoint", "excalidraw-save_checkpoint",
                          "excalidraw-export_to_excalidraw"):
                 tool = next(t for t in tools if t["name"] == name)

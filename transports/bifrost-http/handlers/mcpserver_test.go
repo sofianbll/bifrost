@@ -128,6 +128,55 @@ func TestMCPAppResourceReadDispatchesAndRewritesContents(t *testing.T) {
 	assert.Equal(t, "ui://app/view", manager.resourceCalls[0].uri)
 }
 
+func TestMCPAppLegacyResourceURIMatchesNativeRoute(t *testing.T) {
+	SetLogger(&mockLogger{})
+	raw := json.RawMessage(`{"name":"view","inputSchema":{"type":"object"},"_meta":{"ui":{"resourceUri":"ui://app/view"},"ui/resourceUri":"ui://app/view"}}`)
+	tools := []schemas.ChatTool{
+		{Function: &schemas.ChatToolFunction{Name: "alpha-view"}, MCPRawTool: raw},
+		{Function: &schemas.ChatToolFunction{Name: "beta-view"}, MCPRawTool: raw},
+	}
+	manager := &appResourceToolManager{
+		appListToolManager: appListToolManager{tools: tools},
+		resourceResult: &mcp.ReadResourceResult{Contents: []mcp.ResourceContents{
+			mcp.TextResourceContents{URI: "ui://app/view", MIMEType: mcpAppMIME, Text: "<main>app</main>"},
+		}},
+	}
+	h := &MCPServerHandler{toolManager: manager}
+	ctx := schemas.NewBifrostContext(context.Background(), schemas.NoDeadline)
+	ctx.SetValue(schemas.MCPContextKeyAllowAppOnly, true)
+	server := h.buildServer(tools)
+	listed, err := json.Marshal(server.HandleMessage(ctx, []byte(`{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}`)))
+	require.NoError(t, err)
+	var catalogue struct {
+		Result struct {
+			Tools []mcp.Tool `json:"tools"`
+		} `json:"result"`
+	}
+	require.NoError(t, json.Unmarshal(listed, &catalogue))
+	require.Len(t, catalogue.Result.Tools, 2)
+	uris := make(map[string]bool)
+	for _, tool := range catalogue.Result.Tools {
+		legacyURI, ok := tool.Meta.AdditionalFields["ui/resourceUri"].(string)
+		require.True(t, ok)
+		nativeURI := tool.Meta.AdditionalFields["ui"].(map[string]any)["resourceUri"]
+		assert.Equal(t, nativeURI, legacyURI, "hosts may select either advertised URI")
+		assert.False(t, uris[legacyURI], "sources sharing an upstream URI must remain distinct")
+		uris[legacyURI] = true
+		request, err := json.Marshal(map[string]any{"jsonrpc": "2.0", "id": 2, "method": "resources/read", "params": map[string]any{"uri": legacyURI}})
+		require.NoError(t, err)
+		response, err := json.Marshal(server.HandleMessage(ctx, request))
+		require.NoError(t, err)
+		assert.Contains(t, string(response), `"mimeType":"text/html;profile=mcp-app"`)
+		assert.NotContains(t, string(response), `"error"`)
+	}
+	require.Len(t, manager.resourceCalls, 2)
+	assert.ElementsMatch(t, []string{"alpha-view", "beta-view"}, []string{manager.resourceCalls[0].toolName, manager.resourceCalls[1].toolName})
+	for _, call := range manager.resourceCalls {
+		assert.Equal(t, "ui://app/view", call.uri, "only public metadata is rewritten")
+	}
+	assert.JSONEq(t, `{"name":"view","inputSchema":{"type":"object"},"_meta":{"ui":{"resourceUri":"ui://app/view"},"ui/resourceUri":"ui://app/view"}}`, string(raw))
+}
+
 func TestMCPAppResourceReadWithoutAdmissionDoesNotDispatch(t *testing.T) {
 	SetLogger(&mockLogger{})
 	tool := schemas.ChatTool{

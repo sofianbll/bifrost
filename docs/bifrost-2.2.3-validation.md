@@ -11,6 +11,34 @@ screenshots and conversation history. Focused tests and a new native ARM64
 reference-host trial then ran as described below; the full September 25 campaigns
 were not rerun.
 
+### Excalidraw plugin resource failure — 2026-09-27
+
+The architecture diagram did **not** render in the selected Bifrost plugin.
+Only the standalone SVG export was visually verified.
+
+Codex's desktop log records `resources/read` failures for
+`ui://excalidraw/mcp-app.html`. A separate read-only probe of the configured
+dedicated gateway endpoint found conflicting tool metadata: `_meta.ui.resourceUri`
+used the namespaced `ui://bifrost/...` URI, but `_meta["ui/resourceUri"]` retained
+the upstream URI. Reading the former returned HTML with MIME
+`text/html;profile=mcp-app`; reading the latter returned JSON-RPC `-32002`
+(`resource not found`). This confirms a gateway defect matching the host's
+failed URI; it does not establish the selected connector's cache state.
+
+The local fix rewrites the existing compatibility field in `rewriteMCPAppTool`
+alongside the nested field. It preserves per-source routing and the existing
+resource authorization path. `TestMCPAppLegacyResourceURIMatchesNativeRoute`
+reproduced the error before the fix and passes afterward: both advertised fields
+resolve through the gateway, including two sources sharing one upstream URI.
+The smoke probe now expects this equality; historical reports' assertion that
+the raw compatibility URI was preserved was insufficient and is superseded.
+The complete HTTP handler package passed locally with `go test -race` (59.358s);
+both review axes reported no actionable finding. The Python smoke script's syntax
+was checked, but its full live scenario was not rerun against production.
+
+This fix is not included in published image `2.2.3-sofian.2`. Production has not
+been modified, and rendering through the selected plugin remains unverified.
+
 ### Fork version and rebuilt UI — 2026-09-27
 
 Release source: `1fdc8b8700300f5d443939bb8f3fd95cbbb2db39`, including MCP fixes
