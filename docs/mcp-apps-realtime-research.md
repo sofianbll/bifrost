@@ -2,6 +2,8 @@
 
 Research checked on 2026-09-24 against the MCP specification, MCP Apps SDK, and Excalidraw source. This note separates documented behavior from what still needs a live test.
 
+The later [Excalidraw behavior study](excalidraw-mcp-behavior-research.md) pins upstream source and covers checkpoints, editing, host view identity, and the App-registered tools draft.
+
 ## The two streams
 
 | Flow | What it carries | Relevant to progressive drawing? |

@@ -176,6 +176,18 @@ Compilation Python du smoke test réussie. Image candidate dynamique Linux arm64
 Sur conteneur isolé avec Excalidraw réel : 23/23 contrôles mono-source, 27/27
 agrégés, 5/5 Code Mode (appel natif de l'App avec Code Mode activé).
 Rapports expurgés dans `docs/qa/bifrost-2.2.3/mcp-apps-candidate-*-2026-09-25.json`.
-Conteneur de test et clés temporaires supprimés. Le rendu interactif de cette
-candidate dans Codex et sa validation AMD64 restent à faire ; aucun déploiement
-sur Pulsar n'a eu lieu dans cet audit.
+Conteneur de test et clés temporaires supprimés. À ce stade de l'audit, le rendu
+interactif de cette candidate dans Codex et sa validation AMD64 restaient à faire ;
+aucun déploiement sur Pulsar n'a eu lieu dans cet audit.
+
+Later qualification, reconciled September 27: the extended ARM64 and AMD64
+campaigns each recorded **46/47**, with the nested Code Mode structured-result
+expectation failing. A subsequent native ARM64 trial rendered an App through
+aggregate `/mcp` in the official reference host, opened its editor and verified
+zoom. That trial did not establish native Codex conversation rendering; the later
+user-confirmed native captures are recorded in the current qualification status.
+Browser testing required the existing `client.allowed_headers` setting for MCP
+headers; see the qualification record for the precise fixture and limits. The published image
+`7c4191ee8` predates this local corrective candidate `c3f711b49`. See the
+[current qualification status](bifrost-2.2.3-validation.md#current-qualification-status--2026-09-27)
+for the evidence, historical deployment and remaining release gates.

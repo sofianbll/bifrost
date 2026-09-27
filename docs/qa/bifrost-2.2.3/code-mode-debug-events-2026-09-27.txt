@@ -1,0 +1,366 @@
+Browser tab: 5, Title: "MCP Apps Host", URL: "http://127.0.0.1:18090/?server=bifrost&tool=debug-debug-tool&call=true".
+0 AXWebArea MCP Apps Host, URL: 127.0.0.1:18090/?server=bifrost&tool=debug-debug-tool&call=true
+	1 container root
+		2 button ☀️, Help: Switch to light mode
+		3 container
+			4 text bifrost : debug-debug-tool
+			5 button ×, Help: Close
+		6 container Click to expand
+			7 text 📥 Tool Input 2 chars ▶
+			8 text {}
+		9 AXWebArea MCP-UI Proxy, URL: localhost:8081/sandbox.html
+			10 AXWebArea Debug App, URL: localhost:8081/sandbox.html
+				11 container
+					12 heading Event Log All Events Clear, Value: 2
+						13 text Event Log
+						14 pop up button (collapsed, settable) Value: All Events, ID: log-filter, Secondary Actions: Expand
+							15 menu
+								16 (selected) All Events
+								17 ontoolinput
+								18 ontoolinputpartial
+								19 ontoolresult
+								20 ontoolcancelled
+								21 onhostcontextchanged
+								22 onteardown
+								23 oncalltool
+								24 onlisttools
+								25 onerror
+								26 connected
+						27 button Clear, ID: clear-log-btn
+					28 container event-log
+						29 container
+							30 text ▶ [15:31:06.973] onhostcontextchanged: {"containerDimensions":{"maxHeight":6000,"width":1124}}
+						31 container
+							32 text ▶ [15:31:06.991] connected: {"success":true}
+						33 container
+							34 text ▶ [15:31:06.997] ontoolinput: {"arguments":{}}
+						35 container
+							36 text ▶ [15:31:06.998] ontoolresult: {"_meta":{"debugInfo":{"processedAt":1790515866598,"serverVersion":"1.0.0"}},"content":[{"type":"tex...
+						37 container
+							38 text ▶ [15:31:06.999] onhostcontextchanged: {"containerDimensions":{"maxHeight":6000,"width":1125}}
+						39 container
+							40 text ▶ [15:31:07.004] onhostcontextchanged: {"containerDimensions":{"maxHeight":6000,"width":1125}}
+						41 container
+							42 text ▶ [15:31:07.014] onhostcontextchanged: {"containerDimensions":{"maxHeight":6000,"width":1125}}
+						43 container
+							44 text ▶ [15:31:07.027] onhostcontextchanged: {"containerDimensions":{"maxHeight":6000,"width":1125}}
+						45 container
+							46 text ▶ [15:31:07.040] onhostcontextchanged: {"containerDimensions":{"maxHeight":6000,"width":1125}}
+						47 container
+							48 text ▶ [15:31:07.048] onhostcontextchanged: {"containerDimensions":{"maxHeight":6000,"width":1125}}
+						49 container
+							50 text ▶ [15:31:07.056] onhostcontextchanged: {"containerDimensions":{"maxHeight":6000,"width":1125}}
+						51 container
+							52 text ▶ [15:31:07.065] onhostcontextchanged: {"containerDimensions":{"maxHeight":6000,"width":1125}}
+						53 container
+							54 text ▶ [15:31:07.072] onhostcontextchanged: {"containerDimensions":{"maxHeight":6000,"width":1125}}
+						55 container
+							56 text ▶ [15:31:07.082] onhostcontextchanged: {"containerDimensions":{"maxHeight":6000,"width":1125}}
+						57 container
+							58 text ▶ [15:31:07.092] onhostcontextchanged: {"containerDimensions":{"maxHeight":6000,"width":1125}}
+						59 container
+							60 text ▶ [15:31:07.100] onhostcontextchanged: {"containerDimensions":{"maxHeight":6000,"width":1124}}
+						61 container
+							62 text ▶ [15:31:07.105] onhostcontextchanged: {"containerDimensions":{"maxHeight":6000,"width":1124}}
+						63 container
+							64 text ▶ [15:31:07.113] onhostcontextchanged: {"containerDimensions":{"maxHeight":6000,"width":1124}}
+						65 container
+							66 text ▶ [15:31:07.129] onhostcontextchanged: {"containerDimensions":{"maxHeight":6000,"width":1124}}
+						67 container
+							68 text ▶ [15:31:07.131] onhostcontextchanged: {"containerDimensions":{"maxHeight":6000,"width":1124}}
+						69 container
+							70 text ▶ [15:31:07.145] onhostcontextchanged: {"containerDimensions":{"maxHeight":6000,"width":1124}}
+						71 container
+							72 text ▶ [15:31:07.153] onhostcontextchanged: {"containerDimensions":{"maxHeight":6000,"width":1124}}
+						73 container
+							74 text ▶ [15:31:07.155] onhostcontextchanged: {"containerDimensions":{"maxHeight":6000,"width":1124}}
+						75 container
+							76 text ▶ [15:31:07.164] onhostcontextchanged: {"containerDimensions":{"maxHeight":6000,"width":1124}}
+						77 container
+							78 text ▶ [15:31:07.172] onhostcontextchanged: {"containerDimensions":{"maxHeight":6000,"width":1124}}
+						79 container
+							80 text ▶ [15:31:07.180] onhostcontextchanged: {"containerDimensions":{"maxHeight":6000,"width":1124}}
+						81 container
+							82 text ▶ [15:31:07.191] onhostcontextchanged: {"containerDimensions":{"maxHeight":6000,"width":1124}}
+						83 container
+							84 text ▶ [15:31:07.202] onhostcontextchanged: {"containerDimensions":{"maxHeight":6000,"width":1124}}
+						85 container
+							86 text ▶ [15:31:07.204] onhostcontextchanged: {"containerDimensions":{"maxHeight":6000,"width":1124}}
+						87 container
+							88 text ▶ [15:31:07.211] onhostcontextchanged: {"containerDimensions":{"maxHeight":6000,"width":1124}}
+						89 container
+							90 text ▶ [15:31:07.220] onhostcontextchanged: {"containerDimensions":{"maxHeight":6000,"width":1124}}
+						91 container
+							92 text ▶ [15:31:07.227] onhostcontextchanged: {"containerDimensions":{"maxHeight":6000,"width":1124}}
+						93 container
+							94 text ▶ [15:31:07.236] onhostcontextchanged: {"containerDimensions":{"maxHeight":6000,"width":1124}}
+						95 container
+							96 text ▶ [15:31:07.244] onhostcontextchanged: {"containerDimensions":{"maxHeight":6000,"width":1124}}
+						97 container
+							98 text ▶ [15:31:07.253] onhostcontextchanged: {"containerDimensions":{"maxHeight":6000,"width":1124}}
+						99 container
+							100 text ▶ [15:31:07.261] onhostcontextchanged: {"containerDimensions":{"maxHeight":6000,"width":1124}}
+						101 container
+							102 text ▶ [15:31:07.269] onhostcontextchanged: {"containerDimensions":{"maxHeight":6000,"width":1124}}
+						103 container
+							104 text ▶ [15:31:07.278] onhostcontextchanged: {"containerDimensions":{"maxHeight":6000,"width":1124}}
+						105 container
+							106 text ▶ [15:31:07.295] onhostcontextchanged: {"containerDimensions":{"maxHeight":6000,"width":1124}}
+						107 container
+							108 text ▶ [15:31:07.297] onhostcontextchanged: {"containerDimensions":{"maxHeight":6000,"width":1124}}
+						109 container
+							110 text ▶ [15:31:07.303] onhostcontextchanged: {"containerDimensions":{"maxHeight":6000,"width":1124}}
+						111 container
+							112 text ▶ [15:31:07.311] onhostcontextchanged: {"containerDimensions":{"maxHeight":6000,"width":1124}}
+						113 container
+							114 text ▶ [15:31:07.320] onhostcontextchanged: {"containerDimensions":{"maxHeight":6000,"width":1124}}
+						115 container
+							116 text ▶ [15:31:07.328] onhostcontextchanged: {"containerDimensions":{"maxHeight":6000,"width":1124}}
+						117 container
+							118 text ▶ [15:31:07.336] onhostcontextchanged: {"containerDimensions":{"maxHeight":6000,"width":1124}}
+						119 container
+							120 text ▶ [15:31:07.344] onhostcontextchanged: {"containerDimensions":{"maxHeight":6000,"width":1124}}
+					121 heading Host Info ▼, Value: 2
+						122 text Host Info ▼
+					123 container host-info-content
+						124 heading Context, Value: 3
+							125 text Context
+						126 definition list host-context-info
+							127 container Theme
+								128 text Theme
+							129 text dark
+							130 container Locale
+								131 text Locale
+							132 text unknown
+							133 container TimeZone
+								134 text TimeZone
+							135 text unknown
+							136 container Platform
+								137 text Platform
+							138 text web
+							139 container Display Mode
+								140 text Display Mode
+							141 text inline
+							142 container Host
+								143 text Host
+							144 text MCP Apps Host v1.0.0
+						145 heading Capabilities, Value: 3
+							146 text Capabilities
+						147 definition list host-capabilities-info
+							148 container openLinks
+								149 text openLinks
+							150 text ✓
+							151 container serverTools
+								152 text serverTools
+							153 text ✓
+							154 container serverResources
+								155 text serverResources
+							156 text ✓
+							157 container logging
+								158 text logging
+							159 text ✗
+							160 container message
+								161 text message
+							162 text ✗
+							163 container updateModelContext
+								164 text updateModelContext
+							165 text ✓
+						166 heading Container, Value: 3
+							167 text Container
+						168 definition list host-container-info
+							169 container Width
+								170 text Width
+							171 text 1124px
+							172 container Height
+								173 text Height
+							174 text max 6000px
+							175 container Safe Area
+								176 text Safe Area
+							177 text none
+						178 heading Styles Sample, Value: 3
+							179 text Styles Sample
+					180 heading Callback Status ▼, Value: 2
+						181 text Callback Status ▼
+					182 table
+						183 row
+							184 cell
+								185 text Callback
+							186 cell
+								187 text Registered
+							188 cell
+								189 text Count
+							190 cell
+								191 text Last Payload
+						192 container callback-table-body
+							193 row
+								194 cell
+									195 text ontoolinput
+								196 cell
+									197 text ✓
+								198 cell
+									199 text 1
+								200 cell
+									201 text {"arguments":{}}
+							202 row
+								203 cell
+									204 text ontoolinputpartial
+								205 cell
+									206 text ✓
+								207 cell
+									208 text 0
+								209 cell
+									210 text -
+							211 row
+								212 cell
+									213 text ontoolresult
+								214 cell
+									215 text ✓
+								216 cell
+									217 text 1
+								218 cell
+									219 text {"_meta":{"debugInfo":{"processedAt":1790515866598,"serverVersion":"1.0.0"}},"content":[{"type":"tex...
+							220 row
+								221 cell
+									222 text ontoolcancelled
+								223 cell
+									224 text ✓
+								225 cell
+									226 text 0
+								227 cell
+									228 text -
+							229 row
+								230 cell
+									231 text onhostcontextchanged
+								232 cell
+									233 text ✓
+								234 cell
+									235 text 43
+								236 cell
+									237 text {"containerDimensions":{"maxHeight":6000,"width":1124}}
+							238 row
+								239 cell
+									240 text onteardown
+								241 cell
+									242 text ✓
+								243 cell
+									244 text 0
+								245 cell
+									246 text -
+							247 row
+								248 cell
+									249 text oncalltool
+								250 cell
+									251 text ✓
+								252 cell
+									253 text 0
+								254 cell
+									255 text -
+							256 row
+								257 cell
+									258 text onlisttools
+								259 cell
+									260 text ✓
+								261 cell
+									262 text 0
+								263 cell
+									264 text -
+							265 row
+								266 cell
+									267 text onerror
+								268 cell
+									269 text ✗
+								270 cell
+									271 text 0
+								272 cell
+									273 text -
+					274 heading Actions ▼, Value: 2
+						275 text Actions ▼
+					276 container actions-content
+						277 heading Messages, Value: 3
+							278 text Messages
+						279 text field (settable) Value: Hello from debug app!, ID: message-text
+						280 button Send Text, ID: send-message-text-btn
+						281 button Send Test Image, ID: send-message-image-btn
+						282 heading Logging, Value: 3
+							283 text Logging
+						284 text field (settable) Value: Debug log data, ID: log-data
+						285 button debug, ID: log-debug-btn
+						286 button info, ID: log-info-btn
+						287 button warning, ID: log-warning-btn
+						288 button error, ID: log-error-btn
+						289 heading Model Context, Value: 3
+							290 text Model Context
+						291 text field (settable) Value: Current app state info, ID: context-text
+						292 button Update (Text), ID: update-context-text-btn
+						293 button Update (Structured), ID: update-context-structured-btn
+						294 button Update (Image), ID: update-context-image-btn
+						295 heading Display Mode, Value: 3
+							296 text Display Mode
+						297 button Inline, ID: display-inline-btn
+						298 button Fullscreen, ID: display-fullscreen-btn
+						299 button PiP, ID: display-pip-btn
+						300 heading Links, Value: 3
+							301 text Links
+						302 text field (settable) Value: https://modelcontextprotocol.io/, ID: link-url
+						303 button Open Link, ID: open-link-btn
+						304 heading Size, Value: 3
+							305 text Size
+						306 checkbox (settable, integer) Description: Auto-resize, Value: 1, ID: auto-resize-toggle
+						307 button 200x100, ID: resize-200x100-btn
+						308 button 400x300, ID: resize-400x300-btn
+						309 button 800x600, ID: resize-800x600-btn
+						310 text Current: 
+						357 text 1125x2062
+						312 heading Server Tools, Value: 3
+							313 text Server Tools
+						314 text Content Type:
+						315 pop up button (collapsed, settable) Value: text, ID: tool-content-type, Secondary Actions: Expand
+							316 menu
+								317 (selected) text
+								318 image
+								319 audio
+								320 resource
+								321 resourceLink
+								322 mixed
+						323 checkbox (settable, integer) Description: Multiple blocks, Value: 0, ID: tool-multiple-blocks
+						324 checkbox (settable, integer) Description: Include structuredContent, Value: 1, ID: tool-structured-content
+						325 checkbox (settable, integer) Description: Include _meta, Value: 0, ID: tool-include-meta
+						326 checkbox (settable, integer) Description: Simulate error, Value: 0, ID: tool-simulate-error
+						327 text Delay (ms):
+						328 stepper (settable, integer) Value: 0, ID: tool-delay-ms
+						329 button Call debug-tool, ID: call-debug-tool-btn
+						330 button Call debug-refresh, ID: call-debug-refresh-btn
+		331 container Click to expand
+			332 text 📤 Tool Result 621 chars ▶
+			333 container
+				334 text { "_meta": { "debugInfo": { "processedAt": 1790515866598, "serverVersion": "1.0.0" …
+		335 container
+			336 text Server
+			337 pop up button (collapsed, settable) Server, Value: bifrost, Secondary Actions: Expand
+				338 menu
+					339 (selected) bifrost
+			340 text Tool
+			341 pop up button (collapsed, settable) Tool, Value: debug-debug-tool, Secondary Actions: Expand
+				342 menu
+					343 (selected) debug-debug-tool
+					344 excalidraw-create_view
+					345 monitor-get-system-info
+					346 pdf-display_pdf
+					347 excalidraw-read_me
+					348 executeToolCode
+					349 getToolDocs
+					350 listToolFiles
+					351 pdf-interact
+					352 pdf-list_pdfs
+					353 readToolFile
+			354 text Input
+			355 text entry area (settable) Input, Value: {
+  "contentType": "text",
+  "includeMeta": true,
+  "includeStructuredContent": true,
+  "multipleBlocks": true,
+  "simulateError": false
+}
+			356 button Call Tool
+
+The focused UI element is 330 button Call debug-refresh, ID: call-debug-refresh-btn

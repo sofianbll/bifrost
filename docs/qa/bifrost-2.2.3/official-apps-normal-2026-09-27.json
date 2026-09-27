@@ -1,0 +1,196 @@
+{
+  "mode": "normal",
+  "package_versions": {
+    "server-system-monitor": "2.0.3",
+    "server-debug": "2.0.3",
+    "server-pdf": "2.0.3"
+  },
+  "candidate_port": 18084,
+  "upstream_transport": "stdio",
+  "system_monitor": {
+    "mode": "normal",
+    "upstream_transport": "stdio",
+    "checks": [
+      {
+        "check": "full /mcp/monitor tools",
+        "passed": true
+      },
+      {
+        "check": "full /mcp/monitor app-only callback",
+        "passed": true
+      },
+      {
+        "check": "full /mcp/monitor HTML resource",
+        "passed": true
+      },
+      {
+        "check": "full /mcp/monitor system info",
+        "passed": true
+      },
+      {
+        "check": "full /mcp/monitor callback fresh samples",
+        "passed": true
+      },
+      {
+        "check": "full /mcp/monitor denied VK cannot read",
+        "passed": true
+      },
+      {
+        "check": "full /mcp/monitor denied VK cannot poll",
+        "passed": true
+      },
+      {
+        "check": "virtual /mcp/officialapps tools",
+        "passed": true
+      },
+      {
+        "check": "virtual /mcp/officialapps app-only callback",
+        "passed": true
+      },
+      {
+        "check": "virtual /mcp/officialapps HTML resource",
+        "passed": true
+      },
+      {
+        "check": "virtual /mcp/officialapps system info",
+        "passed": true
+      },
+      {
+        "check": "virtual /mcp/officialapps callback fresh samples",
+        "passed": true
+      },
+      {
+        "check": "virtual /mcp/officialapps denied VK cannot read",
+        "passed": true
+      },
+      {
+        "check": "virtual /mcp/officialapps denied VK cannot poll",
+        "passed": true
+      },
+      {
+        "check": "aggregate /mcp tools",
+        "passed": true
+      },
+      {
+        "check": "aggregate /mcp app-only callback",
+        "passed": true
+      },
+      {
+        "check": "aggregate /mcp HTML resource",
+        "passed": true
+      },
+      {
+        "check": "aggregate /mcp system info",
+        "passed": true
+      },
+      {
+        "check": "aggregate /mcp callback fresh samples",
+        "passed": true
+      },
+      {
+        "check": "aggregate /mcp denied VK cannot read",
+        "passed": true
+      },
+      {
+        "check": "aggregate /mcp denied VK cannot poll",
+        "passed": true
+      }
+    ]
+  },
+  "debug_checks": [
+    {
+      "profile": "full",
+      "path": "/mcp/debug",
+      "check": "text blocks + structuredContent + result _meta",
+      "passed": true
+    },
+    {
+      "profile": "full",
+      "path": "/mcp/debug",
+      "check": "intentional isError preserved",
+      "passed": true
+    },
+    {
+      "profile": "virtual",
+      "path": "/mcp/officialapps",
+      "check": "text blocks + structuredContent + result _meta",
+      "passed": true
+    },
+    {
+      "profile": "virtual",
+      "path": "/mcp/officialapps",
+      "check": "intentional isError preserved",
+      "passed": true
+    },
+    {
+      "profile": "aggregate",
+      "path": "/mcp",
+      "check": "text blocks + structuredContent + result _meta",
+      "passed": true
+    },
+    {
+      "profile": "aggregate",
+      "path": "/mcp",
+      "check": "intentional isError preserved",
+      "passed": true
+    }
+  ],
+  "pdf": {
+    "fixture": "https://arxiv.org/pdf/1706.03762",
+    "route": "/mcp",
+    "vk": "aggregate",
+    "viewUUID": "259847d1-4a6c-4b82-8836-ba014297f0e7",
+    "initial_page": 1,
+    "observed_after_interact_page": 2,
+    "same_view": true,
+    "interact_response": {
+      "jsonrpc": "2.0",
+      "id": 1,
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Queued: navigate to page 2"
+          }
+        ]
+      }
+    }
+  },
+  "native_codex": {
+    "thread_id": "01a0e2fc-aecc-7fc2-9963-94445ad87949",
+    "monitor_tool_call": "succeeded",
+    "rendering": "not independently inspected",
+    "polling": "continued every 2 seconds after reference-host Stop; consistent with native widget, attribution inferred"
+  },
+  "not_tested": [
+    "Code Mode",
+    "PDF native Codex",
+    "Debug native Codex",
+    "partial inputs",
+    "PDF save/annotations",
+    "all Debug host capabilities"
+  ],
+  "candidate_sha256": "90a867bfb796e33bd77d069ecd16c7822ed5822546a066bc085dab6c1cbee4df",
+  "native_monitor_poll_evidence": [
+    {
+      "time": "2026-09-27T15:12:20+02:00",
+      "message": "[mcp-apps] native tool completed tool=\"monitor-poll-system-stats\" result_present=true is_error=false"
+    },
+    {
+      "time": "2026-09-27T15:12:22+02:00",
+      "message": "[mcp-apps] native tool completed tool=\"monitor-poll-system-stats\" result_present=true is_error=false"
+    },
+    {
+      "time": "2026-09-27T15:12:24+02:00",
+      "message": "[mcp-apps] native tool completed tool=\"monitor-poll-system-stats\" result_present=true is_error=false"
+    },
+    {
+      "time": "2026-09-27T15:12:26+02:00",
+      "message": "[mcp-apps] native tool completed tool=\"monitor-poll-system-stats\" result_present=true is_error=false"
+    },
+    {
+      "time": "2026-09-27T15:12:28+02:00",
+      "message": "[mcp-apps] native tool completed tool=\"monitor-poll-system-stats\" result_present=true is_error=false"
+    }
+  ]
+}

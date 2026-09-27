@@ -1,0 +1,31 @@
+{
+  "scope": "local candidate; upstream QA viewer only",
+  "upstream_package": "@modelcontextprotocol/server-pdf@2.0.3",
+  "native_failure": "data: bundled worker blocked by script-src; Setting up fake worker failed",
+  "gateway_html_equal_to_upstream": true,
+  "html_sha256_before": "3c8aa8ca4d27bf20429b8b3a8dd6521340594cc1c1cbf69f50e3d35908625be7",
+  "html_sha256_after": "61000177ba3cd2e212e47e858950bb068e9fdc2f9a46d9e20f632527088f817f",
+  "unchanged_worker_sha256": "77db27489c126d5c6d7f2e88e7d98543edf1a6c61b4fae5a628493cd342f9782",
+  "regression": {
+    "before": "FAIL: PDF shows warning; bundled worker failed to load",
+    "after": "PASS: PDF first page rendered, 15 pages detected",
+    "policy": "data: omitted from script-src in isolated reference host; no relaxation"
+  },
+  "native": {
+    "thread_id": "01a0e334-bc94-7311-897d-4712f98da657",
+    "view_uuid": "042e0e73-54bb-402c-b689-863ad061914b",
+    "initial_pre_mount_check": "Viewer never connected",
+    "after_mount_state": {
+      "currentPage": 5,
+      "pageCount": 15,
+      "zoom": 93,
+      "displayMode": "fullscreen"
+    },
+    "screenshot_tool": "pdf-interact(action=get_screenshot,page=5)",
+    "screenshot": "pdf-native-page5-after-2026-09-27.png",
+    "image_inspected": true
+  },
+  "production_touched": false,
+  "bifrost_product_code_changed": false,
+  "codex_policy_changed": false
+}

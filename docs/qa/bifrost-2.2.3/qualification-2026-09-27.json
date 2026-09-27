@@ -1,0 +1,130 @@
+{
+  "date": "2026-09-27",
+  "source_commit": "c3f711b49ac1f2a9a4bedef78c66e226fb398fbc",
+  "production_code_modified": false,
+  "build": {
+    "platform": "darwin/arm64",
+    "go": "go1.27.1",
+    "binary_sha256": "90a867bfb796e33bd77d069ecd16c7822ed5822546a066bc085dab6c1cbee4df",
+    "command": "go build -ldflags '-X main.Version=qa-c3f711b49' -o /private/tmp/bifrost-apps-qa-20260927/bifrost-http ./transports/bifrost-http",
+    "dashboard": "not compiled; existing ui/.keep embedded"
+  },
+  "tests": [
+    {
+      "command": "go test -count=1 ./transports/bifrost-http/handlers -run '^TestMCPApp'",
+      "exit_code": 0
+    },
+    {
+      "command": "go test -count=1 ./core/mcp -run '^TestGatewayExposesCodeModeAppClientNatively$'",
+      "exit_code": 0
+    }
+  ],
+  "reference_host": {
+    "repository": "https://github.com/modelcontextprotocol/ext-apps",
+    "commit": "82221c0c8ce7661efa6771c9d461511b1650495f",
+    "example": "examples/basic-host",
+    "version": "2.0.3",
+    "local_adjustments": [
+      "Copied the example outside the npm workspace",
+      "Added @types/cors@2.8.19 to the temporary host",
+      "Used INPUT=... vite build directly because cross-env was absent",
+      "Bound both temporary servers to 127.0.0.1"
+    ],
+    "transport": "Streamable HTTP",
+    "gateway_endpoint": "http://127.0.0.1:18083/mcp",
+    "render": true,
+    "editor_opened": true,
+    "zoom_before": "100%",
+    "zoom_after": "110%",
+    "shape_edit_and_save": "not verified; automation rejected fractional iframe coordinates and keyboard focus attempt timed out",
+    "native_codex_conversation_render": "not tested; this is the reference host inside the Codex browser"
+  },
+  "fixture": {
+    "client": {
+      "allowed_origins": [
+        "http://localhost:18080",
+        "http://127.0.0.1:18080"
+      ],
+      "enable_logging": false,
+      "allowed_headers": [
+        "Mcp-Protocol-Version",
+        "Mcp-Session-Id",
+        "Last-Event-ID"
+      ]
+    },
+    "providers": {},
+    "mcp": {
+      "client_configs": [
+        {
+          "name": "excalidraw",
+          "client_id": "qa-excalidraw",
+          "endpoint_slug": "excalidraw",
+          "connection_type": "http",
+          "connection_string": "https://mcp.excalidraw.com/mcp",
+          "auth_type": "none",
+          "tools_to_execute": [
+            "*"
+          ],
+          "needs_session_stickiness": true
+        },
+        {
+          "name": "second",
+          "client_id": "qa-second",
+          "endpoint_slug": "second",
+          "connection_type": "http",
+          "connection_string": "https://mcp.excalidraw.com/mcp",
+          "auth_type": "none",
+          "tools_to_execute": [
+            "read_me"
+          ],
+          "needs_session_stickiness": true
+        }
+      ],
+      "virtual_mcps": [
+        {
+          "name": "qa-aggregate",
+          "endpoint_slug": "qa-aggregate",
+          "enabled": true,
+          "tools": [
+            {
+              "mcp_client_name": "excalidraw",
+              "tool_names": [
+                "*"
+              ]
+            },
+            {
+              "mcp_client_name": "second",
+              "tool_names": [
+                "read_me"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "observations": {
+    "initial_cors": "MCP headers absent from allowed response headers; reference host could not connect",
+    "cors_resolution": "Set client.allowed_headers to Mcp-Protocol-Version, Mcp-Session-Id and Last-Event-ID in the isolated fixture; connection and rendering then succeeded",
+    "aggregate_visible_tools": [
+      "excalidraw-create_view",
+      "excalidraw-read_me",
+      "second-read_me"
+    ],
+    "named_virtual_mcp": "/mcp/qa-aggregate returned 403; fixture had no assigned caller grant. Rendering validation used the aggregate /mcp endpoint, not that named route.",
+    "providers_tested": false,
+    "production_touched": false
+  },
+  "screenshots": [
+    "mcp-apps-aggregate-render-2026-09-27.jpg",
+    "mcp-apps-aggregate-edit-2026-09-27.jpg"
+  ],
+  "limitations": [
+    "Native macOS binary, not a new Linux container validation",
+    "One renderable App source plus a second read_me-only source, not two interactive Apps",
+    "No native Codex conversation rendering or progressive-input test",
+    "No nested Code Mode implementation or retest",
+    "No production publication or deployment"
+  ],
+  "temporary_services": "Stopped after QA; temporary sources/configuration retained under /private/tmp/bifrost-apps-qa-20260927"
+}

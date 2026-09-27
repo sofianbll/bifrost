@@ -1,0 +1,154 @@
+{
+  "binary_sha256": "4106af5a5b681862798360b34b6051ecd71928118c2391caa18e98376ac1d325",
+  "fresh_database": true,
+  "gateway_starts": 1,
+  "checks": [
+    {
+      "name": "candidate healthy on first start",
+      "passed": true
+    },
+    {
+      "name": "both VK attachments exist without restart",
+      "passed": true
+    },
+    {
+      "name": "/mcp/debug initialize",
+      "passed": true
+    },
+    {
+      "name": "/mcp/debug exposes Debug and Code Mode",
+      "passed": true
+    },
+    {
+      "name": "/mcp/debug preserves App resource HTML",
+      "passed": true
+    },
+    {
+      "name": "/mcp/debug native tool error=False",
+      "passed": true
+    },
+    {
+      "name": "/mcp/debug native structured result retained",
+      "passed": true
+    },
+    {
+      "name": "/mcp/debug native tool error=True",
+      "passed": true
+    },
+    {
+      "name": "/mcp/debug runtime failure",
+      "passed": true
+    },
+    {
+      "name": "/mcp/debug nested failure",
+      "passed": true
+    },
+    {
+      "name": "/mcp/debug nested success",
+      "passed": true
+    },
+    {
+      "name": "/mcp/debug simple success",
+      "passed": true
+    },
+    {
+      "name": "/mcp/candidate-apps initialize",
+      "passed": true
+    },
+    {
+      "name": "/mcp/candidate-apps exposes Debug and Code Mode",
+      "passed": true
+    },
+    {
+      "name": "/mcp/candidate-apps preserves App resource HTML",
+      "passed": true
+    },
+    {
+      "name": "/mcp/candidate-apps native tool error=False",
+      "passed": true
+    },
+    {
+      "name": "/mcp/candidate-apps native structured result retained",
+      "passed": true
+    },
+    {
+      "name": "/mcp/candidate-apps native tool error=True",
+      "passed": true
+    },
+    {
+      "name": "/mcp/candidate-apps runtime failure",
+      "passed": true
+    },
+    {
+      "name": "/mcp/candidate-apps nested failure",
+      "passed": true
+    },
+    {
+      "name": "/mcp/candidate-apps nested success",
+      "passed": true
+    },
+    {
+      "name": "/mcp/candidate-apps simple success",
+      "passed": true
+    },
+    {
+      "name": "/mcp initialize",
+      "passed": true
+    },
+    {
+      "name": "/mcp exposes Debug and Code Mode",
+      "passed": true
+    },
+    {
+      "name": "/mcp preserves App resource HTML",
+      "passed": true
+    },
+    {
+      "name": "/mcp native tool error=False",
+      "passed": true
+    },
+    {
+      "name": "/mcp native structured result retained",
+      "passed": true
+    },
+    {
+      "name": "/mcp native tool error=True",
+      "passed": true
+    },
+    {
+      "name": "/mcp runtime failure",
+      "passed": true
+    },
+    {
+      "name": "/mcp nested failure",
+      "passed": true
+    },
+    {
+      "name": "/mcp nested success",
+      "passed": true
+    },
+    {
+      "name": "/mcp simple success",
+      "passed": true
+    },
+    {
+      "name": "/mcp/debug rejects ungranted key",
+      "passed": true
+    },
+    {
+      "name": "/mcp/candidate-apps rejects ungranted key",
+      "passed": true
+    },
+    {
+      "name": "root hides Debug from ungranted key",
+      "passed": true
+    }
+  ],
+  "server": {
+    "name": "bifrost",
+    "version": "qa-c3f711b49-errors-firstboot"
+  },
+  "gateway_stopped": true,
+  "passed": 35,
+  "total": 35
+}

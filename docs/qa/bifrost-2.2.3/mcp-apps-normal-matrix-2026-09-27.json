@@ -1,0 +1,1331 @@
+{
+  "url": "http://127.0.0.1:18083",
+  "expect_apps": true,
+  "observations": {
+    "server": {
+      "name": "bifrost",
+      "version": "qa-c3f711b49"
+    },
+    "capabilities": {
+      "extensions": {
+        "io.modelcontextprotocol/ui": {
+          "mimeTypes": [
+            "text/html;profile=mcp-app"
+          ]
+        }
+      },
+      "resources": {},
+      "tools": {
+        "listChanged": true
+      }
+    },
+    "tools": [
+      {
+        "name": "excalidraw-create_view",
+        "meta": {
+          "ui": {
+            "resourceUri": "ui://bifrost/ZXhjYWxpZHJhdw/dWk6Ly9leGNhbGlkcmF3L21jcC1hcHAuaHRtbA"
+          },
+          "ui/resourceUri": "ui://excalidraw/mcp-app.html"
+        }
+      },
+      {
+        "name": "excalidraw-export_to_excalidraw",
+        "meta": {
+          "ui": {
+            "visibility": [
+              "app"
+            ]
+          }
+        }
+      },
+      {
+        "name": "excalidraw-read_checkpoint",
+        "meta": {
+          "ui": {
+            "visibility": [
+              "app"
+            ]
+          }
+        }
+      },
+      {
+        "name": "excalidraw-read_me",
+        "meta": null
+      },
+      {
+        "name": "excalidraw-save_checkpoint",
+        "meta": {
+          "ui": {
+            "visibility": [
+              "app"
+            ]
+          }
+        }
+      },
+      {
+        "name": "create_view",
+        "meta": {
+          "ui": {
+            "resourceUri": "ui://bifrost/ZXhjYWxpZHJhdw/dWk6Ly9leGNhbGlkcmF3L21jcC1hcHAuaHRtbA",
+            "visibility": [
+              "app"
+            ]
+          },
+          "ui/resourceUri": "ui://excalidraw/mcp-app.html"
+        }
+      },
+      {
+        "name": "export_to_excalidraw",
+        "meta": {
+          "ui": {
+            "visibility": [
+              "app"
+            ]
+          }
+        }
+      },
+      {
+        "name": "read_checkpoint",
+        "meta": {
+          "ui": {
+            "visibility": [
+              "app"
+            ]
+          }
+        }
+      },
+      {
+        "name": "read_me",
+        "meta": {
+          "ui": {
+            "visibility": [
+              "app"
+            ]
+          }
+        }
+      },
+      {
+        "name": "save_checkpoint",
+        "meta": {
+          "ui": {
+            "visibility": [
+              "app"
+            ]
+          }
+        }
+      }
+    ],
+    "structured_checkpoint": true,
+    "resources_list_error": null,
+    "normal_matrix": [
+      {
+        "key_profile": "full",
+        "path": "/mcp/excalidraw",
+        "http_status": 200,
+        "tools": [
+          "excalidraw-create_view",
+          "excalidraw-export_to_excalidraw",
+          "excalidraw-read_checkpoint",
+          "excalidraw-read_me",
+          "excalidraw-save_checkpoint",
+          "create_view",
+          "export_to_excalidraw",
+          "read_checkpoint",
+          "read_me",
+          "save_checkpoint"
+        ],
+        "expected_namespaced_tools": [
+          "excalidraw-create_view",
+          "excalidraw-export_to_excalidraw",
+          "excalidraw-read_checkpoint",
+          "excalidraw-read_me",
+          "excalidraw-save_checkpoint"
+        ],
+        "error": null
+      },
+      {
+        "key_profile": "virtual",
+        "path": "/mcp/excalidraw",
+        "http_status": 200,
+        "tools": [
+          "excalidraw-read_me"
+        ],
+        "expected_namespaced_tools": [
+          "excalidraw-read_me"
+        ],
+        "error": null
+      },
+      {
+        "key_profile": "virtual",
+        "path": "/mcp/codexmcp",
+        "http_status": 200,
+        "tools": [
+          "excalidraw-read_me",
+          "second-create_view",
+          "second-export_to_excalidraw",
+          "second-read_checkpoint",
+          "second-read_me",
+          "second-save_checkpoint",
+          "create_view",
+          "export_to_excalidraw",
+          "read_checkpoint",
+          "save_checkpoint"
+        ],
+        "expected_namespaced_tools": [
+          "excalidraw-read_me",
+          "second-create_view",
+          "second-export_to_excalidraw",
+          "second-read_checkpoint",
+          "second-read_me",
+          "second-save_checkpoint"
+        ],
+        "error": null
+      },
+      {
+        "key_profile": "aggregate",
+        "path": "/mcp/codexmcp",
+        "http_status": 200,
+        "tools": [
+          "excalidraw-read_me",
+          "second-create_view",
+          "second-export_to_excalidraw",
+          "second-read_checkpoint",
+          "second-read_me",
+          "second-save_checkpoint",
+          "create_view",
+          "export_to_excalidraw",
+          "read_checkpoint",
+          "save_checkpoint"
+        ],
+        "expected_namespaced_tools": [
+          "excalidraw-read_me",
+          "second-create_view",
+          "second-export_to_excalidraw",
+          "second-read_checkpoint",
+          "second-read_me",
+          "second-save_checkpoint"
+        ],
+        "error": null
+      },
+      {
+        "key_profile": "full",
+        "path": "/mcp",
+        "http_status": 200,
+        "tools": [
+          "excalidraw-create_view",
+          "excalidraw-export_to_excalidraw",
+          "excalidraw-read_checkpoint",
+          "excalidraw-read_me",
+          "excalidraw-save_checkpoint",
+          "create_view",
+          "export_to_excalidraw",
+          "read_checkpoint",
+          "read_me",
+          "save_checkpoint"
+        ],
+        "expected_namespaced_tools": [
+          "excalidraw-create_view",
+          "excalidraw-export_to_excalidraw",
+          "excalidraw-read_checkpoint",
+          "excalidraw-read_me",
+          "excalidraw-save_checkpoint"
+        ],
+        "error": null
+      },
+      {
+        "key_profile": "virtual",
+        "path": "/mcp",
+        "http_status": 200,
+        "tools": [
+          "excalidraw-read_me",
+          "second-create_view",
+          "second-export_to_excalidraw",
+          "second-read_checkpoint",
+          "second-read_me",
+          "second-save_checkpoint",
+          "create_view",
+          "export_to_excalidraw",
+          "read_checkpoint",
+          "save_checkpoint"
+        ],
+        "expected_namespaced_tools": [
+          "excalidraw-read_me",
+          "second-create_view",
+          "second-export_to_excalidraw",
+          "second-read_checkpoint",
+          "second-read_me",
+          "second-save_checkpoint"
+        ],
+        "error": null
+      },
+      {
+        "key_profile": "aggregate",
+        "path": "/mcp",
+        "http_status": 200,
+        "tools": [
+          "excalidraw-create_view",
+          "excalidraw-export_to_excalidraw",
+          "excalidraw-read_checkpoint",
+          "excalidraw-read_me",
+          "excalidraw-save_checkpoint",
+          "second-create_view",
+          "second-export_to_excalidraw",
+          "second-read_checkpoint",
+          "second-read_me",
+          "second-save_checkpoint"
+        ],
+        "expected_namespaced_tools": [
+          "excalidraw-create_view",
+          "excalidraw-export_to_excalidraw",
+          "excalidraw-read_checkpoint",
+          "excalidraw-read_me",
+          "excalidraw-save_checkpoint",
+          "second-create_view",
+          "second-export_to_excalidraw",
+          "second-read_checkpoint",
+          "second-read_me",
+          "second-save_checkpoint"
+        ],
+        "error": null
+      },
+      {
+        "key_profile": "limited",
+        "path": "/mcp",
+        "http_status": 200,
+        "tools": [
+          "excalidraw-read_me"
+        ],
+        "expected_namespaced_tools": [
+          "excalidraw-read_me"
+        ],
+        "error": null
+      },
+      {
+        "key_profile": "full",
+        "path": "/mcp/codexmcp",
+        "http_status": 403,
+        "error": {
+          "message": "access_denied"
+        }
+      },
+      {
+        "key_profile": "limited",
+        "path": "/mcp/codexmcp",
+        "http_status": 403,
+        "error": {
+          "message": "access_denied"
+        }
+      },
+      {
+        "key_profile": "denied",
+        "path": "/mcp/codexmcp",
+        "http_status": 403,
+        "error": {
+          "message": "access_denied"
+        }
+      },
+      {
+        "key_profile": "invalid",
+        "path": "/mcp/codexmcp",
+        "http_status": 401,
+        "error": {
+          "message": "access not found. The provided credential does not exist or has been revoked."
+        }
+      },
+      {
+        "key_profile": "absent",
+        "path": "/mcp/codexmcp",
+        "http_status": 401,
+        "error": {
+          "message": "virtual key required to access mcp server; set one of x-bf-vk, Authorization: Bearer <vk>, x-api-key, or x-goog-api-key in your MCP client config"
+        }
+      },
+      {
+        "key_profile": "denied",
+        "path": "/mcp",
+        "method": "tools/list",
+        "http_status": 200,
+        "response": {
+          "id": 1,
+          "jsonrpc": "2.0",
+          "result": {
+            "tools": []
+          }
+        }
+      },
+      {
+        "key_profile": "denied",
+        "path": "/mcp",
+        "method": "resources/read",
+        "http_status": 200,
+        "response": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "error": {
+            "code": -32603,
+            "message": "app resource is not available"
+          }
+        }
+      },
+      {
+        "key_profile": "denied",
+        "path": "/mcp",
+        "method": "tools/call",
+        "http_status": 200,
+        "response": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "error": {
+            "code": -32602,
+            "message": "tool 'read_checkpoint' not found: tool not found"
+          }
+        }
+      },
+      {
+        "key_profile": "invalid",
+        "path": "/mcp",
+        "method": "tools/list",
+        "http_status": 401,
+        "response": {
+          "is_bifrost_error": false,
+          "status_code": 401,
+          "error": {
+            "message": "access not found. The provided credential does not exist or has been revoked."
+          },
+          "extra_fields": {
+            "routing_info": {}
+          }
+        }
+      },
+      {
+        "key_profile": "invalid",
+        "path": "/mcp",
+        "method": "resources/read",
+        "http_status": 401,
+        "response": {
+          "is_bifrost_error": false,
+          "status_code": 401,
+          "error": {
+            "message": "access not found. The provided credential does not exist or has been revoked."
+          },
+          "extra_fields": {
+            "routing_info": {}
+          }
+        }
+      },
+      {
+        "key_profile": "invalid",
+        "path": "/mcp",
+        "method": "tools/call",
+        "http_status": 401,
+        "response": {
+          "is_bifrost_error": false,
+          "status_code": 401,
+          "error": {
+            "message": "access not found. The provided credential does not exist or has been revoked."
+          },
+          "extra_fields": {
+            "routing_info": {}
+          }
+        }
+      },
+      {
+        "key_profile": "absent",
+        "path": "/mcp",
+        "method": "tools/list",
+        "http_status": 401,
+        "response": {
+          "is_bifrost_error": false,
+          "status_code": 401,
+          "error": {
+            "message": "virtual key required to access mcp server; set one of x-bf-vk, Authorization: Bearer <vk>, x-api-key, or x-goog-api-key in your MCP client config"
+          },
+          "extra_fields": {
+            "routing_info": {}
+          }
+        }
+      },
+      {
+        "key_profile": "absent",
+        "path": "/mcp",
+        "method": "resources/read",
+        "http_status": 401,
+        "response": {
+          "is_bifrost_error": false,
+          "status_code": 401,
+          "error": {
+            "message": "virtual key required to access mcp server; set one of x-bf-vk, Authorization: Bearer <vk>, x-api-key, or x-goog-api-key in your MCP client config"
+          },
+          "extra_fields": {
+            "routing_info": {}
+          }
+        }
+      },
+      {
+        "key_profile": "absent",
+        "path": "/mcp",
+        "method": "tools/call",
+        "http_status": 401,
+        "response": {
+          "is_bifrost_error": false,
+          "status_code": 401,
+          "error": {
+            "message": "virtual key required to access mcp server; set one of x-bf-vk, Authorization: Bearer <vk>, x-api-key, or x-goog-api-key in your MCP client config"
+          },
+          "extra_fields": {
+            "routing_info": {}
+          }
+        }
+      },
+      {
+        "key_profile": "denied",
+        "path": "/mcp/excalidraw",
+        "method": "tools/list",
+        "http_status": 403,
+        "response": {
+          "is_bifrost_error": false,
+          "status_code": 403,
+          "error": {
+            "message": "access_denied"
+          },
+          "extra_fields": {
+            "routing_info": {}
+          }
+        }
+      },
+      {
+        "key_profile": "denied",
+        "path": "/mcp/excalidraw",
+        "method": "resources/read",
+        "http_status": 403,
+        "response": {
+          "is_bifrost_error": false,
+          "status_code": 403,
+          "error": {
+            "message": "access_denied"
+          },
+          "extra_fields": {
+            "routing_info": {}
+          }
+        }
+      },
+      {
+        "key_profile": "denied",
+        "path": "/mcp/excalidraw",
+        "method": "tools/call",
+        "http_status": 403,
+        "response": {
+          "is_bifrost_error": false,
+          "status_code": 403,
+          "error": {
+            "message": "access_denied"
+          },
+          "extra_fields": {
+            "routing_info": {}
+          }
+        }
+      },
+      {
+        "key_profile": "invalid",
+        "path": "/mcp/excalidraw",
+        "method": "tools/list",
+        "http_status": 401,
+        "response": {
+          "is_bifrost_error": false,
+          "status_code": 401,
+          "error": {
+            "message": "access not found. The provided credential does not exist or has been revoked."
+          },
+          "extra_fields": {
+            "routing_info": {}
+          }
+        }
+      },
+      {
+        "key_profile": "invalid",
+        "path": "/mcp/excalidraw",
+        "method": "resources/read",
+        "http_status": 401,
+        "response": {
+          "is_bifrost_error": false,
+          "status_code": 401,
+          "error": {
+            "message": "access not found. The provided credential does not exist or has been revoked."
+          },
+          "extra_fields": {
+            "routing_info": {}
+          }
+        }
+      },
+      {
+        "key_profile": "invalid",
+        "path": "/mcp/excalidraw",
+        "method": "tools/call",
+        "http_status": 401,
+        "response": {
+          "is_bifrost_error": false,
+          "status_code": 401,
+          "error": {
+            "message": "access not found. The provided credential does not exist or has been revoked."
+          },
+          "extra_fields": {
+            "routing_info": {}
+          }
+        }
+      },
+      {
+        "key_profile": "absent",
+        "path": "/mcp/excalidraw",
+        "method": "tools/list",
+        "http_status": 401,
+        "response": {
+          "is_bifrost_error": false,
+          "status_code": 401,
+          "error": {
+            "message": "virtual key required to access mcp server; set one of x-bf-vk, Authorization: Bearer <vk>, x-api-key, or x-goog-api-key in your MCP client config"
+          },
+          "extra_fields": {
+            "routing_info": {}
+          }
+        }
+      },
+      {
+        "key_profile": "absent",
+        "path": "/mcp/excalidraw",
+        "method": "resources/read",
+        "http_status": 401,
+        "response": {
+          "is_bifrost_error": false,
+          "status_code": 401,
+          "error": {
+            "message": "virtual key required to access mcp server; set one of x-bf-vk, Authorization: Bearer <vk>, x-api-key, or x-goog-api-key in your MCP client config"
+          },
+          "extra_fields": {
+            "routing_info": {}
+          }
+        }
+      },
+      {
+        "key_profile": "absent",
+        "path": "/mcp/excalidraw",
+        "method": "tools/call",
+        "http_status": 401,
+        "response": {
+          "is_bifrost_error": false,
+          "status_code": 401,
+          "error": {
+            "message": "virtual key required to access mcp server; set one of x-bf-vk, Authorization: Bearer <vk>, x-api-key, or x-goog-api-key in your MCP client config"
+          },
+          "extra_fields": {
+            "routing_info": {}
+          }
+        }
+      },
+      {
+        "key_profile": "denied",
+        "path": "/mcp/codexmcp",
+        "method": "tools/list",
+        "http_status": 403,
+        "response": {
+          "is_bifrost_error": false,
+          "status_code": 403,
+          "error": {
+            "message": "access_denied"
+          },
+          "extra_fields": {
+            "routing_info": {}
+          }
+        }
+      },
+      {
+        "key_profile": "denied",
+        "path": "/mcp/codexmcp",
+        "method": "resources/read",
+        "http_status": 403,
+        "response": {
+          "is_bifrost_error": false,
+          "status_code": 403,
+          "error": {
+            "message": "access_denied"
+          },
+          "extra_fields": {
+            "routing_info": {}
+          }
+        }
+      },
+      {
+        "key_profile": "denied",
+        "path": "/mcp/codexmcp",
+        "method": "tools/call",
+        "http_status": 403,
+        "response": {
+          "is_bifrost_error": false,
+          "status_code": 403,
+          "error": {
+            "message": "access_denied"
+          },
+          "extra_fields": {
+            "routing_info": {}
+          }
+        }
+      },
+      {
+        "key_profile": "invalid",
+        "path": "/mcp/codexmcp",
+        "method": "tools/list",
+        "http_status": 401,
+        "response": {
+          "is_bifrost_error": false,
+          "status_code": 401,
+          "error": {
+            "message": "access not found. The provided credential does not exist or has been revoked."
+          },
+          "extra_fields": {
+            "routing_info": {}
+          }
+        }
+      },
+      {
+        "key_profile": "invalid",
+        "path": "/mcp/codexmcp",
+        "method": "resources/read",
+        "http_status": 401,
+        "response": {
+          "is_bifrost_error": false,
+          "status_code": 401,
+          "error": {
+            "message": "access not found. The provided credential does not exist or has been revoked."
+          },
+          "extra_fields": {
+            "routing_info": {}
+          }
+        }
+      },
+      {
+        "key_profile": "invalid",
+        "path": "/mcp/codexmcp",
+        "method": "tools/call",
+        "http_status": 401,
+        "response": {
+          "is_bifrost_error": false,
+          "status_code": 401,
+          "error": {
+            "message": "access not found. The provided credential does not exist or has been revoked."
+          },
+          "extra_fields": {
+            "routing_info": {}
+          }
+        }
+      },
+      {
+        "key_profile": "absent",
+        "path": "/mcp/codexmcp",
+        "method": "tools/list",
+        "http_status": 401,
+        "response": {
+          "is_bifrost_error": false,
+          "status_code": 401,
+          "error": {
+            "message": "virtual key required to access mcp server; set one of x-bf-vk, Authorization: Bearer <vk>, x-api-key, or x-goog-api-key in your MCP client config"
+          },
+          "extra_fields": {
+            "routing_info": {}
+          }
+        }
+      },
+      {
+        "key_profile": "absent",
+        "path": "/mcp/codexmcp",
+        "method": "resources/read",
+        "http_status": 401,
+        "response": {
+          "is_bifrost_error": false,
+          "status_code": 401,
+          "error": {
+            "message": "virtual key required to access mcp server; set one of x-bf-vk, Authorization: Bearer <vk>, x-api-key, or x-goog-api-key in your MCP client config"
+          },
+          "extra_fields": {
+            "routing_info": {}
+          }
+        }
+      },
+      {
+        "key_profile": "absent",
+        "path": "/mcp/codexmcp",
+        "method": "tools/call",
+        "http_status": 401,
+        "response": {
+          "is_bifrost_error": false,
+          "status_code": 401,
+          "error": {
+            "message": "virtual key required to access mcp server; set one of x-bf-vk, Authorization: Bearer <vk>, x-api-key, or x-goog-api-key in your MCP client config"
+          },
+          "extra_fields": {
+            "routing_info": {}
+          }
+        }
+      },
+      {
+        "key_profile": "full",
+        "path": "/mcp/excalidraw",
+        "callback_readback": [
+          "[{\"type\":\"rectangle\",\"id\":\"normal-mode-qa\",\"x\":17,\"y\":23,\"width\":100,\"height\":60,\"label\":{\"text\":\"/mcp/excalidraw\"}}]"
+        ],
+        "expected_saved_data": [
+          {
+            "type": "rectangle",
+            "id": "normal-mode-qa",
+            "x": 17,
+            "y": 23,
+            "width": 100,
+            "height": 60,
+            "label": {
+              "text": "/mcp/excalidraw"
+            }
+          }
+        ]
+      },
+      {
+        "key_profile": "virtual",
+        "path": "/mcp/codexmcp",
+        "callback_readback": [
+          "[{\"type\":\"rectangle\",\"id\":\"normal-mode-qa\",\"x\":17,\"y\":23,\"width\":100,\"height\":60,\"label\":{\"text\":\"/mcp/codexmcp\"}}]"
+        ],
+        "expected_saved_data": [
+          {
+            "type": "rectangle",
+            "id": "normal-mode-qa",
+            "x": 17,
+            "y": 23,
+            "width": 100,
+            "height": 60,
+            "label": {
+              "text": "/mcp/codexmcp"
+            }
+          }
+        ]
+      },
+      {
+        "key_profile": "aggregate",
+        "path": "/mcp",
+        "callback_readback": [
+          "[{\"type\":\"rectangle\",\"id\":\"normal-mode-qa\",\"x\":17,\"y\":23,\"width\":100,\"height\":60,\"label\":{\"text\":\"/mcp\"}}]"
+        ],
+        "expected_saved_data": [
+          {
+            "type": "rectangle",
+            "id": "normal-mode-qa",
+            "x": 17,
+            "y": 23,
+            "width": 100,
+            "height": 60,
+            "label": {
+              "text": "/mcp"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "checks": [
+    {
+      "name": "initialize succeeds",
+      "passed": true
+    },
+    {
+      "name": "UI negotiation matches variant",
+      "passed": true
+    },
+    {
+      "name": "tools/list succeeds",
+      "passed": true
+    },
+    {
+      "name": "UI resource metadata matches variant",
+      "passed": true
+    },
+    {
+      "name": "raw upstream UI metadata preserved",
+      "passed": true
+    },
+    {
+      "name": "excalidraw-read_checkpoint hidden from model",
+      "passed": true
+    },
+    {
+      "name": "excalidraw-save_checkpoint hidden from model",
+      "passed": true
+    },
+    {
+      "name": "excalidraw-export_to_excalidraw hidden from model",
+      "passed": true
+    },
+    {
+      "name": "create_view remains model-visible",
+      "passed": true
+    },
+    {
+      "name": "read_me succeeds",
+      "passed": true
+    },
+    {
+      "name": "create_view succeeds",
+      "passed": true
+    },
+    {
+      "name": "structured result matches variant",
+      "passed": true
+    },
+    {
+      "name": "resources/list returns an array",
+      "passed": true
+    },
+    {
+      "name": "UI resource template advertised",
+      "passed": true
+    },
+    {
+      "name": "resources/read returns HTML and MIME",
+      "passed": true
+    },
+    {
+      "name": "save_checkpoint is app-only",
+      "passed": true
+    },
+    {
+      "name": "save_checkpoint original-name callback succeeds",
+      "passed": true
+    },
+    {
+      "name": "read_checkpoint is app-only",
+      "passed": true
+    },
+    {
+      "name": "read_checkpoint original-name callback succeeds",
+      "passed": true
+    },
+    {
+      "name": "unknown resource rejected",
+      "passed": true
+    },
+    {
+      "name": "limited key sees only read_me",
+      "passed": true
+    },
+    {
+      "name": "limited key cannot call excalidraw-create_view",
+      "passed": true
+    },
+    {
+      "name": "limited key cannot call create_view",
+      "passed": true
+    },
+    {
+      "name": "limited key cannot call read_checkpoint",
+      "passed": true
+    },
+    {
+      "name": "limited key cannot call save_checkpoint",
+      "passed": true
+    },
+    {
+      "name": "limited key cannot read UI",
+      "passed": true
+    },
+    {
+      "name": "denied key rejected",
+      "passed": true
+    },
+    {
+      "name": "invalid key rejected",
+      "passed": true
+    },
+    {
+      "name": "unknown tool returns protocol error",
+      "passed": true
+    },
+    {
+      "name": "upstream tool error remains isError",
+      "passed": true
+    },
+    {
+      "name": "aggregate lists both upstreams",
+      "passed": true
+    },
+    {
+      "name": "aggregate preserves admitted UI",
+      "passed": true
+    },
+    {
+      "name": "two sources have distinct rewritten UI URIs",
+      "passed": true
+    },
+    {
+      "name": "excalidraw resource routes to HTML",
+      "passed": true
+    },
+    {
+      "name": "second resource routes to HTML",
+      "passed": true
+    },
+    {
+      "name": "single-source key cannot read second source UI",
+      "passed": true
+    },
+    {
+      "name": "single-source key cannot call second source",
+      "passed": true
+    },
+    {
+      "name": "second source native call preserves structured result",
+      "passed": true
+    },
+    {
+      "name": "excalidraw namespaced callback routes",
+      "passed": true
+    },
+    {
+      "name": "second namespaced callback routes",
+      "passed": true
+    },
+    {
+      "name": "aggregate negotiates UI",
+      "passed": true
+    },
+    {
+      "name": "aggregate routes only unambiguous callback",
+      "passed": true
+    },
+    {
+      "name": "upstream UI URI cannot bypass gateway route",
+      "passed": true
+    },
+    {
+      "name": "normal full /mcp/excalidraw: exact grants without duplicate names",
+      "passed": true
+    },
+    {
+      "name": "normal full /mcp/excalidraw: initializes",
+      "passed": true
+    },
+    {
+      "name": "normal full /mcp/excalidraw: excalidraw-create_view HTML",
+      "passed": true
+    },
+    {
+      "name": "normal full /mcp/excalidraw: create_view HTML",
+      "passed": true
+    },
+    {
+      "name": "normal virtual /mcp/excalidraw: exact grants without duplicate names",
+      "passed": true
+    },
+    {
+      "name": "normal virtual /mcp/excalidraw: initializes",
+      "passed": true
+    },
+    {
+      "name": "normal virtual /mcp/codexmcp: exact grants without duplicate names",
+      "passed": true
+    },
+    {
+      "name": "normal virtual /mcp/codexmcp: initializes",
+      "passed": true
+    },
+    {
+      "name": "normal virtual /mcp/codexmcp: second-create_view HTML",
+      "passed": true
+    },
+    {
+      "name": "normal virtual /mcp/codexmcp: create_view HTML",
+      "passed": true
+    },
+    {
+      "name": "normal aggregate /mcp/codexmcp: exact grants without duplicate names",
+      "passed": true
+    },
+    {
+      "name": "normal aggregate /mcp/codexmcp: initializes",
+      "passed": true
+    },
+    {
+      "name": "normal aggregate /mcp/codexmcp: second-create_view HTML",
+      "passed": true
+    },
+    {
+      "name": "normal aggregate /mcp/codexmcp: create_view HTML",
+      "passed": true
+    },
+    {
+      "name": "normal full /mcp: exact grants without duplicate names",
+      "passed": true
+    },
+    {
+      "name": "normal full /mcp: initializes",
+      "passed": true
+    },
+    {
+      "name": "normal full /mcp: excalidraw-create_view HTML",
+      "passed": true
+    },
+    {
+      "name": "normal full /mcp: create_view HTML",
+      "passed": true
+    },
+    {
+      "name": "normal virtual /mcp: exact grants without duplicate names",
+      "passed": true
+    },
+    {
+      "name": "normal virtual /mcp: initializes",
+      "passed": true
+    },
+    {
+      "name": "normal virtual /mcp: second-create_view HTML",
+      "passed": true
+    },
+    {
+      "name": "normal virtual /mcp: create_view HTML",
+      "passed": true
+    },
+    {
+      "name": "normal aggregate /mcp: exact grants without duplicate names",
+      "passed": true
+    },
+    {
+      "name": "normal aggregate /mcp: initializes",
+      "passed": true
+    },
+    {
+      "name": "normal aggregate /mcp: excalidraw-create_view HTML",
+      "passed": true
+    },
+    {
+      "name": "normal aggregate /mcp: second-create_view HTML",
+      "passed": true
+    },
+    {
+      "name": "normal limited /mcp: exact grants without duplicate names",
+      "passed": true
+    },
+    {
+      "name": "normal limited /mcp: initializes",
+      "passed": true
+    },
+    {
+      "name": "normal full cannot enter unassigned Virtual MCP",
+      "passed": true
+    },
+    {
+      "name": "normal limited cannot enter unassigned Virtual MCP",
+      "passed": true
+    },
+    {
+      "name": "normal denied cannot enter unassigned Virtual MCP",
+      "passed": true
+    },
+    {
+      "name": "normal invalid cannot enter unassigned Virtual MCP",
+      "passed": true
+    },
+    {
+      "name": "normal None cannot enter unassigned Virtual MCP",
+      "passed": true
+    },
+    {
+      "name": "normal limited /mcp: denied excalidraw-create_view",
+      "passed": true
+    },
+    {
+      "name": "normal limited /mcp: denied excalidraw-save_checkpoint",
+      "passed": true
+    },
+    {
+      "name": "normal limited /mcp: denied excalidraw-read_checkpoint",
+      "passed": true
+    },
+    {
+      "name": "normal limited /mcp: denied excalidraw UI",
+      "passed": true
+    },
+    {
+      "name": "normal virtual /mcp: denied excalidraw-create_view",
+      "passed": true
+    },
+    {
+      "name": "normal virtual /mcp: denied excalidraw-save_checkpoint",
+      "passed": true
+    },
+    {
+      "name": "normal virtual /mcp: denied excalidraw-read_checkpoint",
+      "passed": true
+    },
+    {
+      "name": "normal virtual /mcp: denied excalidraw UI",
+      "passed": true
+    },
+    {
+      "name": "normal aggregate /mcp/codexmcp: denied excalidraw-create_view",
+      "passed": true
+    },
+    {
+      "name": "normal aggregate /mcp/codexmcp: denied excalidraw-save_checkpoint",
+      "passed": true
+    },
+    {
+      "name": "normal aggregate /mcp/codexmcp: denied excalidraw-read_checkpoint",
+      "passed": true
+    },
+    {
+      "name": "normal aggregate /mcp/codexmcp: denied excalidraw UI",
+      "passed": true
+    },
+    {
+      "name": "normal denied /mcp: no access through tools/list",
+      "passed": true
+    },
+    {
+      "name": "normal denied /mcp: no access through resources/read",
+      "passed": true
+    },
+    {
+      "name": "normal denied /mcp: no access through tools/call",
+      "passed": true
+    },
+    {
+      "name": "normal invalid /mcp: no access through tools/list",
+      "passed": true
+    },
+    {
+      "name": "normal invalid /mcp: no access through resources/read",
+      "passed": true
+    },
+    {
+      "name": "normal invalid /mcp: no access through tools/call",
+      "passed": true
+    },
+    {
+      "name": "normal None /mcp: no access through tools/list",
+      "passed": true
+    },
+    {
+      "name": "normal None /mcp: no access through resources/read",
+      "passed": true
+    },
+    {
+      "name": "normal None /mcp: no access through tools/call",
+      "passed": true
+    },
+    {
+      "name": "normal denied /mcp/excalidraw: no access through tools/list",
+      "passed": true
+    },
+    {
+      "name": "normal denied /mcp/excalidraw: no access through resources/read",
+      "passed": true
+    },
+    {
+      "name": "normal denied /mcp/excalidraw: no access through tools/call",
+      "passed": true
+    },
+    {
+      "name": "normal invalid /mcp/excalidraw: no access through tools/list",
+      "passed": true
+    },
+    {
+      "name": "normal invalid /mcp/excalidraw: no access through resources/read",
+      "passed": true
+    },
+    {
+      "name": "normal invalid /mcp/excalidraw: no access through tools/call",
+      "passed": true
+    },
+    {
+      "name": "normal None /mcp/excalidraw: no access through tools/list",
+      "passed": true
+    },
+    {
+      "name": "normal None /mcp/excalidraw: no access through resources/read",
+      "passed": true
+    },
+    {
+      "name": "normal None /mcp/excalidraw: no access through tools/call",
+      "passed": true
+    },
+    {
+      "name": "normal denied /mcp/codexmcp: no access through tools/list",
+      "passed": true
+    },
+    {
+      "name": "normal denied /mcp/codexmcp: no access through resources/read",
+      "passed": true
+    },
+    {
+      "name": "normal denied /mcp/codexmcp: no access through tools/call",
+      "passed": true
+    },
+    {
+      "name": "normal invalid /mcp/codexmcp: no access through tools/list",
+      "passed": true
+    },
+    {
+      "name": "normal invalid /mcp/codexmcp: no access through resources/read",
+      "passed": true
+    },
+    {
+      "name": "normal invalid /mcp/codexmcp: no access through tools/call",
+      "passed": true
+    },
+    {
+      "name": "normal None /mcp/codexmcp: no access through tools/list",
+      "passed": true
+    },
+    {
+      "name": "normal None /mcp/codexmcp: no access through resources/read",
+      "passed": true
+    },
+    {
+      "name": "normal None /mcp/codexmcp: no access through tools/call",
+      "passed": true
+    },
+    {
+      "name": "normal full /mcp/excalidraw: structured create result",
+      "passed": true
+    },
+    {
+      "name": "normal full /mcp/excalidraw: save callback",
+      "passed": true
+    },
+    {
+      "name": "normal full /mcp/excalidraw: exact saved data readback",
+      "passed": true
+    },
+    {
+      "name": "normal virtual /mcp/codexmcp: structured create result",
+      "passed": true
+    },
+    {
+      "name": "normal virtual /mcp/codexmcp: save callback",
+      "passed": true
+    },
+    {
+      "name": "normal virtual /mcp/codexmcp: exact saved data readback",
+      "passed": true
+    },
+    {
+      "name": "normal aggregate /mcp: structured create result",
+      "passed": true
+    },
+    {
+      "name": "normal aggregate /mcp: save callback",
+      "passed": true
+    },
+    {
+      "name": "normal aggregate /mcp: exact saved data readback",
+      "passed": true
+    }
+  ],
+  "passed": 124,
+  "total": 124
+}

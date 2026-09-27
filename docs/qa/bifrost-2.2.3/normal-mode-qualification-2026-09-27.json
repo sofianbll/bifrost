@@ -1,0 +1,243 @@
+{
+  "date": "2026-09-27",
+  "mode": "normal only",
+  "source_commit": "c3f711b49ac1f2a9a4bedef78c66e226fb398fbc",
+  "build": {
+    "platform": "darwin/arm64",
+    "go": "go1.27.1",
+    "binary_sha256": "90a867bfb796e33bd77d069ecd16c7822ed5822546a066bc085dab6c1cbee4df",
+    "command": "go build -ldflags '-X main.Version=qa-c3f711b49' -o /private/tmp/bifrost-apps-qa-20260927/bifrost-http ./transports/bifrost-http",
+    "dashboard": "not compiled; existing ui/.keep embedded"
+  },
+  "production_touched": false,
+  "product_code_changed": false,
+  "llm_provider_requests": 0,
+  "upstreams": "Two client identities connected to the same real Excalidraw service, not two different App implementations",
+  "fixture_after_restart": {
+    "client": {
+      "allowed_origins": [
+        "http://localhost:18080",
+        "http://127.0.0.1:18080"
+      ],
+      "allowed_headers": [
+        "Mcp-Protocol-Version",
+        "Mcp-Session-Id",
+        "Last-Event-ID",
+        "Authorization"
+      ],
+      "enable_logging": false,
+      "enforce_governance_header": true,
+      "enforce_auth_on_inference": true
+    },
+    "providers": {},
+    "governance": {
+      "virtual_keys": [
+        {
+          "id": "qa-full",
+          "name": "qa-full",
+          "value": "env.QA_FULL_VK",
+          "is_active": true,
+          "provider_configs": [],
+          "mcp_configs": [
+            {
+              "mcp_client_name": "excalidraw",
+              "tools_to_execute": [
+                "*"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "qa-limited",
+          "name": "qa-limited",
+          "value": "env.QA_LIMITED_VK",
+          "is_active": true,
+          "provider_configs": [],
+          "mcp_configs": [
+            {
+              "mcp_client_name": "excalidraw",
+              "tools_to_execute": [
+                "read_me"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "qa-denied",
+          "name": "qa-denied",
+          "value": "env.QA_DENIED_VK",
+          "is_active": true,
+          "provider_configs": [],
+          "mcp_configs": []
+        },
+        {
+          "id": "qa-virtual",
+          "name": "qa-virtual",
+          "value": "env.QA_VIRTUAL_VK",
+          "is_active": true,
+          "provider_configs": [],
+          "mcp_configs": []
+        },
+        {
+          "id": "qa-aggregate",
+          "name": "qa-aggregate",
+          "value": "env.QA_AGGREGATE_VK",
+          "is_active": true,
+          "provider_configs": [],
+          "mcp_configs": [
+            {
+              "mcp_client_name": "excalidraw",
+              "tools_to_execute": [
+                "*"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "mcp": {
+      "client_configs": [
+        {
+          "name": "excalidraw",
+          "client_id": "qa-excalidraw",
+          "endpoint_slug": "excalidraw",
+          "connection_type": "http",
+          "connection_string": "https://mcp.excalidraw.com/mcp",
+          "auth_type": "none",
+          "tools_to_execute": [
+            "*"
+          ],
+          "needs_session_stickiness": true,
+          "is_code_mode_client": false,
+          "allow_by_default": false
+        },
+        {
+          "name": "second",
+          "client_id": "qa-second",
+          "endpoint_slug": "second",
+          "connection_type": "http",
+          "connection_string": "https://mcp.excalidraw.com/mcp",
+          "auth_type": "none",
+          "tools_to_execute": [
+            "*"
+          ],
+          "needs_session_stickiness": true,
+          "is_code_mode_client": false,
+          "allow_by_default": false
+        }
+      ],
+      "virtual_mcps": [
+        {
+          "name": "codexmcp",
+          "endpoint_slug": "codexmcp",
+          "enabled": true,
+          "tools": [
+            {
+              "mcp_client_name": "excalidraw",
+              "tool_names": [
+                "read_me"
+              ]
+            },
+            {
+              "mcp_client_name": "second",
+              "tool_names": [
+                "*"
+              ]
+            }
+          ],
+          "virtual_key_ids": [
+            "qa-virtual",
+            "qa-aggregate"
+          ]
+        }
+      ]
+    }
+  },
+  "first_boot": {
+    "report": "mcp-apps-normal-first-boot-2026-09-27.json",
+    "passed": 38,
+    "total": 43,
+    "virtual_mcp_tools": "Both clients initially granted *",
+    "errors": [
+      "failed to attach virtual MCP \"codexmcp\" to VK \"qa-virtual\": FOREIGN KEY constraint failed",
+      "failed to attach virtual MCP \"codexmcp\" to VK \"qa-aggregate\": FOREIGN KEY constraint failed"
+    ],
+    "cause": "loadMCPConfig runs at config.go:998 before loadGovernanceConfig at :1002; VK association foreign keys fail on an empty store",
+    "fix_applied": false
+  },
+  "after_restart": {
+    "report": "mcp-apps-normal-matrix-2026-09-27.json",
+    "passed": 124,
+    "total": 124,
+    "explanation": "VKs now exist; the startup reconciler attaches them. Virtual MCP narrowed to excalidraw:read_me + second:* to check additive and overlapping grants.",
+    "command": "python3 tests/mcpapps/smoke.py --url http://127.0.0.1:18083 --keys /private/tmp/bifrost-apps-qa-20260927/normal/keys.json --output docs/qa/bifrost-2.2.3/mcp-apps-normal-matrix-2026-09-27.json --expect-apps --multiple-clients --normal-matrix",
+    "smoke_sha256": "46e656cf4dd862979ac3810d709eaeeb574797816a6afbfd21ae519d9d3cc3c4",
+    "callback_scope_limitation": "Save/read assertions round-trip raw JSON arrays; they do not exercise the widget object shape {elements:[...]} or subsequent restoreCheckpoint."
+  },
+  "reference_host": {
+    "commit": "82221c0c8ce7661efa6771c9d461511b1650495f",
+    "example": "examples/basic-host",
+    "adjustments": [
+      "Copied the example outside the npm workspace",
+      "Added @types/cors@2.8.19 to the temporary host",
+      "Used INPUT=... vite build directly because cross-env was absent",
+      "Bound both temporary servers to 127.0.0.1",
+      "Added three fixed loopback streaming proxy routes to inject temporary VKs server-side; browser never receives VK values"
+    ],
+    "routes": {
+      "/qa/direct": "/mcp/excalidraw + full VK",
+      "/qa/virtual": "/mcp/codexmcp + virtual VK",
+      "/qa/combined": "/mcp + aggregate VK"
+    },
+    "rendered": [
+      "direct",
+      "virtual",
+      "combined"
+    ],
+    "screenshots": [
+      "mcp-apps-normal-direct-render-2026-09-27.jpg",
+      "mcp-apps-normal-virtual-render-2026-09-27.jpg",
+      "mcp-apps-normal-combined-render-2026-09-27.jpg"
+    ],
+    "editor_opened": "direct",
+    "edit_save": "not verified: automation rejects fractional iframe coordinates, including after viewport override; keyboard selection did not change editor state",
+    "viewport_override_restored": true,
+    "progressive_render": "not tested; completed input sent in each call"
+  },
+  "native_codex": {
+    "thread_id": "01a0e2e1-5251-7a40-855e-904ea13b2927",
+    "status": "native calls and rendering verified on all three routes; in-place modification and UI save remain open",
+    "report": "mcp-apps-normal-native-codex-2026-09-27.md",
+    "native_calls_passed": 3,
+    "checkpoint_payloads_received": 3,
+    "raw_tool_definition_ui_metadata": "not exposed to agent",
+    "visual_inspection_blocker": "Computer Use is not allowed to use the app 'com.openai.codex' for safety reasons.",
+    "production_connectors_called": false,
+    "visual_rendering": {
+      "confirmed_by": "user statement and supplied screenshot",
+      "routes": [
+        "direct",
+        "virtual",
+        "combined"
+      ],
+      "screenshot": "mcp-apps-normal-native-user-confirmation-2026-09-27.png",
+      "sha256": "600a6081a313200408b31f9d71a0915feadad08c6f41a2ee1a40af3d80e0f166"
+    },
+    "in_place_modification": "not fulfilled: create_view with restoreCheckpoint created a new view; user explicitly requested the already open view",
+    "progressive_rendering": "not verified; conversation claim lacks timeline or partial-input evidence"
+  },
+  "temporary_services": "Retained because user is continuing editing investigation in the referenced chat; connector/service cleanup remains outstanding.",
+  "codex_config_changes": {
+    "temporary_entries": [
+      "qa-normal-direct",
+      "qa-normal-virtual",
+      "qa-normal-combined"
+    ],
+    "cli_default_normalization": [
+      "node_repl.args=[] omitted",
+      "codex-bifrost.enabled=true omitted"
+    ],
+    "other_changes": false
+  },
+  "research": "../../excalidraw-mcp-behavior-research.md"
+}

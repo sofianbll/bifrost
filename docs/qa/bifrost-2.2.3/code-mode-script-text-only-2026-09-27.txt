@@ -1,0 +1,38 @@
+Browser tab: 5, Title: "MCP Apps Host", URL: "http://127.0.0.1:18090/?server=bifrost&tool=executeToolCode&call=true".
+1 AXWebArea MCP Apps Host, URL: 127.0.0.1:18090/?server=bifrost&tool=executeToolCode&call=true
+	2 container root
+		3 button ☀️, Help: Switch to light mode
+		26 container
+			27 text bifrost : executeToolCode
+			28 button ×, Help: Close
+		29 container Click to expand
+			30 text 📥 Tool Input 50 chars ▶
+			31 text { "code": "result = monitor.get_system_info()" }
+		32 container Click to expand
+			33 text 📤 Tool Result 788 chars ▶
+			34 container
+				35 text { "content": [ { "type": "text", "text": "Print output:\n[TOOL] monitor.get_system …
+		4 container
+			5 text Server
+			6 pop up button (collapsed, settable) Server, Value: bifrost, Secondary Actions: Expand
+				7 menu
+					8 (selected) bifrost
+			9 text Tool
+			10 pop up button (collapsed, settable) Tool, Value: executeToolCode, Secondary Actions: Expand
+				11 menu
+					12 debug-debug-tool
+					13 excalidraw-create_view
+					14 monitor-get-system-info
+					15 pdf-display_pdf
+					16 excalidraw-read_me
+					17 (selected) executeToolCode
+					18 getToolDocs
+					19 listToolFiles
+					20 pdf-interact
+					21 pdf-list_pdfs
+					22 readToolFile
+			23 text Input
+			24 text entry area (settable) Input, Value: {"code":"result = monitor.get_system_info()"}
+			25 button Call Tool
+
+The focused UI element is 25 button Call Tool

@@ -1,0 +1,322 @@
+{
+  "url": "http://127.0.0.1:18083",
+  "expect_apps": true,
+  "observations": {
+    "server": {
+      "name": "bifrost",
+      "version": "vmcp-apps-candidate-20260925"
+    },
+    "capabilities": {
+      "extensions": {
+        "io.modelcontextprotocol/ui": {
+          "mimeTypes": [
+            "text/html;profile=mcp-app"
+          ]
+        }
+      },
+      "resources": {},
+      "tools": {
+        "listChanged": true
+      }
+    },
+    "tools": [
+      {
+        "name": "excalidraw-create_view",
+        "meta": {
+          "ui": {
+            "resourceUri": "ui://bifrost/ZXhjYWxpZHJhdw/dWk6Ly9leGNhbGlkcmF3L21jcC1hcHAuaHRtbA"
+          },
+          "ui/resourceUri": "ui://excalidraw/mcp-app.html"
+        }
+      },
+      {
+        "name": "excalidraw-export_to_excalidraw",
+        "meta": {
+          "ui": {
+            "visibility": [
+              "app"
+            ]
+          }
+        }
+      },
+      {
+        "name": "excalidraw-read_checkpoint",
+        "meta": {
+          "ui": {
+            "visibility": [
+              "app"
+            ]
+          }
+        }
+      },
+      {
+        "name": "excalidraw-read_me",
+        "meta": null
+      },
+      {
+        "name": "excalidraw-save_checkpoint",
+        "meta": {
+          "ui": {
+            "visibility": [
+              "app"
+            ]
+          }
+        }
+      },
+      {
+        "name": "create_view",
+        "meta": {
+          "ui": {
+            "resourceUri": "ui://bifrost/ZXhjYWxpZHJhdw/dWk6Ly9leGNhbGlkcmF3L21jcC1hcHAuaHRtbA",
+            "visibility": [
+              "app"
+            ]
+          },
+          "ui/resourceUri": "ui://excalidraw/mcp-app.html"
+        }
+      },
+      {
+        "name": "export_to_excalidraw",
+        "meta": {
+          "ui": {
+            "visibility": [
+              "app"
+            ]
+          }
+        }
+      },
+      {
+        "name": "read_checkpoint",
+        "meta": {
+          "ui": {
+            "visibility": [
+              "app"
+            ]
+          }
+        }
+      },
+      {
+        "name": "read_me",
+        "meta": {
+          "ui": {
+            "visibility": [
+              "app"
+            ]
+          }
+        }
+      },
+      {
+        "name": "save_checkpoint",
+        "meta": {
+          "ui": {
+            "visibility": [
+              "app"
+            ]
+          }
+        }
+      }
+    ],
+    "structured_checkpoint": true,
+    "resources_list_error": null,
+    "nested_code_mode": {
+      "http_status": 200,
+      "is_error": null,
+      "content_types": [
+        "text"
+      ],
+      "structured_keys": []
+    }
+  },
+  "checks": [
+    {
+      "name": "initialize succeeds",
+      "passed": true
+    },
+    {
+      "name": "UI negotiation matches variant",
+      "passed": true
+    },
+    {
+      "name": "tools/list succeeds",
+      "passed": true
+    },
+    {
+      "name": "UI resource metadata matches variant",
+      "passed": true
+    },
+    {
+      "name": "raw upstream UI metadata preserved",
+      "passed": true
+    },
+    {
+      "name": "excalidraw-read_checkpoint hidden from model",
+      "passed": true
+    },
+    {
+      "name": "excalidraw-save_checkpoint hidden from model",
+      "passed": true
+    },
+    {
+      "name": "excalidraw-export_to_excalidraw hidden from model",
+      "passed": true
+    },
+    {
+      "name": "create_view remains model-visible",
+      "passed": true
+    },
+    {
+      "name": "read_me succeeds",
+      "passed": true
+    },
+    {
+      "name": "create_view succeeds",
+      "passed": true
+    },
+    {
+      "name": "structured result matches variant",
+      "passed": true
+    },
+    {
+      "name": "resources/list returns an array",
+      "passed": true
+    },
+    {
+      "name": "UI resource template advertised",
+      "passed": true
+    },
+    {
+      "name": "resources/read returns HTML and MIME",
+      "passed": true
+    },
+    {
+      "name": "save_checkpoint is app-only",
+      "passed": true
+    },
+    {
+      "name": "save_checkpoint original-name callback succeeds",
+      "passed": true
+    },
+    {
+      "name": "read_checkpoint is app-only",
+      "passed": true
+    },
+    {
+      "name": "read_checkpoint original-name callback succeeds",
+      "passed": true
+    },
+    {
+      "name": "unknown resource rejected",
+      "passed": true
+    },
+    {
+      "name": "limited key sees only read_me",
+      "passed": true
+    },
+    {
+      "name": "limited key cannot call excalidraw-create_view",
+      "passed": true
+    },
+    {
+      "name": "limited key cannot call create_view",
+      "passed": true
+    },
+    {
+      "name": "limited key cannot call read_checkpoint",
+      "passed": true
+    },
+    {
+      "name": "limited key cannot call save_checkpoint",
+      "passed": true
+    },
+    {
+      "name": "limited key cannot read UI",
+      "passed": true
+    },
+    {
+      "name": "denied key rejected",
+      "passed": true
+    },
+    {
+      "name": "invalid key rejected",
+      "passed": true
+    },
+    {
+      "name": "unknown tool returns protocol error",
+      "passed": true
+    },
+    {
+      "name": "upstream tool error remains isError",
+      "passed": true
+    },
+    {
+      "name": "aggregate lists both upstreams",
+      "passed": true
+    },
+    {
+      "name": "aggregate preserves admitted UI",
+      "passed": true
+    },
+    {
+      "name": "two sources have distinct rewritten UI URIs",
+      "passed": true
+    },
+    {
+      "name": "excalidraw resource routes to HTML",
+      "passed": true
+    },
+    {
+      "name": "second resource routes to HTML",
+      "passed": true
+    },
+    {
+      "name": "single-source key cannot read second source UI",
+      "passed": true
+    },
+    {
+      "name": "single-source key cannot call second source",
+      "passed": true
+    },
+    {
+      "name": "second source native call preserves structured result",
+      "passed": true
+    },
+    {
+      "name": "excalidraw namespaced callback routes",
+      "passed": true
+    },
+    {
+      "name": "second namespaced callback routes",
+      "passed": true
+    },
+    {
+      "name": "aggregate negotiates UI",
+      "passed": true
+    },
+    {
+      "name": "aggregate routes only unambiguous callback",
+      "passed": true
+    },
+    {
+      "name": "upstream UI URI cannot bypass gateway route",
+      "passed": true
+    },
+    {
+      "name": "Code Mode lists native app and helper",
+      "passed": true
+    },
+    {
+      "name": "Code Mode app resource remains available",
+      "passed": true
+    },
+    {
+      "name": "Code Mode direct app call preserves structured result",
+      "passed": true
+    },
+    {
+      "name": "Code Mode nested app call preserves structured result",
+      "passed": false
+    }
+  ],
+  "passed": 46,
+  "total": 47
+}

@@ -1,0 +1,28 @@
+{
+  "image": "ghcr.io/sofianbll/bifrost:2.2.3-sofian.2",
+  "digest": "sha256:171f51637fb8668361aada6edb42aecf5cac06d483eb18f44d09396b1a3f1671",
+  "version": "v2.2.3+sofian.2.1fdc8b870030",
+  "source_commit": "1fdc8b8700300f5d443939bb8f3fd95cbbb2db39",
+  "workflow": "https://github.com/sofianbll/bifrost/actions/runs/36331623306",
+  "conclusion": "success",
+  "jobs": [
+    {
+      "name": "build (amd64, ubuntu-24.04)",
+      "conclusion": "success"
+    },
+    {
+      "name": "build (arm64, ubuntu-24.04-arm)",
+      "conclusion": "success"
+    },
+    {
+      "name": "publish",
+      "conclusion": "success"
+    }
+  ],
+  "platforms": [
+    "linux/amd64",
+    "linux/arm64"
+  ],
+  "registry_verified": true,
+  "production_changed": false
+}

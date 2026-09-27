@@ -1,0 +1,755 @@
+{
+  "mode": "code",
+  "client_is_code_mode": true,
+  "upstream": {
+    "monitor": "stdio",
+    "pdf": "stdio",
+    "debug": "stdio",
+    "excalidraw": "HTTP hosted"
+  },
+  "rows": [
+    {
+      "app": "monitor",
+      "profile": "full",
+      "path": "/mcp/monitor",
+      "code_mode_helper_exposed": true,
+      "app_resource": true,
+      "native": {
+        "http": 200,
+        "isError": false,
+        "structured_keys": [
+          "arch",
+          "cpu",
+          "hostname",
+          "memory",
+          "platform"
+        ],
+        "result_meta_keys": []
+      },
+      "nested": {
+        "http": 200,
+        "isError": false,
+        "error": null,
+        "structured_keys": [],
+        "result_meta_keys": [],
+        "content": [
+          {
+            "type": "text",
+            "text": "Print output:\n[TOOL] monitor.get_system_info raw response: \"{\\\"hostname\\\":\\\"nova\\\",\\\"platform\\\":\\\"darwin arm64\\\",\\\"arch\\\":\\\"arm64\\\",\\\"cpu\\\":{\\\"model\\\":\\\"Apple M1 Pro\\\",\\\"count\\\":10},\\\"memory\\\":{\\\"totalBytes\\\":17179869184}}\"\n\nExecution completed successfully.\nReturn value: {\n  \"arch\": \"arm64\",\n  \"cpu\": {\n    \"count\": 10,\n    \"model\": \"Apple M1 Pro\"\n  },\n  \"hostname\": \"nova\",\n  \"memory\": {\n    \"totalBytes\": 17179869184\n  },\n  \"platform\": \"darwin arm64\"\n}\n\nEnvironment:\n  Available server keys: monitor\nNote: This is a Starlark (Python subset) environment. Use MCP tools for external interactions."
+          }
+        ]
+      }
+    },
+    {
+      "app": "monitor",
+      "profile": "virtual",
+      "path": "/mcp/codeapps",
+      "code_mode_helper_exposed": true,
+      "app_resource": true,
+      "native": {
+        "http": 200,
+        "isError": false,
+        "structured_keys": [
+          "arch",
+          "cpu",
+          "hostname",
+          "memory",
+          "platform"
+        ],
+        "result_meta_keys": []
+      },
+      "nested": {
+        "http": 200,
+        "isError": false,
+        "error": null,
+        "structured_keys": [],
+        "result_meta_keys": [],
+        "content": [
+          {
+            "type": "text",
+            "text": "Print output:\n[TOOL] monitor.get_system_info raw response: \"{\\\"hostname\\\":\\\"nova\\\",\\\"platform\\\":\\\"darwin arm64\\\",\\\"arch\\\":\\\"arm64\\\",\\\"cpu\\\":{\\\"model\\\":\\\"Apple M1 Pro\\\",\\\"count\\\":10},\\\"memory\\\":{\\\"totalBytes\\\":17179869184}}\"\n\nExecution completed successfully.\nReturn value: {\n  \"arch\": \"arm64\",\n  \"cpu\": {\n    \"count\": 10,\n    \"model\": \"Apple M1 Pro\"\n  },\n  \"hostname\": \"nova\",\n  \"memory\": {\n    \"totalBytes\": 17179869184\n  },\n  \"platform\": \"darwin arm64\"\n}\n\nEnvironment:\n  Available server keys: monitor, pdf, debug, excalidraw\nNote: This is a Starlark (Python subset) environment. Use MCP tools for external interactions."
+          }
+        ]
+      }
+    },
+    {
+      "app": "monitor",
+      "profile": "aggregate",
+      "path": "/mcp",
+      "code_mode_helper_exposed": true,
+      "app_resource": true,
+      "native": {
+        "http": 200,
+        "isError": false,
+        "structured_keys": [
+          "arch",
+          "cpu",
+          "hostname",
+          "memory",
+          "platform"
+        ],
+        "result_meta_keys": []
+      },
+      "nested": {
+        "http": 200,
+        "isError": false,
+        "error": null,
+        "structured_keys": [],
+        "result_meta_keys": [],
+        "content": [
+          {
+            "type": "text",
+            "text": "Print output:\n[TOOL] monitor.get_system_info raw response: \"{\\\"hostname\\\":\\\"nova\\\",\\\"platform\\\":\\\"darwin arm64\\\",\\\"arch\\\":\\\"arm64\\\",\\\"cpu\\\":{\\\"model\\\":\\\"Apple M1 Pro\\\",\\\"count\\\":10},\\\"memory\\\":{\\\"totalBytes\\\":17179869184}}\"\n\nExecution completed successfully.\nReturn value: {\n  \"arch\": \"arm64\",\n  \"cpu\": {\n    \"count\": 10,\n    \"model\": \"Apple M1 Pro\"\n  },\n  \"hostname\": \"nova\",\n  \"memory\": {\n    \"totalBytes\": 17179869184\n  },\n  \"platform\": \"darwin arm64\"\n}\n\nEnvironment:\n  Available server keys: excalidraw, monitor, pdf, debug\nNote: This is a Starlark (Python subset) environment. Use MCP tools for external interactions."
+          }
+        ]
+      }
+    },
+    {
+      "app": "pdf",
+      "profile": "full",
+      "path": "/mcp/pdf",
+      "code_mode_helper_exposed": true,
+      "app_resource": true,
+      "native": {
+        "http": 200,
+        "isError": false,
+        "structured_keys": [
+          "initialPage",
+          "totalBytes",
+          "url",
+          "viewUUID"
+        ],
+        "result_meta_keys": [
+          "interactEnabled",
+          "viewUUID",
+          "writable"
+        ]
+      },
+      "nested": {
+        "http": 200,
+        "isError": false,
+        "error": null,
+        "structured_keys": [],
+        "result_meta_keys": [],
+        "content": [
+          {
+            "type": "text",
+            "text": "Print output:\n[TOOL] pdf.display_pdf raw response: \"PDF opened. viewUUID: 107be2bc-5638-4871-952e-21b08c184fc8\\n\\n\u2192 To annotate, sign, stamp, fill forms, navigate, extract, or save to a file: call `interact` with this viewUUID.\\n\u2192 DO NOT call display_pdf again \u2014 that spawns a separate viewer with a different viewUUID; your interact calls would target the new empty one, not the one the user is looking at.\\n\\nURL: https://arxiv.org/pdf/1706.03762\"\n\nExecution completed successfully.\nReturn value: \"PDF opened. viewUUID: 107be2bc-5638-4871-952e-21b08c184fc8\\n\\n\u2192 To annotate, sign, stamp, fill forms, navigate, extract, or save to a file: call `interact` with this viewUUID.\\n\u2192 DO NOT call display_pdf again \u2014 that spawns a separate viewer with a different viewUUID; your interact calls would target the new empty one, not the one the user is looking at.\\n\\nURL: https://arxiv.org/pdf/1706.03762\"\n\nEnvironment:\n  Available server keys: pdf\nNote: This is a Starlark (Python subset) environment. Use MCP tools for external interactions."
+          }
+        ]
+      }
+    },
+    {
+      "app": "pdf",
+      "profile": "virtual",
+      "path": "/mcp/codeapps",
+      "code_mode_helper_exposed": true,
+      "app_resource": true,
+      "native": {
+        "http": 200,
+        "isError": false,
+        "structured_keys": [
+          "initialPage",
+          "totalBytes",
+          "url",
+          "viewUUID"
+        ],
+        "result_meta_keys": [
+          "interactEnabled",
+          "viewUUID",
+          "writable"
+        ]
+      },
+      "nested": {
+        "http": 200,
+        "isError": false,
+        "error": null,
+        "structured_keys": [],
+        "result_meta_keys": [],
+        "content": [
+          {
+            "type": "text",
+            "text": "Print output:\n[TOOL] pdf.display_pdf raw response: \"PDF opened. viewUUID: a116d006-9f7f-4569-af21-5fab0ea990cd\\n\\n\u2192 To annotate, sign, stamp, fill forms, navigate, extract, or save to a file: call `interact` with this viewUUID.\\n\u2192 DO NOT call display_pdf again \u2014 that spawns a separate viewer with a different viewUUID; your interact calls would target the new empty one, not the one the user is looking at.\\n\\nURL: https://arxiv.org/pdf/1706.03762\"\n\nExecution completed successfully.\nReturn value: \"PDF opened. viewUUID: a116d006-9f7f-4569-af21-5fab0ea990cd\\n\\n\u2192 To annotate, sign, stamp, fill forms, navigate, extract, or save to a file: call `interact` with this viewUUID.\\n\u2192 DO NOT call display_pdf again \u2014 that spawns a separate viewer with a different viewUUID; your interact calls would target the new empty one, not the one the user is looking at.\\n\\nURL: https://arxiv.org/pdf/1706.03762\"\n\nEnvironment:\n  Available server keys: monitor, pdf, debug, excalidraw\nNote: This is a Starlark (Python subset) environment. Use MCP tools for external interactions."
+          }
+        ]
+      }
+    },
+    {
+      "app": "pdf",
+      "profile": "aggregate",
+      "path": "/mcp",
+      "code_mode_helper_exposed": true,
+      "app_resource": true,
+      "native": {
+        "http": 200,
+        "isError": false,
+        "structured_keys": [
+          "initialPage",
+          "totalBytes",
+          "url",
+          "viewUUID"
+        ],
+        "result_meta_keys": [
+          "interactEnabled",
+          "viewUUID",
+          "writable"
+        ]
+      },
+      "nested": {
+        "http": 200,
+        "isError": false,
+        "error": null,
+        "structured_keys": [],
+        "result_meta_keys": [],
+        "content": [
+          {
+            "type": "text",
+            "text": "Print output:\n[TOOL] pdf.display_pdf raw response: \"PDF opened. viewUUID: e33e8973-a22f-47d9-802a-662c3323a5df\\n\\n\u2192 To annotate, sign, stamp, fill forms, navigate, extract, or save to a file: call `interact` with this viewUUID.\\n\u2192 DO NOT call display_pdf again \u2014 that spawns a separate viewer with a different viewUUID; your interact calls would target the new empty one, not the one the user is looking at.\\n\\nURL: https://arxiv.org/pdf/1706.03762\"\n\nExecution completed successfully.\nReturn value: \"PDF opened. viewUUID: e33e8973-a22f-47d9-802a-662c3323a5df\\n\\n\u2192 To annotate, sign, stamp, fill forms, navigate, extract, or save to a file: call `interact` with this viewUUID.\\n\u2192 DO NOT call display_pdf again \u2014 that spawns a separate viewer with a different viewUUID; your interact calls would target the new empty one, not the one the user is looking at.\\n\\nURL: https://arxiv.org/pdf/1706.03762\"\n\nEnvironment:\n  Available server keys: excalidraw, monitor, pdf, debug\nNote: This is a Starlark (Python subset) environment. Use MCP tools for external interactions."
+          }
+        ]
+      }
+    },
+    {
+      "app": "debug",
+      "profile": "full",
+      "path": "/mcp/debug",
+      "code_mode_helper_exposed": true,
+      "app_resource": true,
+      "native": {
+        "http": 200,
+        "isError": false,
+        "structured_keys": [
+          "config",
+          "counter",
+          "timestamp"
+        ],
+        "result_meta_keys": [
+          "debugInfo"
+        ]
+      },
+      "nested": {
+        "http": 200,
+        "isError": false,
+        "error": null,
+        "structured_keys": [],
+        "result_meta_keys": [],
+        "content": [
+          {
+            "type": "text",
+            "text": "Print output:\n[TOOL] debug.debug_tool raw response: \"Debug text content #1Debug text content #2Debug text content #3\"\n\nExecution completed successfully.\nReturn value: \"Debug text content #1Debug text content #2Debug text content #3\"\n\nEnvironment:\n  Available server keys: debug\nNote: This is a Starlark (Python subset) environment. Use MCP tools for external interactions."
+          }
+        ]
+      }
+    },
+    {
+      "app": "debug",
+      "profile": "virtual",
+      "path": "/mcp/codeapps",
+      "code_mode_helper_exposed": true,
+      "app_resource": true,
+      "native": {
+        "http": 200,
+        "isError": false,
+        "structured_keys": [
+          "config",
+          "counter",
+          "timestamp"
+        ],
+        "result_meta_keys": [
+          "debugInfo"
+        ]
+      },
+      "nested": {
+        "http": 200,
+        "isError": false,
+        "error": null,
+        "structured_keys": [],
+        "result_meta_keys": [],
+        "content": [
+          {
+            "type": "text",
+            "text": "Print output:\n[TOOL] debug.debug_tool raw response: \"Debug text content #1Debug text content #2Debug text content #3\"\n\nExecution completed successfully.\nReturn value: \"Debug text content #1Debug text content #2Debug text content #3\"\n\nEnvironment:\n  Available server keys: debug, excalidraw, monitor, pdf\nNote: This is a Starlark (Python subset) environment. Use MCP tools for external interactions."
+          }
+        ]
+      }
+    },
+    {
+      "app": "debug",
+      "profile": "aggregate",
+      "path": "/mcp",
+      "code_mode_helper_exposed": true,
+      "app_resource": true,
+      "native": {
+        "http": 200,
+        "isError": false,
+        "structured_keys": [
+          "config",
+          "counter",
+          "timestamp"
+        ],
+        "result_meta_keys": [
+          "debugInfo"
+        ]
+      },
+      "nested": {
+        "http": 200,
+        "isError": false,
+        "error": null,
+        "structured_keys": [],
+        "result_meta_keys": [],
+        "content": [
+          {
+            "type": "text",
+            "text": "Print output:\n[TOOL] debug.debug_tool raw response: \"Debug text content #1Debug text content #2Debug text content #3\"\n\nExecution completed successfully.\nReturn value: \"Debug text content #1Debug text content #2Debug text content #3\"\n\nEnvironment:\n  Available server keys: debug, excalidraw, monitor, pdf\nNote: This is a Starlark (Python subset) environment. Use MCP tools for external interactions."
+          }
+        ]
+      }
+    },
+    {
+      "app": "excalidraw",
+      "profile": "full",
+      "path": "/mcp/excalidraw",
+      "code_mode_helper_exposed": true,
+      "app_resource": true,
+      "native": {
+        "http": 200,
+        "isError": false,
+        "structured_keys": [
+          "checkpointId"
+        ],
+        "result_meta_keys": []
+      },
+      "nested": {
+        "http": 200,
+        "isError": false,
+        "error": null,
+        "structured_keys": [],
+        "result_meta_keys": [],
+        "content": [
+          {
+            "type": "text",
+            "text": "Print output:\n[TOOL] excalidraw.create_view raw response: \"Diagram displayed! Checkpoint id: \\\"12b36b1005694e5581\\\".\\nIf user asks to create a new diagram - simply create a new one from scratch.\\nHowever, if the user wants to edit something on this diagram \\\"12b36b1005694e5581\\\", take these steps:\\n1) read widget context (using read_widget_context tool) to check if user made any manual edits first\\n2) decide whether you want to make new diagram from scratch OR - use this one as starting checkpoint:\\n  simply start from the first element [{\\\"type\\\":\\\"restoreCheckpoint\\\",\\\"id\\\":\\\"12b36b1005694e5581\\\"}, ...your new elements...]\\n  this will use same diagram state as the user currently sees, including any manual edits they made in fullscreen, allowing you to add elements on top.\\n  To remove elements, use: {\\\"type\\\":\\\"delete\\\",\\\"ids\\\":\\\"\\u003cid1\\u003e,\\u003cid2\\u003e\\\"}\"\n\nExecution completed successfully.\nReturn value: \"Diagram displayed! Checkpoint id: \\\"12b36b1005694e5581\\\".\\nIf user asks to create a new diagram - simply create a new one from scratch.\\nHowever, if the user wants to edit something on this diagram \\\"12b36b1005694e5581\\\", take these steps:\\n1) read widget context (using read_widget_context tool) to check if user made any manual edits first\\n2) decide whether you want to make new diagram from scratch OR - use this one as starting checkpoint:\\n  simply start from the first element [{\\\"type\\\":\\\"restoreCheckpoint\\\",\\\"id\\\":\\\"12b36b1005694e5581\\\"}, ...your new elements...]\\n  this will use same diagram state as the user currently sees, including any manual edits they made in fullscreen, allowing you to add elements on top.\\n  To remove elements, use: {\\\"type\\\":\\\"delete\\\",\\\"ids\\\":\\\"\\u003cid1\\u003e,\\u003cid2\\u003e\\\"}\"\n\nEnvironment:\n  Available server keys: excalidraw\nNote: This is a Starlark (Python subset) environment. Use MCP tools for external interactions."
+          }
+        ]
+      }
+    },
+    {
+      "app": "excalidraw",
+      "profile": "virtual",
+      "path": "/mcp/codeapps",
+      "code_mode_helper_exposed": true,
+      "app_resource": true,
+      "native": {
+        "http": 200,
+        "isError": false,
+        "structured_keys": [
+          "checkpointId"
+        ],
+        "result_meta_keys": []
+      },
+      "nested": {
+        "http": 200,
+        "isError": false,
+        "error": null,
+        "structured_keys": [],
+        "result_meta_keys": [],
+        "content": [
+          {
+            "type": "text",
+            "text": "Print output:\n[TOOL] excalidraw.create_view raw response: \"Diagram displayed! Checkpoint id: \\\"e6771dd6c5614f5bb5\\\".\\nIf user asks to create a new diagram - simply create a new one from scratch.\\nHowever, if the user wants to edit something on this diagram \\\"e6771dd6c5614f5bb5\\\", take these steps:\\n1) read widget context (using read_widget_context tool) to check if user made any manual edits first\\n2) decide whether you want to make new diagram from scratch OR - use this one as starting checkpoint:\\n  simply start from the first element [{\\\"type\\\":\\\"restoreCheckpoint\\\",\\\"id\\\":\\\"e6771dd6c5614f5bb5\\\"}, ...your new elements...]\\n  this will use same diagram state as the user currently sees, including any manual edits they made in fullscreen, allowing you to add elements on top.\\n  To remove elements, use: {\\\"type\\\":\\\"delete\\\",\\\"ids\\\":\\\"\\u003cid1\\u003e,\\u003cid2\\u003e\\\"}\"\n\nExecution completed successfully.\nReturn value: \"Diagram displayed! Checkpoint id: \\\"e6771dd6c5614f5bb5\\\".\\nIf user asks to create a new diagram - simply create a new one from scratch.\\nHowever, if the user wants to edit something on this diagram \\\"e6771dd6c5614f5bb5\\\", take these steps:\\n1) read widget context (using read_widget_context tool) to check if user made any manual edits first\\n2) decide whether you want to make new diagram from scratch OR - use this one as starting checkpoint:\\n  simply start from the first element [{\\\"type\\\":\\\"restoreCheckpoint\\\",\\\"id\\\":\\\"e6771dd6c5614f5bb5\\\"}, ...your new elements...]\\n  this will use same diagram state as the user currently sees, including any manual edits they made in fullscreen, allowing you to add elements on top.\\n  To remove elements, use: {\\\"type\\\":\\\"delete\\\",\\\"ids\\\":\\\"\\u003cid1\\u003e,\\u003cid2\\u003e\\\"}\"\n\nEnvironment:\n  Available server keys: debug, excalidraw, monitor, pdf\nNote: This is a Starlark (Python subset) environment. Use MCP tools for external interactions."
+          }
+        ]
+      }
+    },
+    {
+      "app": "excalidraw",
+      "profile": "aggregate",
+      "path": "/mcp",
+      "code_mode_helper_exposed": true,
+      "app_resource": true,
+      "native": {
+        "http": 200,
+        "isError": false,
+        "structured_keys": [
+          "checkpointId"
+        ],
+        "result_meta_keys": []
+      },
+      "nested": {
+        "http": 200,
+        "isError": false,
+        "error": null,
+        "structured_keys": [],
+        "result_meta_keys": [],
+        "content": [
+          {
+            "type": "text",
+            "text": "Print output:\n[TOOL] excalidraw.create_view raw response: \"Diagram displayed! Checkpoint id: \\\"724fbc693683472b90\\\".\\nIf user asks to create a new diagram - simply create a new one from scratch.\\nHowever, if the user wants to edit something on this diagram \\\"724fbc693683472b90\\\", take these steps:\\n1) read widget context (using read_widget_context tool) to check if user made any manual edits first\\n2) decide whether you want to make new diagram from scratch OR - use this one as starting checkpoint:\\n  simply start from the first element [{\\\"type\\\":\\\"restoreCheckpoint\\\",\\\"id\\\":\\\"724fbc693683472b90\\\"}, ...your new elements...]\\n  this will use same diagram state as the user currently sees, including any manual edits they made in fullscreen, allowing you to add elements on top.\\n  To remove elements, use: {\\\"type\\\":\\\"delete\\\",\\\"ids\\\":\\\"\\u003cid1\\u003e,\\u003cid2\\u003e\\\"}\"\n\nExecution completed successfully.\nReturn value: \"Diagram displayed! Checkpoint id: \\\"724fbc693683472b90\\\".\\nIf user asks to create a new diagram - simply create a new one from scratch.\\nHowever, if the user wants to edit something on this diagram \\\"724fbc693683472b90\\\", take these steps:\\n1) read widget context (using read_widget_context tool) to check if user made any manual edits first\\n2) decide whether you want to make new diagram from scratch OR - use this one as starting checkpoint:\\n  simply start from the first element [{\\\"type\\\":\\\"restoreCheckpoint\\\",\\\"id\\\":\\\"724fbc693683472b90\\\"}, ...your new elements...]\\n  this will use same diagram state as the user currently sees, including any manual edits they made in fullscreen, allowing you to add elements on top.\\n  To remove elements, use: {\\\"type\\\":\\\"delete\\\",\\\"ids\\\":\\\"\\u003cid1\\u003e,\\u003cid2\\u003e\\\"}\"\n\nEnvironment:\n  Available server keys: debug, excalidraw, monitor, pdf\nNote: This is a Starlark (Python subset) environment. Use MCP tools for external interactions."
+          }
+        ]
+      }
+    }
+  ],
+  "candidate_commit": "c3f711b49ac1f2a9a4bedef78c66e226fb398fbc",
+  "candidate_sha256": "90a867bfb796e33bd77d069ecd16c7822ed5822546a066bc085dab6c1cbee4df",
+  "build_go_version": "go1.27.1",
+  "build_vcs_modified": true,
+  "candidate_port": 18085,
+  "error_and_permission_observations": [
+    {
+      "profile": "full",
+      "path": "/mcp/debug",
+      "kind": "native",
+      "status": 200,
+      "body": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+          "_meta": {
+            "debugInfo": {
+              "processedAt": 1790515521972,
+              "serverVersion": "1.0.0"
+            }
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "Debug text content #1"
+            },
+            {
+              "type": "text",
+              "text": "Debug text content #2"
+            },
+            {
+              "type": "text",
+              "text": "Debug text content #3"
+            }
+          ],
+          "isError": true,
+          "structuredContent": {
+            "config": {
+              "contentType": "text",
+              "includeMeta": true,
+              "includeStructuredContent": true,
+              "multipleBlocks": true,
+              "simulateError": true
+            },
+            "counter": 7,
+            "timestamp": "2026-09-27T13:25:21.972Z"
+          }
+        }
+      }
+    },
+    {
+      "profile": "full",
+      "path": "/mcp/debug",
+      "kind": "nested",
+      "status": 200,
+      "body": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+          "content": [
+            {
+              "type": "text",
+              "text": "Print output:\n[TOOL] debug.debug_tool raw response: \"Debug text content #1Debug text content #2Debug text content #3\"\n\nExecution completed successfully.\nReturn value: \"Debug text content #1Debug text content #2Debug text content #3\"\n\nEnvironment:\n  Available server keys: debug\nNote: This is a Starlark (Python subset) environment. Use MCP tools for external interactions."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "profile": "virtual",
+      "path": "/mcp/codeapps",
+      "kind": "native",
+      "status": 200,
+      "body": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+          "_meta": {
+            "debugInfo": {
+              "processedAt": 1790515521982,
+              "serverVersion": "1.0.0"
+            }
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "Debug text content #1"
+            },
+            {
+              "type": "text",
+              "text": "Debug text content #2"
+            },
+            {
+              "type": "text",
+              "text": "Debug text content #3"
+            }
+          ],
+          "isError": true,
+          "structuredContent": {
+            "config": {
+              "contentType": "text",
+              "includeMeta": true,
+              "includeStructuredContent": true,
+              "multipleBlocks": true,
+              "simulateError": true
+            },
+            "counter": 9,
+            "timestamp": "2026-09-27T13:25:21.982Z"
+          }
+        }
+      }
+    },
+    {
+      "profile": "virtual",
+      "path": "/mcp/codeapps",
+      "kind": "nested",
+      "status": 200,
+      "body": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+          "content": [
+            {
+              "type": "text",
+              "text": "Print output:\n[TOOL] debug.debug_tool raw response: \"Debug text content #1Debug text content #2Debug text content #3\"\n\nExecution completed successfully.\nReturn value: \"Debug text content #1Debug text content #2Debug text content #3\"\n\nEnvironment:\n  Available server keys: monitor, pdf, debug, excalidraw\nNote: This is a Starlark (Python subset) environment. Use MCP tools for external interactions."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "profile": "aggregate",
+      "path": "/mcp",
+      "kind": "native",
+      "status": 200,
+      "body": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+          "_meta": {
+            "debugInfo": {
+              "processedAt": 1790515521988,
+              "serverVersion": "1.0.0"
+            }
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "Debug text content #1"
+            },
+            {
+              "type": "text",
+              "text": "Debug text content #2"
+            },
+            {
+              "type": "text",
+              "text": "Debug text content #3"
+            }
+          ],
+          "isError": true,
+          "structuredContent": {
+            "config": {
+              "contentType": "text",
+              "includeMeta": true,
+              "includeStructuredContent": true,
+              "multipleBlocks": true,
+              "simulateError": true
+            },
+            "counter": 11,
+            "timestamp": "2026-09-27T13:25:21.988Z"
+          }
+        }
+      }
+    },
+    {
+      "profile": "aggregate",
+      "path": "/mcp",
+      "kind": "nested",
+      "status": 200,
+      "body": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+          "content": [
+            {
+              "type": "text",
+              "text": "Print output:\n[TOOL] debug.debug_tool raw response: \"Debug text content #1Debug text content #2Debug text content #3\"\n\nExecution completed successfully.\nReturn value: \"Debug text content #1Debug text content #2Debug text content #3\"\n\nEnvironment:\n  Available server keys: monitor, pdf, debug, excalidraw\nNote: This is a Starlark (Python subset) environment. Use MCP tools for external interactions."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "path": "/mcp/monitor",
+      "kind": "denied VK execute",
+      "status": 403,
+      "denied": true
+    },
+    {
+      "path": "/mcp/pdf",
+      "kind": "denied VK execute",
+      "status": 403,
+      "denied": true
+    },
+    {
+      "path": "/mcp/debug",
+      "kind": "denied VK execute",
+      "status": 403,
+      "denied": true
+    },
+    {
+      "path": "/mcp/excalidraw",
+      "kind": "denied VK execute",
+      "status": 403,
+      "denied": true
+    },
+    {
+      "path": "/mcp/codeapps",
+      "kind": "denied VK execute",
+      "status": 403,
+      "denied": true
+    },
+    {
+      "path": "/mcp",
+      "kind": "denied VK execute",
+      "status": 200,
+      "denied": false
+    }
+  ],
+  "callback_and_permission_followup": [
+    {
+      "profile": "full",
+      "path": "/mcp/monitor",
+      "callback_has_cpu": true,
+      "timestamps_differ": true
+    },
+    {
+      "profile": "virtual",
+      "path": "/mcp/codeapps",
+      "callback_has_cpu": true,
+      "timestamps_differ": true
+    },
+    {
+      "profile": "aggregate",
+      "path": "/mcp",
+      "callback_has_cpu": true,
+      "timestamps_differ": true
+    },
+    {
+      "profile": "denied",
+      "path": "/mcp",
+      "kind": "script permission",
+      "response": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+          "content": [
+            {
+              "type": "text",
+              "text": "Execution runtime error:\n\ncode.star:1:10: undefined: monitor\n\nHints:\nVariable 'monitor' is not defined.\nNote: Each executeToolCode call runs in a fresh scope \u2014 no variables persist between calls.\n\nEnvironment:\n  Available server keys: "
+            }
+          ]
+        }
+      },
+      "data_access_blocked": true,
+      "protocol_error_flag": false
+    }
+  ],
+  "pdf_timeout": {
+    "initial_seconds": 30,
+    "long_poll_seconds": 30,
+    "observed_failure": "PDF polling returned isError on context deadline; viewer stopped its loop",
+    "adjusted_seconds": 60,
+    "adjustment_scope": "temporary PDF client only, runtime API and fixture config",
+    "retained_idle_poll_evidence": {
+      "client_timeout_seconds": 60,
+      "upstream_long_poll_seconds": 30,
+      "elapsed_seconds": 30.03,
+      "http": 200,
+      "body": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+          "content": [
+            {
+              "type": "text",
+              "text": "0 command(s)"
+            }
+          ],
+          "structuredContent": {
+            "commands": []
+          }
+        }
+      }
+    },
+    "script_navigation": {
+      "code": "result = pdf.interact(viewUUID=\"e69e27ca-85d1-4a9f-ae04-6e13b73cd9a8\", action=\"navigate\", page=2)",
+      "body": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+          "content": [
+            {
+              "type": "text",
+              "text": "Print output:\n[TOOL] pdf.interact raw response: \"Queued: navigate to page 2\"\n\nExecution completed successfully.\nReturn value: \"Queued: navigate to page 2\"\n\nEnvironment:\n  Available server keys: debug, excalidraw, monitor, pdf\nNote: This is a Starlark (Python subset) environment. Use MCP tools for external interactions."
+            }
+          ]
+        }
+      }
+    },
+    "observed_same_view_page": 2
+  },
+  "native_codex": {
+    "thread_id": "01a0e30a-0e3f-7123-b28a-ece7dd41e765",
+    "native_app_calls_succeeded": 4,
+    "script_calls_succeeded": 4,
+    "visual_rendering": "not independently inspected",
+    "tool_result_metadata": "_meta not visible to model; raw HTTP checks preserve it on native Debug calls"
+  },
+  "reference_host": {
+    "route": "combined /mcp",
+    "rendered": [
+      "monitor",
+      "pdf",
+      "debug",
+      "excalidraw"
+    ],
+    "monitor_polling": true,
+    "debug_events": [
+      "connected",
+      "ontoolinput",
+      "ontoolresult"
+    ],
+    "debug_ui_callback": "input automation timed out twice; callback RPC succeeded separately",
+    "pdf_script_interaction": "same view page 1 -> page 2 after timeout adjustment",
+    "six_simultaneous_connections": "host stuck in Loading; one combined connection worked; connection-slot saturation suspected, not proven",
+    "script_monitor_iframe_count": 0,
+    "script_monitor_capture": "code-mode-script-text-only-2026-09-27.png"
+  },
+  "cleanup": {
+    "old_browser_tab_closed": true,
+    "old_gateway_ports_stopped": [
+      18083,
+      18084
+    ],
+    "old_adapter_port_stopped": 18080,
+    "removed_connectors": [
+      "qa-normal-direct",
+      "qa-normal-virtual",
+      "qa-normal-combined",
+      "qa-official-apps"
+    ],
+    "current_connector": "qa-code-apps",
+    "other_config_change_observed": "desktop.conversationDetailMode changed concurrently; preserved",
+    "new_reference_host_tab_closed_after_checks": true
+  },
+  "limitations": [
+    "Code Mode script result does not preserve structuredContent or App _meta on any of 12 cases",
+    "Debug intentional isError is lost inside script on all 3 routes",
+    "Root denied VK blocks data access (undefined monitor) but runtime error lacks outer isError",
+    "Production untouched; no product source edits; not a full MCP Apps conformance suite"
+  ]
+}

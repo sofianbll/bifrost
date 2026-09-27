@@ -1,0 +1,575 @@
+diff --git a/core/mcp/codemode/starlark/executecode.go b/core/mcp/codemode/starlark/executecode.go
+index b84b7cd32..5466bd179 100644
+--- a/core/mcp/codemode/starlark/executecode.go
++++ b/core/mcp/codemode/starlark/executecode.go
+@@ -582,7 +582,7 @@ func (s *StarlarkCodeMode) callMCPTool(ctx *schemas.BifrostContext, clientName,
+ 	}
+ 
+ 	if finalResp.ChatMessage != nil {
+-		return extractResultFromChatMessage(finalResp.ChatMessage), nil
++		return extractResultFromChatMessage(finalResp.ChatMessage)
+ 	}
+ 
+ 	if finalResp.ResponsesMessage != nil {
+diff --git a/core/mcp/codemode/starlark/starlark_test.go b/core/mcp/codemode/starlark/starlark_test.go
+index 6ebde05fd..409ab7b2b 100644
+--- a/core/mcp/codemode/starlark/starlark_test.go
++++ b/core/mcp/codemode/starlark/starlark_test.go
+@@ -17,8 +17,10 @@ import (
+ )
+ 
+ type testClientManager struct {
+-	clients map[string]*schemas.MCPClientState
+-	tools   map[string][]schemas.ChatTool
++	clients  map[string]*schemas.MCPClientState
++	tools    map[string][]schemas.ChatTool
++	conn     *client.Client
++	postHook func(*schemas.BifrostMCPResponse)
+ }
+ 
+ func (m *testClientManager) GetClientForTool(toolName string) *schemas.MCPClientState {
+@@ -46,7 +48,7 @@ func (m *testClientManager) GetPluginPipeline() codemcp.PluginPipeline {
+ 
+ func (m *testClientManager) ReleasePluginPipeline(pipeline codemcp.PluginPipeline) {}
+ func (m *testClientManager) AcquireClientConn(ctx *schemas.BifrostContext, state *schemas.MCPClientState) (*client.Client, func(), error) {
+-	return nil, func() {}, nil
++	return m.conn, func() {}, nil
+ }
+ func (m *testClientManager) ReconnectClient(id string) error { return nil }
+ 
+@@ -58,6 +60,9 @@ func (m *testClientManager) RunWithPluginPipeline(ctx *schemas.BifrostContext, r
+ 	if err != nil {
+ 		return nil, &schemas.BifrostError{IsBifrostError: false, Error: &schemas.ErrorField{Message: err.Error()}}
+ 	}
++	if m.postHook != nil {
++		m.postHook(resp)
++	}
+ 	return resp, nil
+ }
+ 
+@@ -550,6 +555,25 @@ func TestExtractResultFromResponsesMessage(t *testing.T) {
+ }
+ 
+ func TestExtractResultFromChatMessage(t *testing.T) {
++	for _, tc := range []struct {
++		name    string
++		content *schemas.ChatMessageContent
++		want    string
++	}{
++		{"no content", nil, "tool call returned an error"},
++		{"text", &schemas.ChatMessageContent{ContentStr: schemas.Ptr("failed: 100%")}, "failed: 100%"},
++		{"blocks", &schemas.ChatMessageContent{ContentBlocks: []schemas.ChatContentBlock{{Type: schemas.ChatContentBlockTypeText, Text: schemas.Ptr("blocked")}}}, "blocked"},
++	} {
++		t.Run(tc.name, func(t *testing.T) {
++			result, err := extractResultFromChatMessage(&schemas.ChatMessage{
++				Content:         tc.content,
++				ChatToolMessage: &schemas.ChatToolMessage{IsError: schemas.Ptr(true)},
++			})
++			if result != nil || err == nil || err.Error() != tc.want {
++				t.Fatalf("expected error %q, got result=%v err=%v", tc.want, result, err)
++			}
++		})
++	}
+ 	t.Run("Extract string from ChatMessage", func(t *testing.T) {
+ 		content := "test result"
+ 		msg := &schemas.ChatMessage{
+@@ -558,7 +582,10 @@ func TestExtractResultFromChatMessage(t *testing.T) {
+ 			},
+ 		}
+ 
+-		result := extractResultFromChatMessage(msg)
++		result, err := extractResultFromChatMessage(msg)
++		if err != nil {
++			t.Fatal(err)
++		}
+ 		if result != content {
+ 			t.Errorf("Expected result '%s', got '%v'", content, result)
+ 		}
+@@ -572,7 +599,10 @@ func TestExtractResultFromChatMessage(t *testing.T) {
+ 			},
+ 		}
+ 
+-		result := extractResultFromChatMessage(msg)
++		result, err := extractResultFromChatMessage(msg)
++		if err != nil {
++			t.Fatal(err)
++		}
+ 		resultMap, ok := result.(map[string]interface{})
+ 		if !ok {
+ 			t.Errorf("Expected map, got %T", result)
+@@ -584,7 +614,10 @@ func TestExtractResultFromChatMessage(t *testing.T) {
+ 	})
+ 
+ 	t.Run("Handle nil ChatMessage", func(t *testing.T) {
+-		result := extractResultFromChatMessage(nil)
++		result, err := extractResultFromChatMessage(nil)
++		if err != nil {
++			t.Fatal(err)
++		}
+ 		if result != nil {
+ 			t.Errorf("Expected nil result for nil message, got %v", result)
+ 		}
+@@ -592,7 +625,10 @@ func TestExtractResultFromChatMessage(t *testing.T) {
+ 
+ 	t.Run("Handle ChatMessage without Content", func(t *testing.T) {
+ 		msg := &schemas.ChatMessage{}
+-		result := extractResultFromChatMessage(msg)
++		result, err := extractResultFromChatMessage(msg)
++		if err != nil {
++			t.Fatal(err)
++		}
+ 		if result != nil {
+ 			t.Errorf("Expected nil result for message without content, got %v", result)
+ 		}
+diff --git a/core/mcp/codemode/starlark/toolerrormarker_test.go b/core/mcp/codemode/starlark/toolerrormarker_test.go
+index 06ba142ee..5127557c3 100644
+--- a/core/mcp/codemode/starlark/toolerrormarker_test.go
++++ b/core/mcp/codemode/starlark/toolerrormarker_test.go
+@@ -4,13 +4,102 @@ package starlark
+ 
+ import (
+ 	"context"
++	"strings"
+ 	"testing"
+ 	"time"
+ 
++	"github.com/mark3labs/mcp-go/client"
++	"github.com/mark3labs/mcp-go/mcp"
++	"github.com/mark3labs/mcp-go/server"
+ 	codemcp "github.com/maximhq/bifrost/core/mcp"
+ 	"github.com/maximhq/bifrost/core/schemas"
+ )
+ 
++func TestHandleExecuteToolCodePreservesNestedErrors(t *testing.T) {
++	for _, tc := range []struct {
++		name          string
++		upstreamError bool
++		emptyContent  bool
++		postHookError *bool
++		wantError     bool
++	}{
++		{name: "success"},
++		{name: "upstream failure", upstreamError: true, wantError: true},
++		{name: "empty upstream failure", upstreamError: true, emptyContent: true, wantError: true},
++		{name: "post hook rejects", postHookError: schemas.Ptr(true), wantError: true},
++		{name: "post hook recovers", upstreamError: true, postHookError: schemas.Ptr(false)},
++	} {
++		t.Run(tc.name, func(t *testing.T) {
++			upstream := server.NewMCPServer("debug", "1.0")
++			calls := 0
++			upstream.AddTool(mcp.NewTool("probe"), func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
++				calls++
++				result := mcp.NewToolResultText("probe response")
++				result.IsError = tc.upstreamError
++				if tc.emptyContent {
++					result.Content = nil
++				}
++				return result, nil
++			})
++			conn, err := client.NewInProcessClient(upstream)
++			if err != nil {
++				t.Fatal(err)
++			}
++			t.Cleanup(func() { _ = conn.Close() })
++			_, err = conn.Initialize(context.Background(), mcp.InitializeRequest{Params: mcp.InitializeParams{
++				ProtocolVersion: mcp.LATEST_PROTOCOL_VERSION,
++				ClientInfo:      mcp.Implementation{Name: "regression", Version: "1.0"},
++			}})
++			if err != nil {
++				t.Fatal(err)
++			}
++			manager := &testClientManager{
++				clients: map[string]*schemas.MCPClientState{"debug": {ExecutionConfig: &schemas.MCPClientConfig{IsCodeModeClient: true}}},
++				tools:   map[string][]schemas.ChatTool{"debug": {{Function: &schemas.ChatToolFunction{Name: "debug-probe"}}}},
++				conn:    conn,
++				postHook: func(resp *schemas.BifrostMCPResponse) {
++					if tc.postHookError != nil {
++						resp.ChatMessage.ChatToolMessage.IsError = tc.postHookError
++					}
++				},
++			}
++			mode := NewStarlarkCodeMode(nil, nil)
++			mode.clientManager = manager
++			ctx := schemas.NewBifrostContext(context.Background(), schemas.NoDeadline)
++			msg, err := mode.handleExecuteToolCode(ctx, schemas.ChatAssistantMessageToolCall{
++				ID: schemas.Ptr("call_nested"),
++				Function: schemas.ChatAssistantMessageToolCallFunction{
++					Name: schemas.Ptr("executeToolCode"), Arguments: `{"code":"result = debug.probe()"}`,
++				},
++			})
++			if err != nil {
++				t.Fatal(err)
++			}
++			if calls != 1 {
++				t.Fatalf("expected one upstream call, got %d", calls)
++			}
++			if msg == nil || msg.ChatToolMessage == nil || msg.Content == nil || msg.Content.ContentStr == nil {
++				t.Fatal("missing tool response")
++			}
++			isError := msg.ChatToolMessage.IsError != nil && *msg.ChatToolMessage.IsError
++			text := *msg.Content.ContentStr
++			if isError != tc.wantError {
++				t.Errorf("IsError=%v, want %v; content=%s", isError, tc.wantError, text)
++			}
++			if strings.Contains(text, "Execution completed successfully") == tc.wantError {
++				t.Errorf("incorrect execution status: %s", text)
++			}
++			wantText := "probe response"
++			if tc.emptyContent {
++				wantText = "returned an error"
++			}
++			if !strings.Contains(text, wantText) {
++				t.Errorf("lost tool response: %s", text)
++			}
++		})
++	}
++}
++
+ // TestCreateToolResponseMessageMarksError pins the CodeMode copy of the tool
+ // response builder. CodeMode reports its own failures -- unknown server, unknown
+ // tool, ambiguous filename, failed sandbox execution -- as ordinary result text,
+diff --git a/core/mcp/codemode/starlark/utils.go b/core/mcp/codemode/starlark/utils.go
+index 32acffae1..cb38de2d1 100644
+--- a/core/mcp/codemode/starlark/utils.go
++++ b/core/mcp/codemode/starlark/utils.go
+@@ -114,20 +114,38 @@ func goToStarlark(v interface{}) starlark.Value {
+ 	}
+ }
+ 
+-// extractResultFromChatMessage extracts the result from a chat message and parses it as JSON if possible.
+-func extractResultFromChatMessage(msg *schemas.ChatMessage) interface{} {
++// extractResultFromChatMessage preserves tool failures and parses successful text as JSON if possible.
++func extractResultFromChatMessage(msg *schemas.ChatMessage) (interface{}, error) {
++	if msg != nil && msg.ChatToolMessage != nil && msg.ChatToolMessage.IsError != nil && *msg.ChatToolMessage.IsError {
++		errText := ""
++		if msg.Content != nil {
++			if msg.Content.ContentStr != nil {
++				errText = *msg.Content.ContentStr
++			} else {
++				for _, block := range msg.Content.ContentBlocks {
++					if block.Type == schemas.ChatContentBlockTypeText && block.Text != nil {
++						errText += *block.Text
++					}
++				}
++			}
++		}
++		if errText == "" {
++			errText = "tool call returned an error"
++		}
++		return nil, fmt.Errorf("%s", errText)
++	}
+ 	if msg == nil || msg.Content == nil || msg.Content.ContentStr == nil {
+-		return nil
++		return nil, nil
+ 	}
+ 
+ 	rawResult := *msg.Content.ContentStr
+ 
+ 	var finalResult interface{}
+ 	if err := sonic.Unmarshal([]byte(rawResult), &finalResult); err != nil {
+-		return rawResult
++		return rawResult, nil
+ 	}
+ 
+-	return finalResult
++	return finalResult, nil
+ }
+ 
+ // extractResultFromResponsesMessage extracts the result or error from a ResponsesMessage.
+@@ -300,6 +318,9 @@ func extractTextFromMCPResponse(toolResponse *mcp.CallToolResult, toolName strin
+ 	if result.Len() > 0 {
+ 		return strings.TrimSpace(result.String())
+ 	}
++	if toolResponse.IsError {
++		return fmt.Sprintf("MCP tool '%s' returned an error", toolName)
++	}
+ 	return fmt.Sprintf("MCP tool '%s' executed successfully", toolName)
+ }
+ 
+diff --git a/transports/bifrost-http/handlers/mcpserver.go b/transports/bifrost-http/handlers/mcpserver.go
+index 6a83b5ba6..a6e328ec8 100644
+--- a/transports/bifrost-http/handlers/mcpserver.go
++++ b/transports/bifrost-http/handlers/mcpserver.go
+@@ -499,6 +499,9 @@ func (h *MCPServerHandler) buildServer(availableTools []schemas.ChatTool) *serve
+ 			}
+ 
+ 			// Return result using mcp-go helper
++			if toolMessage != nil && toolMessage.ChatToolMessage != nil && toolMessage.ChatToolMessage.IsError != nil && *toolMessage.ChatToolMessage.IsError {
++				return mcp.NewToolResultError(resultText), nil
++			}
+ 			return mcp.NewToolResultText(resultText), nil
+ 		}
+ 
+diff --git a/transports/bifrost-http/handlers/mcpserver_test.go b/transports/bifrost-http/handlers/mcpserver_test.go
+index 539c06f2b..7f0cb2d12 100644
+--- a/transports/bifrost-http/handlers/mcpserver_test.go
++++ b/transports/bifrost-http/handlers/mcpserver_test.go
+@@ -11,20 +11,31 @@ import (
+ 	"github.com/stretchr/testify/require"
+ )
+ 
+-type appListToolManager struct{ tools []schemas.ChatTool }
++type appListToolManager struct {
++	tools      []schemas.ChatTool
++	chatResult *schemas.ChatMessage
++}
+ 
+-type appResourceToolManager struct{ appListToolManager }
++type appResourceToolManager struct {
++	appListToolManager
++	nativeResult   *mcp.CallToolResult
++	resourceResult *mcp.ReadResourceResult
++	nativeCalls    []schemas.ChatAssistantMessageToolCall
++	resourceCalls  []struct{ toolName, uri string }
++}
+ 
+-func (appResourceToolManager) ExecuteNativeMCPTool(context.Context, *schemas.ChatAssistantMessageToolCall) (*mcp.CallToolResult, *schemas.BifrostError) {
+-	return nil, nil
++func (m *appResourceToolManager) ExecuteNativeMCPTool(_ context.Context, call *schemas.ChatAssistantMessageToolCall) (*mcp.CallToolResult, *schemas.BifrostError) {
++	m.nativeCalls = append(m.nativeCalls, *call)
++	return m.nativeResult, nil
+ }
+ 
+-func (appResourceToolManager) ReadMCPAppResource(context.Context, string, string) (*mcp.ReadResourceResult, error) {
+-	return nil, nil
++func (m *appResourceToolManager) ReadMCPAppResource(_ context.Context, toolName, uri string) (*mcp.ReadResourceResult, error) {
++	m.resourceCalls = append(m.resourceCalls, struct{ toolName, uri string }{toolName, uri})
++	return m.resourceResult, nil
+ }
+ 
+ func TestMCPAppEmptyResourcesListIsArray(t *testing.T) {
+-	h := &MCPServerHandler{toolManager: appResourceToolManager{}}
++	h := &MCPServerHandler{toolManager: &appResourceToolManager{}}
+ 	response := h.buildServer(nil).HandleMessage(context.Background(), []byte(`{"jsonrpc":"2.0","id":1,"method":"resources/list","params":{}}`))
+ 	data, err := json.Marshal(response)
+ 	require.NoError(t, err)
+@@ -37,9 +48,132 @@ func TestMCPAppEmptyResourcesListIsArray(t *testing.T) {
+ 	assert.JSONEq(t, `[]`, string(decoded.Result.Resources))
+ }
+ 
++func TestMCPAppNativeToolCallPreservesStructuredResultAndError(t *testing.T) {
++	SetLogger(&mockLogger{})
++	tool := schemas.ChatTool{
++		Function:   &schemas.ChatToolFunction{Name: "alpha-view"},
++		MCPRawTool: json.RawMessage(`{"name":"view","inputSchema":{"type":"object"},"_meta":{"ui":{"resourceUri":"ui://app/view"}}}`),
++	}
++	manager := &appResourceToolManager{
++		appListToolManager: appListToolManager{tools: []schemas.ChatTool{tool}},
++		nativeResult: &mcp.CallToolResult{
++			Content:           []mcp.Content{mcp.TextContent{Text: "render failed"}},
++			StructuredContent: map[string]any{"scene": "example"},
++			IsError:           true,
++		},
++	}
++	h := &MCPServerHandler{toolManager: manager}
++	ctx := schemas.NewBifrostContext(context.Background(), schemas.NoDeadline)
++	ctx.SetValue(schemas.MCPContextKeyAllowAppOnly, true)
++
++	response := h.buildServer([]schemas.ChatTool{tool}).HandleMessage(ctx, []byte(`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"alpha-view","arguments":{"prompt":"draw"}}}`))
++	body, err := json.Marshal(response)
++	require.NoError(t, err)
++	var decoded struct {
++		Result struct {
++			Content           []map[string]any `json:"content"`
++			StructuredContent map[string]any   `json:"structuredContent"`
++			IsError           bool             `json:"isError"`
++		} `json:"result"`
++	}
++	require.NoError(t, json.Unmarshal(body, &decoded))
++	assert.Equal(t, "example", decoded.Result.StructuredContent["scene"])
++	assert.True(t, decoded.Result.IsError)
++	require.Len(t, decoded.Result.Content, 1)
++	assert.Equal(t, "render failed", decoded.Result.Content[0]["text"])
++	require.Len(t, manager.nativeCalls, 1)
++	assert.Equal(t, "alpha-view", *manager.nativeCalls[0].Function.Name)
++	assert.JSONEq(t, `{"prompt":"draw"}`, manager.nativeCalls[0].Function.Arguments)
++}
++
++func TestMCPAppResourceReadDispatchesAndRewritesContents(t *testing.T) {
++	SetLogger(&mockLogger{})
++	tool := schemas.ChatTool{
++		Function:   &schemas.ChatToolFunction{Name: "alpha-view"},
++		MCPRawTool: json.RawMessage(`{"name":"view","inputSchema":{"type":"object"},"_meta":{"ui":{"resourceUri":"ui://app/view"}}}`),
++	}
++	manager := &appResourceToolManager{
++		appListToolManager: appListToolManager{tools: []schemas.ChatTool{tool}},
++		resourceResult: &mcp.ReadResourceResult{Contents: []mcp.ResourceContents{
++			mcp.TextResourceContents{URI: "ui://app/view", MIMEType: "text/html;profile=mcp-app", Text: "<main>app</main>"},
++			mcp.BlobResourceContents{URI: "ui://app/view", MIMEType: "application/octet-stream", Blob: "AQID"},
++		}},
++	}
++	h := &MCPServerHandler{toolManager: manager}
++	ctx := schemas.NewBifrostContext(context.Background(), schemas.NoDeadline)
++	ctx.SetValue(schemas.MCPContextKeyAllowAppOnly, true)
++	server := h.buildServer([]schemas.ChatTool{tool})
++	_, _, publicURI, err := rewriteMCPAppTool(tool.MCPRawTool, tool.Function.Name)
++	require.NoError(t, err)
++	request, err := json.Marshal(map[string]any{"jsonrpc": "2.0", "id": 1, "method": "resources/read", "params": map[string]any{"uri": publicURI}})
++	require.NoError(t, err)
++	response := server.HandleMessage(ctx, request)
++	body, err := json.Marshal(response)
++	require.NoError(t, err)
++	var decoded struct {
++		Result struct {
++			Contents []map[string]any `json:"contents"`
++		} `json:"result"`
++	}
++	require.NoError(t, json.Unmarshal(body, &decoded))
++	require.Len(t, decoded.Result.Contents, 2)
++	assert.Equal(t, publicURI, decoded.Result.Contents[0]["uri"])
++	assert.Equal(t, "text/html;profile=mcp-app", decoded.Result.Contents[0]["mimeType"])
++	assert.Equal(t, "<main>app</main>", decoded.Result.Contents[0]["text"])
++	assert.Equal(t, publicURI, decoded.Result.Contents[1]["uri"])
++	assert.Equal(t, "application/octet-stream", decoded.Result.Contents[1]["mimeType"])
++	assert.Equal(t, "AQID", decoded.Result.Contents[1]["blob"])
++	require.Len(t, manager.resourceCalls, 1)
++	assert.Equal(t, "alpha-view", manager.resourceCalls[0].toolName)
++	assert.Equal(t, "ui://app/view", manager.resourceCalls[0].uri)
++}
++
++func TestMCPAppResourceReadWithoutAdmissionDoesNotDispatch(t *testing.T) {
++	SetLogger(&mockLogger{})
++	tool := schemas.ChatTool{
++		Function:   &schemas.ChatToolFunction{Name: "alpha-view"},
++		MCPRawTool: json.RawMessage(`{"name":"view","inputSchema":{"type":"object"},"_meta":{"ui":{"resourceUri":"ui://app/view"}}}`),
++	}
++	manager := &appResourceToolManager{appListToolManager: appListToolManager{tools: []schemas.ChatTool{tool}}}
++	h := &MCPServerHandler{toolManager: manager}
++	ctx := schemas.NewBifrostContext(context.Background(), schemas.NoDeadline)
++	_, _, publicURI, err := rewriteMCPAppTool(tool.MCPRawTool, tool.Function.Name)
++	require.NoError(t, err)
++	request, err := json.Marshal(map[string]any{"jsonrpc": "2.0", "id": 1, "method": "resources/read", "params": map[string]any{"uri": publicURI}})
++	require.NoError(t, err)
++	response := h.buildServer([]schemas.ChatTool{tool}).HandleMessage(ctx, request)
++	body, err := json.Marshal(response)
++	require.NoError(t, err)
++	assert.Contains(t, string(body), "not available")
++	assert.Empty(t, manager.resourceCalls)
++}
++
+ func (m appListToolManager) GetAvailableMCPTools(context.Context) []schemas.ChatTool { return m.tools }
+-func (appListToolManager) ExecuteChatMCPTool(context.Context, *schemas.ChatAssistantMessageToolCall) (*schemas.ChatMessage, *schemas.BifrostError) {
+-	return nil, nil
++func (m appListToolManager) ExecuteChatMCPTool(context.Context, *schemas.ChatAssistantMessageToolCall) (*schemas.ChatMessage, *schemas.BifrostError) {
++	return m.chatResult, nil
++}
++
++func TestMCPServerChatToolResultPreservesError(t *testing.T) {
++	SetLogger(&mockLogger{})
++	for _, marker := range []*bool{nil, schemas.Ptr(false), schemas.Ptr(true)} {
++		tool := schemas.ChatTool{Function: &schemas.ChatToolFunction{Name: "executeToolCode"}}
++		manager := &appListToolManager{chatResult: &schemas.ChatMessage{
++			Content:         &schemas.ChatMessageContent{ContentStr: schemas.Ptr("script result")},
++			ChatToolMessage: &schemas.ChatToolMessage{IsError: marker},
++		}}
++		h := &MCPServerHandler{toolManager: manager}
++		response := h.buildServer([]schemas.ChatTool{tool}).HandleMessage(context.Background(), []byte(`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"executeToolCode","arguments":{"code":"result = missing"}}}`))
++		body, err := json.Marshal(response)
++		require.NoError(t, err)
++		var decoded struct {
++			Result *mcp.CallToolResult `json:"result"`
++		}
++		require.NoError(t, json.Unmarshal(body, &decoded))
++		require.NotNil(t, decoded.Result, string(body))
++		assert.Equal(t, marker != nil && *marker, decoded.Result.IsError, string(body))
++		require.Len(t, decoded.Result.Content, 1)
++		assert.Equal(t, "script result", decoded.Result.Content[0].(mcp.TextContent).Text)
++	}
+ }
+ func (appListToolManager) ExecuteResponsesMCPTool(context.Context, *schemas.ResponsesToolMessage) (*schemas.ResponsesMessage, *schemas.BifrostError) {
+ 	return nil, nil
+diff --git a/transports/bifrost-http/lib/config.go b/transports/bifrost-http/lib/config.go
+index 2a9c3307a..13d8903ca 100644
+--- a/transports/bifrost-http/lib/config.go
++++ b/transports/bifrost-http/lib/config.go
+@@ -1000,6 +1000,19 @@ func LoadConfig(ctx context.Context, configDirPath string) (*Config, error) {
+ 	loadWebhooksConfig(ctx, config, &configData)
+ 	// 8. Governance config
+ 	loadGovernanceConfig(ctx, config, &configData)
++	// 8a. Virtual MCP definitions and VK attachments require both MCP clients
++	// and governance keys to exist, including on the first boot of an empty store.
++	if config.ConfigStore != nil && configData.MCP != nil {
++		forceFileSync := configData.isConfigJSONSourceOfTruth() && configData.mcpSectionPresent("virtual_mcps")
++		if err := reconcileVirtualMCPsConfig(ctx, config.ConfigStore, configData.MCP.VirtualMCPs, forceFileSync); err != nil {
++			logger.Warn("failed to reconcile virtual MCPs from config.json: %v", err)
++		}
++		if forceFileSync {
++			if err := pruneVirtualMCPsConfigToFile(ctx, config.ConfigStore, configData.MCP.VirtualMCPs); err != nil {
++				logger.Warn("failed to prune virtual MCPs from config.json source of truth: %v", err)
++			}
++		}
++	}
+ 	// 9. Auth config
+ 	loadAuthConfig(ctx, config, &configData)
+ 	// 10. Plugins
+@@ -1854,21 +1867,6 @@ func loadMCPConfig(ctx context.Context, config *Config, configData *ConfigData)
+ 		}
+ 	}
+ 	applyMCPGlobalSettingsToClientConfig(ctx, config, configData.MCP, configData.isConfigJSONSourceOfTruth() && configData.sectionPresent("mcp"))
+-
+-	// Reconcile Virtual MCPs declared under mcp.virtual_mcps. This runs after client configs are
+-	// synced so tool specs can resolve their source MCP clients by name. forceFileSync makes
+-	// config.json authoritative for the virtual_mcps subsection.
+-	if configData.MCP != nil {
+-		forceFileSync := configData.isConfigJSONSourceOfTruth() && configData.mcpSectionPresent("virtual_mcps")
+-		if err := reconcileVirtualMCPsConfig(ctx, config.ConfigStore, configData.MCP.VirtualMCPs, forceFileSync); err != nil {
+-			logger.Warn("failed to reconcile virtual MCPs from config.json: %v", err)
+-		}
+-		if forceFileSync {
+-			if err := pruneVirtualMCPsConfigToFile(ctx, config.ConfigStore, configData.MCP.VirtualMCPs); err != nil {
+-				logger.Warn("failed to prune virtual MCPs from config.json source of truth: %v", err)
+-			}
+-		}
+-	}
+ }
+ 
+ // pinMCPClientImmutableFields rewrites a file-declared client so that fields
+diff --git a/transports/bifrost-http/lib/config_test.go b/transports/bifrost-http/lib/config_test.go
+index 13c6edf9a..62ac0312d 100644
+--- a/transports/bifrost-http/lib/config_test.go
++++ b/transports/bifrost-http/lib/config_test.go
+@@ -22353,6 +22353,44 @@ func TestGetMCPClientBySlugSkipsDisabled(t *testing.T) {
+ 	require.False(t, ok, "a disabled client's slug must not resolve")
+ }
+ 
++// Exercise the startup entry point with no pre-created clients, keys or database.
++func TestLoadConfig_VirtualMCPFirstBoot(t *testing.T) {
++	initTestLogger()
++	for _, source := range []string{SourceOfTruthSplit, SourceOfTruthConfigJSON} {
++		t.Run(source, func(t *testing.T) {
++			dir := t.TempDir()
++			// Share the exact file-format fixture with the optional HTTP harness.
++			fixture, err := os.ReadFile("../../../tests/mcpapps/firstboot/config.json")
++			require.NoError(t, err)
++			configJSON := strings.Replace(string(fixture), `"source_of_truth": "split"`, `"source_of_truth": "`+source+`"`, 1)
++			require.NoError(t, os.WriteFile(filepath.Join(dir, "config.json"), []byte(configJSON), 0o600))
++			for _, boot := range []string{"fresh", "restart"} {
++				t.Run(boot, func(t *testing.T) {
++					ctx := context.Background()
++					cfg, err := LoadConfig(ctx, dir)
++					require.NoError(t, err)
++					t.Cleanup(func() { cfg.Close(ctx) })
++					vmcps, err := cfg.ConfigStore.GetVirtualMCPs(ctx)
++					require.NoError(t, err)
++					require.Len(t, vmcps, 1)
++					require.Len(t, vmcps[0].ParsedTools, 1)
++					assert.Equal(t, "client-first-boot", vmcps[0].ParsedTools[0].MCPClientID)
++					ids, err := cfg.ConfigStore.GetVirtualKeyIDsForVirtualMCP(ctx, vmcps[0].ID)
++					require.NoError(t, err)
++					assert.Equal(t, []string{"vk-first-boot"}, ids, "VK attachment must exist on the first load")
++					client, err := cfg.ConfigStore.GetMCPClientByName(ctx, "debug")
++					require.NoError(t, err)
++					grants, err := cfg.ConfigStore.GetVirtualKeyMCPConfigs(ctx, "vk-first-boot")
++					require.NoError(t, err)
++					require.Len(t, grants, 1, "direct MCP grants must still resolve before governance loads")
++					assert.Equal(t, client.ID, grants[0].MCPClientID)
++					assert.Equal(t, schemas.WhiteList{"probe"}, grants[0].ToolsToExecute)
++				})
++			}
++		})
++	}
++}
++
+ // TestReconcileVirtualMCPsConfig covers the config.json → store reconciliation for
+ // mcp.virtual_mcps: create (with explicit slug + name-resolved tool client + VK attach),
+ // idempotent no-op on unchanged hash, update on change, and prune of absent entries.
