@@ -36,8 +36,15 @@ The complete HTTP handler package passed locally with `go test -race` (59.358s);
 both review axes reported no actionable finding. The Python smoke script's syntax
 was checked, but its full live scenario was not rerun against production.
 
-This fix is not included in published image `2.2.3-sofian.2`. Production has not
-been modified, and rendering through the selected plugin remains unverified.
+**Published and registry-verified:** `ghcr.io/sofianbll/bifrost:2.2.3-sofian.3`,
+source `6370fa0221e73c35cf479da101bb6aec8ae44ae9`, for Linux AMD64 and ARM64.
+The [release workflow](https://github.com/sofianbll/bifrost/actions/runs/36337890059)
+passed the UI build, Go race suites, runtime image tests and publication on both
+architectures. Immutable image reference:
+`ghcr.io/sofianbll/bifrost@sha256:4deff429c615077ed6f7e8beeef254c5719cb5cc8814c8ddd085e964a1f5af3a`.
+The previous `.2` image lacks this fix and remains available for rollback.
+Production has not been modified, and rendering through the selected plugin
+remains unverified until the new image is installed and the host is retested.
 
 ### Fork version and rebuilt UI — 2026-09-27
 
