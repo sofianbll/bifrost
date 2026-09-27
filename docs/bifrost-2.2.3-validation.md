@@ -1,5 +1,7 @@
 # Bifrost 2.2.3 — validation de notre intégration MCP Apps
 
+Architecture overview for reviewers: [MCP Apps component diagram](mcp-apps-architecture.md).
+
 ## Current qualification status — 2026-09-27
 
 This section supersedes the current-status statements in the historical campaigns

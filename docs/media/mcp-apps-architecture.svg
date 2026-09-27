@@ -1,0 +1,133 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1200" viewBox="0 0 1600 1200" role="img" aria-labelledby="title desc">
+<title id="title">Bifrost MCP Apps — architecture de l’intégration</title>
+<desc id="desc">L’hôte MCP Apps échange avec Bifrost, qui contrôle les permissions et relaie les appels et ressources vers les serveurs MCP. Code Mode est une voie distincte.</desc>
+<rect width="1600" height="1200" fill="white"/>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 1 1 L 9 5 L 1 9" fill="none" stroke="context-stroke" stroke-width="1.5"/></marker></defs>
+<text id="title" x="45" y="53.400000000000006" font-family="Arial, sans-serif" font-size="36" fill="#0f172a" text-anchor="start" dominant-baseline="middle">
+<tspan x="45" dy="0">Bifrost MCP Apps — architecture de l’intégration</tspan>
+</text>
+<text id="subtitle" x="45" y="98.6" font-family="Arial, sans-serif" font-size="24" fill="#334155" text-anchor="start" dominant-baseline="middle">
+<tspan x="45" dy="0">Vue des composants • appels natifs, ressources UI, permissions et Code Mode</tspan>
+</text>
+<rect id="host-zone" x="40" y="135" width="320" height="640" rx="12" fill="#eff6ff" stroke="#334155" stroke-width="1.5"/>
+<text id="host-heading" x="65" y="174.25" font-family="Arial, sans-serif" font-size="25" fill="#1d4ed8" text-anchor="start" dominant-baseline="middle">
+<tspan x="65" dy="0">HÔTE MCP APPS</tspan>
+</text>
+<rect id="host" x="65" y="240" width="270" height="135" rx="12" fill="#a5d8ff" stroke="#334155" stroke-width="1.5"/>
+<text id="host-label" data-container="host" x="200.0" y="291.875" font-family="Arial, sans-serif" font-size="25" fill="#334155" text-anchor="middle" dominant-baseline="middle">
+<tspan x="200.0" dy="0">Agent + client MCP</tspan>
+<tspan x="200.0" dy="31.25">Codex, par exemple</tspan>
+</text>
+<rect id="frame" x="65" y="555" width="270" height="150" rx="12" fill="#b2f2bb" stroke="#334155" stroke-width="1.5"/>
+<text id="frame-label" data-container="frame" x="200.0" y="600.0" font-family="Arial, sans-serif" font-size="24" fill="#334155" text-anchor="middle" dominant-baseline="middle">
+<tspan x="200.0" dy="0">App interactive</tspan>
+<tspan x="200.0" dy="30.0">iframe isolée</tspan>
+<tspan x="200.0" dy="30.0">Gérée par l’hôte</tspan>
+</text>
+<polyline points="200,375 200,555" fill="none" stroke="#15803d" stroke-width="2" marker-end="url(#arrow)"/>
+<text id="host-events" x="80" y="439.3" font-family="Arial, sans-serif" font-size="22" fill="#334155" text-anchor="start" dominant-baseline="middle">
+<tspan x="80" dy="0">Entrées / résultats</tspan>
+<tspan x="80" dy="27.5">et contexte de l’App</tspan>
+</text>
+<rect id="gateway-zone" x="430" y="135" width="740" height="855" rx="12" fill="#f5f3ff" stroke="#334155" stroke-width="1.5"/>
+<text id="gateway-heading" x="455" y="174.25" font-family="Arial, sans-serif" font-size="25" fill="#6d28d9" text-anchor="start" dominant-baseline="middle">
+<tspan x="455" dy="0">BIFROST — GATEWAY HTTP</tspan>
+</text>
+<rect id="routes" x="455" y="210" width="690" height="125" rx="12" fill="#e5dbff" stroke="#334155" stroke-width="1.5"/>
+<text id="routes-label" data-container="routes" x="800.0" y="243.75" font-family="Arial, sans-serif" font-size="23" fill="#334155" text-anchor="middle" dominant-baseline="middle">
+<tspan x="800.0" dy="0">Routes MCP</tspan>
+<tspan x="800.0" dy="28.75">/mcp/&lt;client&gt;  •  /mcp/&lt;virtual-mcp&gt;  •  /mcp</tspan>
+<tspan x="800.0" dy="28.75">Source dédiée  •  bundle autorisé  •  union des droits</tspan>
+</text>
+<polyline points="335,295 455,295" fill="none" stroke="#1d4ed8" stroke-width="2" marker-end="url(#arrow)"/>
+<text id="num1" x="382" y="276.25" font-family="Arial, sans-serif" font-size="25" fill="#1d4ed8" text-anchor="start" dominant-baseline="middle">
+<tspan x="382" dy="0">1</tspan>
+</text>
+<rect id="access" x="455" y="385" width="690" height="105" rx="12" fill="#d0bfff" stroke="#334155" stroke-width="1.5"/>
+<text id="access-label" data-container="access" x="800.0" y="423.125" font-family="Arial, sans-serif" font-size="23" fill="#334155" text-anchor="middle" dominant-baseline="middle">
+<tspan x="800.0" dy="0">Admission et permissions</tspan>
+<tspan x="800.0" dy="28.75">Identité / clé virtuelle • portée de la route • filtres d’outils</tspan>
+</text>
+<polyline points="800,335 800,385" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+<rect id="relay" x="455" y="550" width="390" height="155" rx="12" fill="#d0bfff" stroke="#334155" stroke-width="1.5"/>
+<text id="relay-label" data-container="relay" x="650.0" y="596.25" font-family="Arial, sans-serif" font-size="25" fill="#334155" text-anchor="middle" dominant-baseline="middle">
+<tspan x="650.0" dy="0">Relais MCP Apps natif</tspan>
+<tspan x="650.0" dy="31.25">Métadonnées UI + alias</tspan>
+<tspan x="650.0" dy="31.25">URI par source + résultats</tspan>
+</text>
+<polyline points="650,490 650,550" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+<rect id="clients" x="905" y="550" width="240" height="155" rx="12" fill="#e5dbff" stroke="#334155" stroke-width="1.5"/>
+<text id="clients-label" data-container="clients" x="1025.0" y="582.5" font-family="Arial, sans-serif" font-size="24" fill="#334155" text-anchor="middle" dominant-baseline="middle">
+<tspan x="1025.0" dy="0">Cœur MCP</tspan>
+<tspan x="1025.0" dy="30.0">Clients et hooks</tspan>
+<tspan x="1025.0" dy="30.0">HTTP / SSE</tspan>
+<tspan x="1025.0" dy="30.0">ou stdio</tspan>
+</text>
+<polyline points="845,625 905,625" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+<rect id="upstream-zone" x="1240" y="135" width="320" height="640" rx="12" fill="#f0fdf4" stroke="#334155" stroke-width="1.5"/>
+<text id="upstream-heading" x="1265" y="174.25" font-family="Arial, sans-serif" font-size="25" fill="#15803d" text-anchor="start" dominant-baseline="middle">
+<tspan x="1265" dy="0">SERVEURS MCP</tspan>
+</text>
+<rect id="tools" x="1265" y="245" width="270" height="160" rx="12" fill="#b2f2bb" stroke="#334155" stroke-width="1.5"/>
+<text id="tools-label" data-container="tools" x="1400.0" y="295.0" font-family="Arial, sans-serif" font-size="24" fill="#334155" text-anchor="middle" dominant-baseline="middle">
+<tspan x="1400.0" dy="0">Outils et données</tspan>
+<tspan x="1400.0" dy="30.0">Excalidraw, PDF,</tspan>
+<tspan x="1400.0" dy="30.0">Debug, Monitor…</tspan>
+</text>
+<rect id="html" x="1265" y="550" width="270" height="155" rx="12" fill="#c3fae8" stroke="#334155" stroke-width="1.5"/>
+<text id="html-label" data-container="html" x="1400.0" y="596.25" font-family="Arial, sans-serif" font-size="25" fill="#334155" text-anchor="middle" dominant-baseline="middle">
+<tspan x="1400.0" dy="0">Ressources UI</tspan>
+<tspan x="1400.0" dy="31.25">HTML de l’App</tspan>
+<tspan x="1400.0" dy="31.25">ui://…</tspan>
+</text>
+<polyline points="1025,550 1025,520 1205,520 1205,325 1265,325" fill="none" stroke="#15803d" stroke-width="2" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+<polyline points="1145,650 1265,650" fill="none" stroke="#15803d" stroke-width="2" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+<text id="protocol" x="1280" y="451.3" font-family="Arial, sans-serif" font-size="22" fill="#15803d" text-anchor="start" dominant-baseline="middle">
+<tspan x="1280" dy="0">tools/call</tspan>
+<tspan x="1280" dy="27.5">resources/read</tspan>
+</text>
+<polyline points="455,660 410,660 410,745 200,745 200,705" fill="none" stroke="#15803d" stroke-width="2" marker-end="url(#arrow)"/>
+<text id="num2" x="280" y="730.25" font-family="Arial, sans-serif" font-size="25" fill="#15803d" text-anchor="start" dominant-baseline="middle">
+<tspan x="280" dy="0">2</tspan>
+</text>
+<polyline points="335,590 390,590 390,430 455,430" fill="none" stroke="#1d4ed8" stroke-width="2" marker-end="url(#arrow)" stroke-dasharray="9 6"/>
+<text id="num3" x="365" y="502.25" font-family="Arial, sans-serif" font-size="25" fill="#1d4ed8" text-anchor="start" dominant-baseline="middle">
+<tspan x="365" dy="0">3</tspan>
+</text>
+<rect id="code" x="455" y="805" width="690" height="145" rx="12" fill="#fff3bf" stroke="#334155" stroke-width="1.5"/>
+<text id="code-label" data-container="code" x="800.0" y="846.25" font-family="Arial, sans-serif" font-size="25" fill="#334155" text-anchor="middle" dominant-baseline="middle">
+<tspan x="800.0" dy="0">Code Mode — executeToolCode</tspan>
+<tspan x="800.0" dy="31.25">Sandbox Starlark → outils MCP sous les mêmes droits</tspan>
+<tspan x="800.0" dy="31.25">Retour textuel + isError • pas de nouvelle vue App</tspan>
+</text>
+<polyline points="1100,490 1190,490 1190,875 1145,875" fill="none" stroke="#b45309" stroke-width="2" marker-end="url(#arrow)" stroke-dasharray="9 6"/>
+<text id="num4" x="1157" y="776.25" font-family="Arial, sans-serif" font-size="25" fill="#b45309" text-anchor="start" dominant-baseline="middle">
+<tspan x="1157" dy="0">4</tspan>
+</text>
+<rect id="startup" x="40" y="815" width="320" height="175" rx="12" fill="#f1f5f9" stroke="#334155" stroke-width="1.5"/>
+<text id="startup-label" data-container="startup" x="200.0" y="859.375" font-family="Arial, sans-serif" font-size="23" fill="#334155" text-anchor="middle" dominant-baseline="middle">
+<tspan x="200.0" dy="0">Configuration persistée</tspan>
+<tspan x="200.0" dy="28.75">Au démarrage :</tspan>
+<tspan x="200.0" dy="28.75">clients MCP → clés</tspan>
+<tspan x="200.0" dy="28.75">→ liens Virtual MCP</tspan>
+</text>
+<rect id="invariants" x="1240" y="815" width="320" height="175" rx="12" fill="#f1f5f9" stroke="#334155" stroke-width="1.5"/>
+<text id="invariants-label" data-container="invariants" x="1400.0" y="861.25" font-family="Arial, sans-serif" font-size="22" fill="#334155" text-anchor="middle" dominant-baseline="middle">
+<tspan x="1400.0" dy="0">Contrat préservé</tspan>
+<tspan x="1400.0" dy="27.5">content • structuredContent</tspan>
+<tspan x="1400.0" dy="27.5">_meta • isError</tspan>
+<tspan x="1400.0" dy="27.5">Alias ambigu : refus</tspan>
+</text>
+<text id="legend1" x="45" y="1045.6" font-family="Arial, sans-serif" font-size="24" fill="#334155" text-anchor="start" dominant-baseline="middle">
+<tspan x="45" dy="0">1  Découverte et appels natifs : initialize, tools/list, tools/call, resources/read.</tspan>
+</text>
+<text id="legend2" x="45" y="1085.6" font-family="Arial, sans-serif" font-size="24" fill="#334155" text-anchor="start" dominant-baseline="middle">
+<tspan x="45" dy="0">2  Résultats et HTML reviennent à l’hôte.   3  Les callbacks repassent par les permissions.</tspan>
+</text>
+<text id="legend3" x="45" y="1125.6" font-family="Arial, sans-serif" font-size="24" fill="#334155" text-anchor="start" dominant-baseline="middle">
+<tspan x="45" dy="0">4  Code Mode est une voie distincte ; les outils Apps restent appelables nativement.</tspan>
+</text>
+<text id="footer" x="45" y="1168.65" font-family="Arial, sans-serif" font-size="21" fill="#64748b" text-anchor="start" dominant-baseline="middle">
+<tspan x="45" dy="0">Périmètre : intégration MCP Apps du fork. Le rendu, la CSP et les vues appartiennent à l’hôte.</tspan>
+</text>
+</svg>

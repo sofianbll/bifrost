@@ -1,0 +1,719 @@
+[
+  {
+    "type": "cameraUpdate",
+    "width": 1600,
+    "height": 1200,
+    "x": 0,
+    "y": 0
+  },
+  {
+    "type": "text",
+    "id": "title",
+    "x": 45,
+    "y": 30,
+    "text": "Bifrost MCP Apps — architecture de l’intégration",
+    "fontSize": 36,
+    "fontFamily": 2,
+    "strokeColor": "#0f172a",
+    "roughness": 0
+  },
+  {
+    "type": "text",
+    "id": "subtitle",
+    "x": 45,
+    "y": 83,
+    "text": "Vue des composants • appels natifs, ressources UI, permissions et Code Mode",
+    "fontSize": 24,
+    "fontFamily": 2,
+    "strokeColor": "#334155",
+    "roughness": 0
+  },
+  {
+    "type": "rectangle",
+    "id": "host-zone",
+    "x": 40,
+    "y": 135,
+    "width": 320,
+    "height": 640,
+    "roundness": {
+      "type": 3
+    },
+    "backgroundColor": "#eff6ff",
+    "strokeColor": "#334155",
+    "strokeWidth": 1.5,
+    "roughness": 0
+  },
+  {
+    "type": "text",
+    "id": "host-heading",
+    "x": 65,
+    "y": 158,
+    "text": "HÔTE MCP APPS",
+    "fontSize": 25,
+    "fontFamily": 2,
+    "strokeColor": "#1d4ed8",
+    "roughness": 0
+  },
+  {
+    "type": "rectangle",
+    "id": "host",
+    "x": 65,
+    "y": 240,
+    "width": 270,
+    "height": 135,
+    "roundness": {
+      "type": 3
+    },
+    "backgroundColor": "#a5d8ff",
+    "strokeColor": "#334155",
+    "strokeWidth": 1.5,
+    "roughness": 0,
+    "label": {
+      "text": "Agent + client MCP\nCodex, par exemple",
+      "fontSize": 25,
+      "fontFamily": 2
+    }
+  },
+  {
+    "type": "rectangle",
+    "id": "frame",
+    "x": 65,
+    "y": 555,
+    "width": 270,
+    "height": 150,
+    "roundness": {
+      "type": 3
+    },
+    "backgroundColor": "#b2f2bb",
+    "strokeColor": "#334155",
+    "strokeWidth": 1.5,
+    "roughness": 0,
+    "label": {
+      "text": "App interactive\niframe isolée\nGérée par l’hôte",
+      "fontSize": 24,
+      "fontFamily": 2
+    }
+  },
+  {
+    "type": "arrow",
+    "id": "host-frame",
+    "x": 200,
+    "y": 375,
+    "width": 0,
+    "height": 180,
+    "points": [
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        180
+      ]
+    ],
+    "strokeColor": "#15803d",
+    "strokeWidth": 2,
+    "roughness": 0,
+    "endArrowhead": "arrow",
+    "startArrowhead": null,
+    "strokeStyle": "solid"
+  },
+  {
+    "type": "text",
+    "id": "host-events",
+    "x": 80,
+    "y": 425,
+    "text": "Entrées / résultats\net contexte de l’App",
+    "fontSize": 22,
+    "fontFamily": 2,
+    "strokeColor": "#334155",
+    "roughness": 0
+  },
+  {
+    "type": "rectangle",
+    "id": "gateway-zone",
+    "x": 430,
+    "y": 135,
+    "width": 740,
+    "height": 855,
+    "roundness": {
+      "type": 3
+    },
+    "backgroundColor": "#f5f3ff",
+    "strokeColor": "#334155",
+    "strokeWidth": 1.5,
+    "roughness": 0
+  },
+  {
+    "type": "text",
+    "id": "gateway-heading",
+    "x": 455,
+    "y": 158,
+    "text": "BIFROST — GATEWAY HTTP",
+    "fontSize": 25,
+    "fontFamily": 2,
+    "strokeColor": "#6d28d9",
+    "roughness": 0
+  },
+  {
+    "type": "rectangle",
+    "id": "routes",
+    "x": 455,
+    "y": 210,
+    "width": 690,
+    "height": 125,
+    "roundness": {
+      "type": 3
+    },
+    "backgroundColor": "#e5dbff",
+    "strokeColor": "#334155",
+    "strokeWidth": 1.5,
+    "roughness": 0,
+    "label": {
+      "text": "Routes MCP\n/mcp/<client>  •  /mcp/<virtual-mcp>  •  /mcp\nSource dédiée  •  bundle autorisé  •  union des droits",
+      "fontSize": 23,
+      "fontFamily": 2
+    }
+  },
+  {
+    "type": "arrow",
+    "id": "request",
+    "x": 335,
+    "y": 295,
+    "width": 120,
+    "height": 0,
+    "points": [
+      [
+        0,
+        0
+      ],
+      [
+        120,
+        0
+      ]
+    ],
+    "strokeColor": "#1d4ed8",
+    "strokeWidth": 2,
+    "roughness": 0,
+    "endArrowhead": "arrow",
+    "startArrowhead": null,
+    "strokeStyle": "solid"
+  },
+  {
+    "type": "text",
+    "id": "num1",
+    "x": 382,
+    "y": 260,
+    "text": "1",
+    "fontSize": 25,
+    "fontFamily": 2,
+    "strokeColor": "#1d4ed8",
+    "roughness": 0
+  },
+  {
+    "type": "rectangle",
+    "id": "access",
+    "x": 455,
+    "y": 385,
+    "width": 690,
+    "height": 105,
+    "roundness": {
+      "type": 3
+    },
+    "backgroundColor": "#d0bfff",
+    "strokeColor": "#334155",
+    "strokeWidth": 1.5,
+    "roughness": 0,
+    "label": {
+      "text": "Admission et permissions\nIdentité / clé virtuelle • portée de la route • filtres d’outils",
+      "fontSize": 23,
+      "fontFamily": 2
+    }
+  },
+  {
+    "type": "arrow",
+    "id": "route-auth",
+    "x": 800,
+    "y": 335,
+    "width": 0,
+    "height": 50,
+    "points": [
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        50
+      ]
+    ],
+    "strokeColor": "#475569",
+    "strokeWidth": 2,
+    "roughness": 0,
+    "endArrowhead": "arrow",
+    "startArrowhead": null,
+    "strokeStyle": "solid"
+  },
+  {
+    "type": "rectangle",
+    "id": "relay",
+    "x": 455,
+    "y": 550,
+    "width": 390,
+    "height": 155,
+    "roundness": {
+      "type": 3
+    },
+    "backgroundColor": "#d0bfff",
+    "strokeColor": "#334155",
+    "strokeWidth": 1.5,
+    "roughness": 0,
+    "label": {
+      "text": "Relais MCP Apps natif\nMétadonnées UI + alias\nURI par source + résultats",
+      "fontSize": 25,
+      "fontFamily": 2
+    }
+  },
+  {
+    "type": "arrow",
+    "id": "auth-relay",
+    "x": 650,
+    "y": 490,
+    "width": 0,
+    "height": 60,
+    "points": [
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        60
+      ]
+    ],
+    "strokeColor": "#475569",
+    "strokeWidth": 2,
+    "roughness": 0,
+    "endArrowhead": "arrow",
+    "startArrowhead": null,
+    "strokeStyle": "solid"
+  },
+  {
+    "type": "rectangle",
+    "id": "clients",
+    "x": 905,
+    "y": 550,
+    "width": 240,
+    "height": 155,
+    "roundness": {
+      "type": 3
+    },
+    "backgroundColor": "#e5dbff",
+    "strokeColor": "#334155",
+    "strokeWidth": 1.5,
+    "roughness": 0,
+    "label": {
+      "text": "Cœur MCP\nClients et hooks\nHTTP / SSE\nou stdio",
+      "fontSize": 24,
+      "fontFamily": 2
+    }
+  },
+  {
+    "type": "arrow",
+    "id": "relay-core",
+    "x": 845,
+    "y": 625,
+    "width": 60,
+    "height": 0,
+    "points": [
+      [
+        0,
+        0
+      ],
+      [
+        60,
+        0
+      ]
+    ],
+    "strokeColor": "#475569",
+    "strokeWidth": 2,
+    "roughness": 0,
+    "endArrowhead": "arrow",
+    "startArrowhead": null,
+    "strokeStyle": "solid"
+  },
+  {
+    "type": "rectangle",
+    "id": "upstream-zone",
+    "x": 1240,
+    "y": 135,
+    "width": 320,
+    "height": 640,
+    "roundness": {
+      "type": 3
+    },
+    "backgroundColor": "#f0fdf4",
+    "strokeColor": "#334155",
+    "strokeWidth": 1.5,
+    "roughness": 0
+  },
+  {
+    "type": "text",
+    "id": "upstream-heading",
+    "x": 1265,
+    "y": 158,
+    "text": "SERVEURS MCP",
+    "fontSize": 25,
+    "fontFamily": 2,
+    "strokeColor": "#15803d",
+    "roughness": 0
+  },
+  {
+    "type": "rectangle",
+    "id": "tools",
+    "x": 1265,
+    "y": 245,
+    "width": 270,
+    "height": 160,
+    "roundness": {
+      "type": 3
+    },
+    "backgroundColor": "#b2f2bb",
+    "strokeColor": "#334155",
+    "strokeWidth": 1.5,
+    "roughness": 0,
+    "label": {
+      "text": "Outils et données\nExcalidraw, PDF,\nDebug, Monitor…",
+      "fontSize": 24,
+      "fontFamily": 2
+    }
+  },
+  {
+    "type": "rectangle",
+    "id": "html",
+    "x": 1265,
+    "y": 550,
+    "width": 270,
+    "height": 155,
+    "roundness": {
+      "type": 3
+    },
+    "backgroundColor": "#c3fae8",
+    "strokeColor": "#334155",
+    "strokeWidth": 1.5,
+    "roughness": 0,
+    "label": {
+      "text": "Ressources UI\nHTML de l’App\nui://…",
+      "fontSize": 25,
+      "fontFamily": 2
+    }
+  },
+  {
+    "type": "arrow",
+    "id": "upstream-tools",
+    "x": 1025,
+    "y": 550,
+    "width": 240,
+    "height": 225,
+    "points": [
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        -30
+      ],
+      [
+        180,
+        -30
+      ],
+      [
+        180,
+        -225
+      ],
+      [
+        240,
+        -225
+      ]
+    ],
+    "strokeColor": "#15803d",
+    "strokeWidth": 2,
+    "roughness": 0,
+    "endArrowhead": "arrow",
+    "startArrowhead": "arrow",
+    "strokeStyle": "solid"
+  },
+  {
+    "type": "arrow",
+    "id": "upstream-html",
+    "x": 1145,
+    "y": 650,
+    "width": 120,
+    "height": 0,
+    "points": [
+      [
+        0,
+        0
+      ],
+      [
+        120,
+        0
+      ]
+    ],
+    "strokeColor": "#15803d",
+    "strokeWidth": 2,
+    "roughness": 0,
+    "endArrowhead": "arrow",
+    "startArrowhead": "arrow",
+    "strokeStyle": "solid"
+  },
+  {
+    "type": "text",
+    "id": "protocol",
+    "x": 1280,
+    "y": 437,
+    "text": "tools/call\nresources/read",
+    "fontSize": 22,
+    "fontFamily": 2,
+    "strokeColor": "#15803d",
+    "roughness": 0
+  },
+  {
+    "type": "arrow",
+    "id": "native-result",
+    "x": 455,
+    "y": 660,
+    "width": 255,
+    "height": 85,
+    "points": [
+      [
+        0,
+        0
+      ],
+      [
+        -45,
+        0
+      ],
+      [
+        -45,
+        85
+      ],
+      [
+        -255,
+        85
+      ],
+      [
+        -255,
+        45
+      ]
+    ],
+    "strokeColor": "#15803d",
+    "strokeWidth": 2,
+    "roughness": 0,
+    "endArrowhead": "arrow",
+    "startArrowhead": null,
+    "strokeStyle": "solid"
+  },
+  {
+    "type": "text",
+    "id": "num2",
+    "x": 280,
+    "y": 714,
+    "text": "2",
+    "fontSize": 25,
+    "fontFamily": 2,
+    "strokeColor": "#15803d",
+    "roughness": 0
+  },
+  {
+    "type": "arrow",
+    "id": "callback",
+    "x": 335,
+    "y": 590,
+    "width": 120,
+    "height": 160,
+    "points": [
+      [
+        0,
+        0
+      ],
+      [
+        55,
+        0
+      ],
+      [
+        55,
+        -160
+      ],
+      [
+        120,
+        -160
+      ]
+    ],
+    "strokeColor": "#1d4ed8",
+    "strokeWidth": 2,
+    "roughness": 0,
+    "endArrowhead": "arrow",
+    "startArrowhead": null,
+    "strokeStyle": "dashed"
+  },
+  {
+    "type": "text",
+    "id": "num3",
+    "x": 365,
+    "y": 486,
+    "text": "3",
+    "fontSize": 25,
+    "fontFamily": 2,
+    "strokeColor": "#1d4ed8",
+    "roughness": 0
+  },
+  {
+    "type": "rectangle",
+    "id": "code",
+    "x": 455,
+    "y": 805,
+    "width": 690,
+    "height": 145,
+    "roundness": {
+      "type": 3
+    },
+    "backgroundColor": "#fff3bf",
+    "strokeColor": "#334155",
+    "strokeWidth": 1.5,
+    "roughness": 0,
+    "label": {
+      "text": "Code Mode — executeToolCode\nSandbox Starlark → outils MCP sous les mêmes droits\nRetour textuel + isError • pas de nouvelle vue App",
+      "fontSize": 25,
+      "fontFamily": 2
+    }
+  },
+  {
+    "type": "arrow",
+    "id": "code-branch",
+    "x": 1100,
+    "y": 490,
+    "width": 90,
+    "height": 385,
+    "points": [
+      [
+        0,
+        0
+      ],
+      [
+        90,
+        0
+      ],
+      [
+        90,
+        385
+      ],
+      [
+        45,
+        385
+      ]
+    ],
+    "strokeColor": "#b45309",
+    "strokeWidth": 2,
+    "roughness": 0,
+    "endArrowhead": "arrow",
+    "startArrowhead": null,
+    "strokeStyle": "dashed"
+  },
+  {
+    "type": "text",
+    "id": "num4",
+    "x": 1157,
+    "y": 760,
+    "text": "4",
+    "fontSize": 25,
+    "fontFamily": 2,
+    "strokeColor": "#b45309",
+    "roughness": 0
+  },
+  {
+    "type": "rectangle",
+    "id": "startup",
+    "x": 40,
+    "y": 815,
+    "width": 320,
+    "height": 175,
+    "roundness": {
+      "type": 3
+    },
+    "backgroundColor": "#f1f5f9",
+    "strokeColor": "#334155",
+    "strokeWidth": 1.5,
+    "roughness": 0,
+    "label": {
+      "text": "Configuration persistée\nAu démarrage :\nclients MCP → clés\n→ liens Virtual MCP",
+      "fontSize": 23,
+      "fontFamily": 2
+    }
+  },
+  {
+    "type": "rectangle",
+    "id": "invariants",
+    "x": 1240,
+    "y": 815,
+    "width": 320,
+    "height": 175,
+    "roundness": {
+      "type": 3
+    },
+    "backgroundColor": "#f1f5f9",
+    "strokeColor": "#334155",
+    "strokeWidth": 1.5,
+    "roughness": 0,
+    "label": {
+      "text": "Contrat préservé\ncontent • structuredContent\n_meta • isError\nAlias ambigu : refus",
+      "fontSize": 22,
+      "fontFamily": 2
+    }
+  },
+  {
+    "type": "text",
+    "id": "legend1",
+    "x": 45,
+    "y": 1030,
+    "text": "1  Découverte et appels natifs : initialize, tools/list, tools/call, resources/read.",
+    "fontSize": 24,
+    "fontFamily": 2,
+    "strokeColor": "#334155",
+    "roughness": 0
+  },
+  {
+    "type": "text",
+    "id": "legend2",
+    "x": 45,
+    "y": 1070,
+    "text": "2  Résultats et HTML reviennent à l’hôte.   3  Les callbacks repassent par les permissions.",
+    "fontSize": 24,
+    "fontFamily": 2,
+    "strokeColor": "#334155",
+    "roughness": 0
+  },
+  {
+    "type": "text",
+    "id": "legend3",
+    "x": 45,
+    "y": 1110,
+    "text": "4  Code Mode est une voie distincte ; les outils Apps restent appelables nativement.",
+    "fontSize": 24,
+    "fontFamily": 2,
+    "strokeColor": "#334155",
+    "roughness": 0
+  },
+  {
+    "type": "text",
+    "id": "footer",
+    "x": 45,
+    "y": 1155,
+    "text": "Périmètre : intégration MCP Apps du fork. Le rendu, la CSP et les vues appartiennent à l’hôte.",
+    "fontSize": 21,
+    "fontFamily": 2,
+    "strokeColor": "#64748b",
+    "roughness": 0
+  }
+]
