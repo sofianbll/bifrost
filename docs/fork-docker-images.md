@@ -18,19 +18,27 @@ Une fois les changements commités, depuis la branche choisie :
 ```bash
 git switch feature/mcp-apps-native
 git push origin HEAD
-git tag image/mcp-apps-2.2.3-1
-git push origin image/mcp-apps-2.2.3-1
+git tag image/2.2.3-sofian.1
+git push origin image/2.2.3-sofian.1
 ```
 
 Le tag `image/...` désigne ce commit précis. Choisir un nouveau nom à chaque
 publication, sans déplacer un tag déjà publié. Le suffixe devient le tag Docker :
-`ghcr.io/sofianbll/bifrost:mcp-apps-2.2.3-1`. Utiliser des minuscules, chiffres,
+`ghcr.io/sofianbll/bifrost:2.2.3-sofian.1`. Utiliser des minuscules, chiffres,
 points, tirets et underscores, avec au maximum 80 caractères.
+
+La convention du fork est `<base officielle>-sofian.<révision>` : par exemple
+`2.2.3-sofian.1`, puis `2.2.3-sofian.2`. La base doit correspondre à
+`transports/version`. Le binaire affiche `v2.2.3+sofian.1.<commit>` ; l'interface
+ignore les métadonnées après `+` pour comparer avec les versions officielles.
+Ainsi `2.2.3` ne déclenche pas de fausse alerte, mais `2.2.4` reste signalée.
+Les tags personnalisés et les images `dev` conservent une version embarquée
+`v<base>+sofian.<commit>`. Le tag Docker et les labels OCI identifient l'image.
 
 Suivre **Fork Docker image** dans
 [GitHub Actions](https://github.com/sofianbll/bifrost/actions).
 Il compile sur des machines natives AMD64 et ARM64, exécute les tests Go MCP,
-schémas, handlers et serveur existants avec le détecteur de races, puis vérifie
+schémas, handlers, configuration et serveur existants avec le détecteur de races, puis vérifie
 la santé, un fichier JavaScript de l'interface et le chargement du plugin
 `hello-world` dans chaque image. Ce contrôle ne requiert aucune clé de fournisseur.
 Il ne couvre pas les appels à de vrais fournisseurs ni tous les tests du dépôt.
@@ -77,7 +85,7 @@ Depuis la racine du dépôt, Docker compile aussi l'interface web :
 ```bash
 docker build -f transports/Dockerfile.local \
   --build-arg DYNAMIC=1 \
-  --build-arg VERSION="$(cat transports/version)-$(git rev-parse --short=12 HEAD)" \
+  --build-arg VERSION="$(cat transports/version)+sofian.$(git rev-parse --short=12 HEAD)" \
   -t bifrost:local .
 ```
 

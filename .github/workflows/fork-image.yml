@@ -38,9 +38,16 @@ jobs:
             tag="dev-${GITHUB_SHA:0:12}-${GITHUB_RUN_NUMBER}"
           fi
           [[ "$tag" =~ ^[a-z0-9_][a-z0-9_.-]{0,79}$ ]] || { echo 'Invalid image tag'; exit 1; }
-          version="$(cat transports/version)-${GITHUB_SHA:0:12}"
+          base="$(cat transports/version)"
+          version="${base}+sofian.${GITHUB_SHA:0:12}"
+          if [[ "$tag" =~ ^([0-9]+\.[0-9]+\.[0-9]+)-sofian\.([1-9][0-9]*)$ ]]; then
+            [[ "${BASH_REMATCH[1]}" == "$base" ]] || { echo 'Image tag does not match transports/version'; exit 1; }
+            version="${base}+sofian.${BASH_REMATCH[2]}.${GITHUB_SHA:0:12}"
+          fi
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Check image version convention
+        run: python3 .github/workflows/scripts/fork-image-identity.test.py
       - uses: step-security/setup-buildx-action@f931205d68723ad9589fd2a7e2ece238bf9de341 # v4.0.0
       - name: Build gateway and UI
         uses: step-security/docker-build-push-action@846549baaf047e867d038826129a64d81df0f704 # v7.1.0

@@ -56,6 +56,11 @@ plugins/*/dist/
 
 # Test directories
 tests/
+!tests/
+tests/*
+!tests/mcpapps/
+tests/mcpapps/*
+!tests/mcpapps/firstboot/
 test/
 __tests__/
 

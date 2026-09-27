@@ -16,7 +16,7 @@
   COPY ui/ ./
 
   # Build UI (skip the copy-build step)
-  RUN npm run build-enterprise
+  RUN npx vitest run lib/utils/compareVersions.test.ts && npm run build-enterprise
   # Skip the copy-build step since we'll copy the files in the Go build stage
 
   # --- Go Build Stage: Compile the Go binary using local modules ---
@@ -71,9 +71,11 @@
   # exact toolchain, workspace dependencies and trimpath setting.
   FROM builder AS dynamic-check
   RUN test "$DYNAMIC" = 1
+  COPY tests/mcpapps/firstboot/ ./tests/mcpapps/firstboot/
   RUN go test -race -count=1 -timeout=10m \
     ./core/mcp/... ./core/schemas/... \
-    ./transports/bifrost-http/handlers/... ./transports/bifrost-http/server/...
+    ./transports/bifrost-http/handlers/... ./transports/bifrost-http/server/... \
+    ./transports/bifrost-http/lib/...
   COPY examples/plugins/hello-world/main.go ./transports/pluginprobe/main.go
   RUN cd /build/transports && \
     go build -trimpath -buildmode=plugin -o /app/hello-world.so ./pluginprobe
