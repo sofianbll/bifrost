@@ -578,6 +578,11 @@ results = youtube.search(query="AI news")
 
 ### Error Handling
 
+If a nested MCP tool returns `isError: true` and plugin post-hooks do not recover
+it, Starlark stops the script and reports an execution error. Through the MCP
+gateway, failed `executeToolCode` results also carry `isError: true`, including
+syntax and runtime failures. Successful scripts retain their normal result.
+
 Bifrost provides detailed error messages with hints:
 
 ```python

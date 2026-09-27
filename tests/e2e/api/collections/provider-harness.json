@@ -170697,6 +170697,205 @@
         }
       ],
       "description": "Optional live MCP Apps contract against Excalidraw configured as the direct MCP client named excalidraw in Bifrost. Run only with FEATURE=mcp-apps and include_preview=1 after configuring that client with Code Mode disabled. The normal provider profile does not include Excalidraw."
+    },
+    {
+      "name": "113. Code Mode error propagation (codemode-errors)",
+      "description": "Optional Code Mode regression. Requires the official server-debug 2.0.3 MCP client named debug with is_code_mode_client=true and server-level Starlark bindings. The standard provider profile does not provision this client. Run FEATURE=codemode-errors INCLUDE_PREVIEW=1 PARALLEL=0 only against an isolated gateway configured with it. No LLM provider call is needed. Runtime and nested upstream errors must set result.isError; the successful control must remain successful.",
+      "item": [
+        {
+          "name": "[PREVIEW] Code Mode runtime failure (codemode-errors)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Code Mode reports the execution outcome', function () {",
+                  "  pm.expect(pm.response.code, pm.response.text()).to.equal(200);",
+                  "  var body = pm.response.json();",
+                  "  pm.expect(body.error, pm.response.text()).to.equal(undefined);",
+                  "  pm.expect(body.result, pm.response.text()).to.be.an('object');",
+                  "  pm.expect(body.result.isError === true, pm.response.text()).to.equal(true);",
+                  "  var text = (body.result.content || []).map(function (c) { return c.text || ''; }).join('\\n');",
+                  "  pm.expect(text, pm.response.text()).to.include(\"definitely_not_defined\");",
+                  "  pm.expect(text.indexOf('Execution completed successfully') !== -1, pm.response.text()).to.equal(false);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"executeToolCode\",\"arguments\":{\"code\":\"result = definitely_not_defined + 1\"}}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp/debug",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp",
+                "debug"
+              ]
+            }
+          }
+        },
+        {
+          "name": "[PREVIEW] Code Mode nested tool failure (codemode-errors)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Code Mode reports the execution outcome', function () {",
+                  "  pm.expect(pm.response.code, pm.response.text()).to.equal(200);",
+                  "  var body = pm.response.json();",
+                  "  pm.expect(body.error, pm.response.text()).to.equal(undefined);",
+                  "  pm.expect(body.result, pm.response.text()).to.be.an('object');",
+                  "  pm.expect(body.result.isError === true, pm.response.text()).to.equal(true);",
+                  "  var text = (body.result.content || []).map(function (c) { return c.text || ''; }).join('\\n');",
+                  "  pm.expect(text, pm.response.text()).to.include(\"Debug text content\");",
+                  "  pm.expect(text.indexOf('Execution completed successfully') !== -1, pm.response.text()).to.equal(false);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"executeToolCode\",\"arguments\":{\"code\":\"result = debug.debug_tool(simulateError=True)\"}}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp/debug",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp",
+                "debug"
+              ]
+            }
+          }
+        },
+        {
+          "name": "[PREVIEW] Code Mode successful script (codemode-errors)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Code Mode reports the execution outcome', function () {",
+                  "  pm.expect(pm.response.code, pm.response.text()).to.equal(200);",
+                  "  var body = pm.response.json();",
+                  "  pm.expect(body.error, pm.response.text()).to.equal(undefined);",
+                  "  pm.expect(body.result, pm.response.text()).to.be.an('object');",
+                  "  pm.expect(body.result.isError === true, pm.response.text()).to.equal(false);",
+                  "  var text = (body.result.content || []).map(function (c) { return c.text || ''; }).join('\\n');",
+                  "  pm.expect(text, pm.response.text()).to.include(\"42\");",
+                  "  pm.expect(text.indexOf('Execution completed successfully') !== -1, pm.response.text()).to.equal(true);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"executeToolCode\",\"arguments\":{\"code\":\"result = 42\"}}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp/debug",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp",
+                "debug"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "114. Virtual MCP first boot (virtual-mcp-firstboot)",
+      "description": "Read-only first-boot regression. Start the code under test ONCE with a fresh temporary APP_DIR containing tests/mcpapps/firstboot/config.json; do not restart or pre-create rows. The disabled MCP fixture needs no upstream server or LLM provider. Run FEATURE=virtual-mcp-firstboot INCLUDE_PREVIEW=1 PARALLEL=0. A restarted database cannot prove this regression.",
+      "item": [
+        {
+          "name": "[PREVIEW] Virtual MCP key attachment exists on first boot (virtual-mcp-firstboot)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Virtual MCP has its file-declared key on first boot', function () {",
+                  "  pm.expect(pm.response.code, pm.response.text()).to.equal(200);",
+                  "  var vmcp = pm.response.json().virtual_mcp;",
+                  "  pm.expect(vmcp, pm.response.text()).to.be.an('object');",
+                  "  pm.expect(vmcp.id).to.equal(900001);",
+                  "  pm.expect(vmcp.endpoint_slug).to.equal('first-boot-tools');",
+                  "  pm.expect(vmcp.virtual_key_ids, pm.response.text()).to.deep.equal(['vk-first-boot']);",
+                  "  pm.expect(vmcp.tools, pm.response.text()).to.deep.equal([{mcp_client_id:'client-first-boot',tool_names:['probe']}]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/mcp/virtual-mcps/900001",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "mcp",
+                "virtual-mcps",
+                "900001"
+              ]
+            }
+          }
+        }
+      ]
     }
   ]
 }

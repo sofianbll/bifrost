@@ -114,20 +114,38 @@ func goToStarlark(v interface{}) starlark.Value {
 	}
 }
 
-// extractResultFromChatMessage extracts the result from a chat message and parses it as JSON if possible.
-func extractResultFromChatMessage(msg *schemas.ChatMessage) interface{} {
+// extractResultFromChatMessage preserves tool failures and parses successful text as JSON if possible.
+func extractResultFromChatMessage(msg *schemas.ChatMessage) (interface{}, error) {
+	if msg != nil && msg.ChatToolMessage != nil && msg.ChatToolMessage.IsError != nil && *msg.ChatToolMessage.IsError {
+		errText := ""
+		if msg.Content != nil {
+			if msg.Content.ContentStr != nil {
+				errText = *msg.Content.ContentStr
+			} else {
+				for _, block := range msg.Content.ContentBlocks {
+					if block.Type == schemas.ChatContentBlockTypeText && block.Text != nil {
+						errText += *block.Text
+					}
+				}
+			}
+		}
+		if errText == "" {
+			errText = "tool call returned an error"
+		}
+		return nil, fmt.Errorf("%s", errText)
+	}
 	if msg == nil || msg.Content == nil || msg.Content.ContentStr == nil {
-		return nil
+		return nil, nil
 	}
 
 	rawResult := *msg.Content.ContentStr
 
 	var finalResult interface{}
 	if err := sonic.Unmarshal([]byte(rawResult), &finalResult); err != nil {
-		return rawResult
+		return rawResult, nil
 	}
 
-	return finalResult
+	return finalResult, nil
 }
 
 // extractResultFromResponsesMessage extracts the result or error from a ResponsesMessage.
@@ -299,6 +317,9 @@ func extractTextFromMCPResponse(toolResponse *mcp.CallToolResult, toolName strin
 
 	if result.Len() > 0 {
 		return strings.TrimSpace(result.String())
+	}
+	if toolResponse.IsError {
+		return fmt.Sprintf("MCP tool '%s' returned an error", toolName)
 	}
 	return fmt.Sprintf("MCP tool '%s' executed successfully", toolName)
 }

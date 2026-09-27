@@ -1,0 +1,28 @@
+{
+  "source_of_truth": "split",
+  "mcp": {
+    "client_configs": [{
+      "client_id": "client-first-boot",
+      "name": "debug",
+      "connection_type": "http",
+      "connection_string": "http://127.0.0.1:1/mcp",
+      "disabled": true
+    }],
+    "virtual_mcps": [{
+      "id": 900001,
+      "name": "First Boot Tools",
+      "endpoint_slug": "first-boot-tools",
+      "tools": [{"mcp_client_name": "debug", "tool_names": ["probe"]}],
+      "virtual_key_ids": ["vk-first-boot"]
+    }]
+  },
+  "governance": {
+    "virtual_keys": [{
+      "id": "vk-first-boot",
+      "name": "first-boot",
+      "value": "vk_first_boot_test_only",
+      "is_active": true,
+      "mcp_configs": [{"mcp_client_name": "debug", "tools_to_execute": ["probe"]}]
+    }]
+  }
+}

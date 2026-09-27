@@ -582,7 +582,7 @@ func (s *StarlarkCodeMode) callMCPTool(ctx *schemas.BifrostContext, clientName, 
 	}
 
 	if finalResp.ChatMessage != nil {
-		return extractResultFromChatMessage(finalResp.ChatMessage), nil
+		return extractResultFromChatMessage(finalResp.ChatMessage)
 	}
 
 	if finalResp.ResponsesMessage != nil {

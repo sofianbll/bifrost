@@ -11,20 +11,31 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type appListToolManager struct{ tools []schemas.ChatTool }
-
-type appResourceToolManager struct{ appListToolManager }
-
-func (appResourceToolManager) ExecuteNativeMCPTool(context.Context, *schemas.ChatAssistantMessageToolCall) (*mcp.CallToolResult, *schemas.BifrostError) {
-	return nil, nil
+type appListToolManager struct {
+	tools      []schemas.ChatTool
+	chatResult *schemas.ChatMessage
 }
 
-func (appResourceToolManager) ReadMCPAppResource(context.Context, string, string) (*mcp.ReadResourceResult, error) {
-	return nil, nil
+type appResourceToolManager struct {
+	appListToolManager
+	nativeResult   *mcp.CallToolResult
+	resourceResult *mcp.ReadResourceResult
+	nativeCalls    []schemas.ChatAssistantMessageToolCall
+	resourceCalls  []struct{ toolName, uri string }
+}
+
+func (m *appResourceToolManager) ExecuteNativeMCPTool(_ context.Context, call *schemas.ChatAssistantMessageToolCall) (*mcp.CallToolResult, *schemas.BifrostError) {
+	m.nativeCalls = append(m.nativeCalls, *call)
+	return m.nativeResult, nil
+}
+
+func (m *appResourceToolManager) ReadMCPAppResource(_ context.Context, toolName, uri string) (*mcp.ReadResourceResult, error) {
+	m.resourceCalls = append(m.resourceCalls, struct{ toolName, uri string }{toolName, uri})
+	return m.resourceResult, nil
 }
 
 func TestMCPAppEmptyResourcesListIsArray(t *testing.T) {
-	h := &MCPServerHandler{toolManager: appResourceToolManager{}}
+	h := &MCPServerHandler{toolManager: &appResourceToolManager{}}
 	response := h.buildServer(nil).HandleMessage(context.Background(), []byte(`{"jsonrpc":"2.0","id":1,"method":"resources/list","params":{}}`))
 	data, err := json.Marshal(response)
 	require.NoError(t, err)
@@ -37,9 +48,132 @@ func TestMCPAppEmptyResourcesListIsArray(t *testing.T) {
 	assert.JSONEq(t, `[]`, string(decoded.Result.Resources))
 }
 
+func TestMCPAppNativeToolCallPreservesStructuredResultAndError(t *testing.T) {
+	SetLogger(&mockLogger{})
+	tool := schemas.ChatTool{
+		Function:   &schemas.ChatToolFunction{Name: "alpha-view"},
+		MCPRawTool: json.RawMessage(`{"name":"view","inputSchema":{"type":"object"},"_meta":{"ui":{"resourceUri":"ui://app/view"}}}`),
+	}
+	manager := &appResourceToolManager{
+		appListToolManager: appListToolManager{tools: []schemas.ChatTool{tool}},
+		nativeResult: &mcp.CallToolResult{
+			Content:           []mcp.Content{mcp.TextContent{Text: "render failed"}},
+			StructuredContent: map[string]any{"scene": "example"},
+			IsError:           true,
+		},
+	}
+	h := &MCPServerHandler{toolManager: manager}
+	ctx := schemas.NewBifrostContext(context.Background(), schemas.NoDeadline)
+	ctx.SetValue(schemas.MCPContextKeyAllowAppOnly, true)
+
+	response := h.buildServer([]schemas.ChatTool{tool}).HandleMessage(ctx, []byte(`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"alpha-view","arguments":{"prompt":"draw"}}}`))
+	body, err := json.Marshal(response)
+	require.NoError(t, err)
+	var decoded struct {
+		Result struct {
+			Content           []map[string]any `json:"content"`
+			StructuredContent map[string]any   `json:"structuredContent"`
+			IsError           bool             `json:"isError"`
+		} `json:"result"`
+	}
+	require.NoError(t, json.Unmarshal(body, &decoded))
+	assert.Equal(t, "example", decoded.Result.StructuredContent["scene"])
+	assert.True(t, decoded.Result.IsError)
+	require.Len(t, decoded.Result.Content, 1)
+	assert.Equal(t, "render failed", decoded.Result.Content[0]["text"])
+	require.Len(t, manager.nativeCalls, 1)
+	assert.Equal(t, "alpha-view", *manager.nativeCalls[0].Function.Name)
+	assert.JSONEq(t, `{"prompt":"draw"}`, manager.nativeCalls[0].Function.Arguments)
+}
+
+func TestMCPAppResourceReadDispatchesAndRewritesContents(t *testing.T) {
+	SetLogger(&mockLogger{})
+	tool := schemas.ChatTool{
+		Function:   &schemas.ChatToolFunction{Name: "alpha-view"},
+		MCPRawTool: json.RawMessage(`{"name":"view","inputSchema":{"type":"object"},"_meta":{"ui":{"resourceUri":"ui://app/view"}}}`),
+	}
+	manager := &appResourceToolManager{
+		appListToolManager: appListToolManager{tools: []schemas.ChatTool{tool}},
+		resourceResult: &mcp.ReadResourceResult{Contents: []mcp.ResourceContents{
+			mcp.TextResourceContents{URI: "ui://app/view", MIMEType: "text/html;profile=mcp-app", Text: "<main>app</main>"},
+			mcp.BlobResourceContents{URI: "ui://app/view", MIMEType: "application/octet-stream", Blob: "AQID"},
+		}},
+	}
+	h := &MCPServerHandler{toolManager: manager}
+	ctx := schemas.NewBifrostContext(context.Background(), schemas.NoDeadline)
+	ctx.SetValue(schemas.MCPContextKeyAllowAppOnly, true)
+	server := h.buildServer([]schemas.ChatTool{tool})
+	_, _, publicURI, err := rewriteMCPAppTool(tool.MCPRawTool, tool.Function.Name)
+	require.NoError(t, err)
+	request, err := json.Marshal(map[string]any{"jsonrpc": "2.0", "id": 1, "method": "resources/read", "params": map[string]any{"uri": publicURI}})
+	require.NoError(t, err)
+	response := server.HandleMessage(ctx, request)
+	body, err := json.Marshal(response)
+	require.NoError(t, err)
+	var decoded struct {
+		Result struct {
+			Contents []map[string]any `json:"contents"`
+		} `json:"result"`
+	}
+	require.NoError(t, json.Unmarshal(body, &decoded))
+	require.Len(t, decoded.Result.Contents, 2)
+	assert.Equal(t, publicURI, decoded.Result.Contents[0]["uri"])
+	assert.Equal(t, "text/html;profile=mcp-app", decoded.Result.Contents[0]["mimeType"])
+	assert.Equal(t, "<main>app</main>", decoded.Result.Contents[0]["text"])
+	assert.Equal(t, publicURI, decoded.Result.Contents[1]["uri"])
+	assert.Equal(t, "application/octet-stream", decoded.Result.Contents[1]["mimeType"])
+	assert.Equal(t, "AQID", decoded.Result.Contents[1]["blob"])
+	require.Len(t, manager.resourceCalls, 1)
+	assert.Equal(t, "alpha-view", manager.resourceCalls[0].toolName)
+	assert.Equal(t, "ui://app/view", manager.resourceCalls[0].uri)
+}
+
+func TestMCPAppResourceReadWithoutAdmissionDoesNotDispatch(t *testing.T) {
+	SetLogger(&mockLogger{})
+	tool := schemas.ChatTool{
+		Function:   &schemas.ChatToolFunction{Name: "alpha-view"},
+		MCPRawTool: json.RawMessage(`{"name":"view","inputSchema":{"type":"object"},"_meta":{"ui":{"resourceUri":"ui://app/view"}}}`),
+	}
+	manager := &appResourceToolManager{appListToolManager: appListToolManager{tools: []schemas.ChatTool{tool}}}
+	h := &MCPServerHandler{toolManager: manager}
+	ctx := schemas.NewBifrostContext(context.Background(), schemas.NoDeadline)
+	_, _, publicURI, err := rewriteMCPAppTool(tool.MCPRawTool, tool.Function.Name)
+	require.NoError(t, err)
+	request, err := json.Marshal(map[string]any{"jsonrpc": "2.0", "id": 1, "method": "resources/read", "params": map[string]any{"uri": publicURI}})
+	require.NoError(t, err)
+	response := h.buildServer([]schemas.ChatTool{tool}).HandleMessage(ctx, request)
+	body, err := json.Marshal(response)
+	require.NoError(t, err)
+	assert.Contains(t, string(body), "not available")
+	assert.Empty(t, manager.resourceCalls)
+}
+
 func (m appListToolManager) GetAvailableMCPTools(context.Context) []schemas.ChatTool { return m.tools }
-func (appListToolManager) ExecuteChatMCPTool(context.Context, *schemas.ChatAssistantMessageToolCall) (*schemas.ChatMessage, *schemas.BifrostError) {
-	return nil, nil
+func (m appListToolManager) ExecuteChatMCPTool(context.Context, *schemas.ChatAssistantMessageToolCall) (*schemas.ChatMessage, *schemas.BifrostError) {
+	return m.chatResult, nil
+}
+
+func TestMCPServerChatToolResultPreservesError(t *testing.T) {
+	SetLogger(&mockLogger{})
+	for _, marker := range []*bool{nil, schemas.Ptr(false), schemas.Ptr(true)} {
+		tool := schemas.ChatTool{Function: &schemas.ChatToolFunction{Name: "executeToolCode"}}
+		manager := &appListToolManager{chatResult: &schemas.ChatMessage{
+			Content:         &schemas.ChatMessageContent{ContentStr: schemas.Ptr("script result")},
+			ChatToolMessage: &schemas.ChatToolMessage{IsError: marker},
+		}}
+		h := &MCPServerHandler{toolManager: manager}
+		response := h.buildServer([]schemas.ChatTool{tool}).HandleMessage(context.Background(), []byte(`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"executeToolCode","arguments":{"code":"result = missing"}}}`))
+		body, err := json.Marshal(response)
+		require.NoError(t, err)
+		var decoded struct {
+			Result *mcp.CallToolResult `json:"result"`
+		}
+		require.NoError(t, json.Unmarshal(body, &decoded))
+		require.NotNil(t, decoded.Result, string(body))
+		assert.Equal(t, marker != nil && *marker, decoded.Result.IsError, string(body))
+		require.Len(t, decoded.Result.Content, 1)
+		assert.Equal(t, "script result", decoded.Result.Content[0].(mcp.TextContent).Text)
+	}
 }
 func (appListToolManager) ExecuteResponsesMCPTool(context.Context, *schemas.ResponsesToolMessage) (*schemas.ResponsesMessage, *schemas.BifrostError) {
 	return nil, nil

@@ -22353,6 +22353,44 @@ func TestGetMCPClientBySlugSkipsDisabled(t *testing.T) {
 	require.False(t, ok, "a disabled client's slug must not resolve")
 }
 
+// Exercise the startup entry point with no pre-created clients, keys or database.
+func TestLoadConfig_VirtualMCPFirstBoot(t *testing.T) {
+	initTestLogger()
+	for _, source := range []string{SourceOfTruthSplit, SourceOfTruthConfigJSON} {
+		t.Run(source, func(t *testing.T) {
+			dir := t.TempDir()
+			// Share the exact file-format fixture with the optional HTTP harness.
+			fixture, err := os.ReadFile("../../../tests/mcpapps/firstboot/config.json")
+			require.NoError(t, err)
+			configJSON := strings.Replace(string(fixture), `"source_of_truth": "split"`, `"source_of_truth": "`+source+`"`, 1)
+			require.NoError(t, os.WriteFile(filepath.Join(dir, "config.json"), []byte(configJSON), 0o600))
+			for _, boot := range []string{"fresh", "restart"} {
+				t.Run(boot, func(t *testing.T) {
+					ctx := context.Background()
+					cfg, err := LoadConfig(ctx, dir)
+					require.NoError(t, err)
+					t.Cleanup(func() { cfg.Close(ctx) })
+					vmcps, err := cfg.ConfigStore.GetVirtualMCPs(ctx)
+					require.NoError(t, err)
+					require.Len(t, vmcps, 1)
+					require.Len(t, vmcps[0].ParsedTools, 1)
+					assert.Equal(t, "client-first-boot", vmcps[0].ParsedTools[0].MCPClientID)
+					ids, err := cfg.ConfigStore.GetVirtualKeyIDsForVirtualMCP(ctx, vmcps[0].ID)
+					require.NoError(t, err)
+					assert.Equal(t, []string{"vk-first-boot"}, ids, "VK attachment must exist on the first load")
+					client, err := cfg.ConfigStore.GetMCPClientByName(ctx, "debug")
+					require.NoError(t, err)
+					grants, err := cfg.ConfigStore.GetVirtualKeyMCPConfigs(ctx, "vk-first-boot")
+					require.NoError(t, err)
+					require.Len(t, grants, 1, "direct MCP grants must still resolve before governance loads")
+					assert.Equal(t, client.ID, grants[0].MCPClientID)
+					assert.Equal(t, schemas.WhiteList{"probe"}, grants[0].ToolsToExecute)
+				})
+			}
+		})
+	}
+}
+
 // TestReconcileVirtualMCPsConfig covers the config.json → store reconciliation for
 // mcp.virtual_mcps: create (with explicit slug + name-resolved tool client + VK attach),
 // idempotent no-op on unchanged hash, update on change, and prune of absent entries.

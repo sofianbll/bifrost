@@ -499,6 +499,9 @@ func (h *MCPServerHandler) buildServer(availableTools []schemas.ChatTool) *serve
 			}
 
 			// Return result using mcp-go helper
+			if toolMessage != nil && toolMessage.ChatToolMessage != nil && toolMessage.ChatToolMessage.IsError != nil && *toolMessage.ChatToolMessage.IsError {
+				return mcp.NewToolResultError(resultText), nil
+			}
 			return mcp.NewToolResultText(resultText), nil
 		}
 

@@ -17,8 +17,10 @@ import (
 )
 
 type testClientManager struct {
-	clients map[string]*schemas.MCPClientState
-	tools   map[string][]schemas.ChatTool
+	clients  map[string]*schemas.MCPClientState
+	tools    map[string][]schemas.ChatTool
+	conn     *client.Client
+	postHook func(*schemas.BifrostMCPResponse)
 }
 
 func (m *testClientManager) GetClientForTool(toolName string) *schemas.MCPClientState {
@@ -46,7 +48,7 @@ func (m *testClientManager) GetPluginPipeline() codemcp.PluginPipeline {
 
 func (m *testClientManager) ReleasePluginPipeline(pipeline codemcp.PluginPipeline) {}
 func (m *testClientManager) AcquireClientConn(ctx *schemas.BifrostContext, state *schemas.MCPClientState) (*client.Client, func(), error) {
-	return nil, func() {}, nil
+	return m.conn, func() {}, nil
 }
 func (m *testClientManager) ReconnectClient(id string) error { return nil }
 
@@ -57,6 +59,9 @@ func (m *testClientManager) RunWithPluginPipeline(ctx *schemas.BifrostContext, r
 	resp, err := op(req)
 	if err != nil {
 		return nil, &schemas.BifrostError{IsBifrostError: false, Error: &schemas.ErrorField{Message: err.Error()}}
+	}
+	if m.postHook != nil {
+		m.postHook(resp)
 	}
 	return resp, nil
 }
@@ -550,6 +555,25 @@ func TestExtractResultFromResponsesMessage(t *testing.T) {
 }
 
 func TestExtractResultFromChatMessage(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		content *schemas.ChatMessageContent
+		want    string
+	}{
+		{"no content", nil, "tool call returned an error"},
+		{"text", &schemas.ChatMessageContent{ContentStr: schemas.Ptr("failed: 100%")}, "failed: 100%"},
+		{"blocks", &schemas.ChatMessageContent{ContentBlocks: []schemas.ChatContentBlock{{Type: schemas.ChatContentBlockTypeText, Text: schemas.Ptr("blocked")}}}, "blocked"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := extractResultFromChatMessage(&schemas.ChatMessage{
+				Content:         tc.content,
+				ChatToolMessage: &schemas.ChatToolMessage{IsError: schemas.Ptr(true)},
+			})
+			if result != nil || err == nil || err.Error() != tc.want {
+				t.Fatalf("expected error %q, got result=%v err=%v", tc.want, result, err)
+			}
+		})
+	}
 	t.Run("Extract string from ChatMessage", func(t *testing.T) {
 		content := "test result"
 		msg := &schemas.ChatMessage{
@@ -558,7 +582,10 @@ func TestExtractResultFromChatMessage(t *testing.T) {
 			},
 		}
 
-		result := extractResultFromChatMessage(msg)
+		result, err := extractResultFromChatMessage(msg)
+		if err != nil {
+			t.Fatal(err)
+		}
 		if result != content {
 			t.Errorf("Expected result '%s', got '%v'", content, result)
 		}
@@ -572,7 +599,10 @@ func TestExtractResultFromChatMessage(t *testing.T) {
 			},
 		}
 
-		result := extractResultFromChatMessage(msg)
+		result, err := extractResultFromChatMessage(msg)
+		if err != nil {
+			t.Fatal(err)
+		}
 		resultMap, ok := result.(map[string]interface{})
 		if !ok {
 			t.Errorf("Expected map, got %T", result)
@@ -584,7 +614,10 @@ func TestExtractResultFromChatMessage(t *testing.T) {
 	})
 
 	t.Run("Handle nil ChatMessage", func(t *testing.T) {
-		result := extractResultFromChatMessage(nil)
+		result, err := extractResultFromChatMessage(nil)
+		if err != nil {
+			t.Fatal(err)
+		}
 		if result != nil {
 			t.Errorf("Expected nil result for nil message, got %v", result)
 		}
@@ -592,7 +625,10 @@ func TestExtractResultFromChatMessage(t *testing.T) {
 
 	t.Run("Handle ChatMessage without Content", func(t *testing.T) {
 		msg := &schemas.ChatMessage{}
-		result := extractResultFromChatMessage(msg)
+		result, err := extractResultFromChatMessage(msg)
+		if err != nil {
+			t.Fatal(err)
+		}
 		if result != nil {
 			t.Errorf("Expected nil result for message without content, got %v", result)
 		}

@@ -186,6 +186,10 @@ Unknown `mcp_client_id`s are rejected on save. Unknown tool **names** are not va
 
 Virtual MCPs are declared under `mcp.virtual_mcps`. They are reconciled into the config store at load and served at `/mcp/<endpoint_slug>`:
 
+At startup, Bifrost loads MCP clients and governance virtual keys before attaching
+Virtual MCPs. Keys declared in the same file can therefore be attached on the
+first boot of an empty config store; no restart is required.
+
 ```json
 {
   "mcp": {
