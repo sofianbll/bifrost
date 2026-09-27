@@ -11546,11 +11546,13 @@ func TestSQLite_VKMCPConfig_Reconciliation(t *testing.T) {
 	}
 	vk.MCPConfigs = []tables.TableVirtualKeyMCPConfig{mcpConfig}
 	newHash, _ := configstore.GenerateVirtualKeyHash(*vk)
-	vk.ConfigHash = newHash
-	err = config1.ConfigStore.UpdateVirtualKey(ctx, vk)
-	if err != nil {
-		t.Fatalf("Failed to update VK hash: %v", err)
-	}
+	// Only the fixture hash changes here. A full VK read-modify-write can
+	// race startup catalog/sweep writes and hit SQLITE_BUSY_SNAPSHOT; the
+	// reconciliation under test still runs through LoadConfig below.
+	result := config1.ConfigStore.DB().Model(&tables.TableVirtualKey{}).
+		Where("id = ?", vk.ID).UpdateColumn("config_hash", newHash)
+	require.NoError(t, result.Error)
+	require.Equal(t, int64(1), result.RowsAffected)
 
 	config1.Close(ctx)
 
