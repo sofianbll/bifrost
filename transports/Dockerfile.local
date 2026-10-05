@@ -82,6 +82,8 @@
 
   FROM scratch AS plugin-artifact
   COPY --from=dynamic-check /app/hello-world.so /hello-world.so
+  # The UI shell built in this run, compared byte for byte with what the image serves.
+  COPY --from=ui-builder /app/out/index.html /ui-index.html
 
   # --- Runtime Stage: Minimal runtime image ---
   FROM alpine:3.23.5@sha256:fd791d74b68913cbb027c6546007b3f0d3bc45125f797758156952bc2d6daf40

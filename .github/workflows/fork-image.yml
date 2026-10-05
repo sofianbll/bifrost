@@ -2,11 +2,17 @@ name: Fork Docker image
 
 on:
   push:
-    branches: [dev]
+    # main mirrors upstream; every other branch is tested, only image tags publish.
+    branches: ['**', '!main']
     tags: ['image/**']
 
 permissions:
   contents: read
+
+# A newer push supersedes a test-only run; publishing runs are never cancelled.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref_type == 'branch' }}
 
 jobs:
   build:
@@ -44,8 +50,12 @@ jobs:
             [[ "${BASH_REMATCH[1]}" == "$base" ]] || { echo 'Image tag does not match transports/version'; exit 1; }
             version="${base}+sofian.${BASH_REMATCH[2]}.${GITHUB_SHA:0:12}"
           fi
+          # Branches only test: nothing reaches the registry.
+          publish=false
+          if [[ "$GITHUB_REF_TYPE" == tag ]]; then publish=true; fi
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "publish=$publish" >> "$GITHUB_OUTPUT"
       - name: Check image version convention
         run: python3 .github/workflows/scripts/fork-image-identity.test.py
       - uses: step-security/setup-buildx-action@f931205d68723ad9589fd2a7e2ece238bf9de341 # v4.0.0
@@ -81,13 +91,15 @@ jobs:
       - name: Test the image
         env:
           PLUGIN_DIR: ${{ runner.temp }}/plugin
-        run: bash .github/workflows/scripts/test-dynamic-image.sh bifrost:candidate "$PLUGIN_DIR/hello-world.so"
+        run: bash .github/workflows/scripts/test-dynamic-image.sh bifrost:candidate "$PLUGIN_DIR/hello-world.so" "$PLUGIN_DIR/ui-index.html"
       - uses: step-security/docker-login-action@870af644803bf9f204aed474adbad2958fec048b # v4.1.0
+        if: steps.identity.outputs.publish == 'true'
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Push the tested image without rebuilding
+        if: steps.identity.outputs.publish == 'true'
         env:
           ARCH: ${{ matrix.arch }}
         run: |
@@ -97,15 +109,45 @@ jobs:
           mkdir -p "$RUNNER_TEMP/digests"
           docker inspect --format '{{index .RepoDigests 0}}' "$image" > "$RUNNER_TEMP/digests/$ARCH.txt"
       - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        if: steps.identity.outputs.publish == 'true'
         with:
           name: digest-${{ matrix.arch }}
           path: ${{ runner.temp }}/digests/*.txt
           retention-days: 7
     outputs:
       tag: ${{ steps.identity.outputs.tag }}
+      publish: ${{ steps.identity.outputs.publish }}
+
+  mcp-tests:
+    if: github.repository == 'sofianbll/bifrost'
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
+        with:
+          go-version: "1.27.0"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "25"
+      - name: Run MCP tests against the example MCP servers
+        run: make test-mcp
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        if: always()
+        with:
+          name: mcp-test-reports-${{ matrix.runner }}
+          path: test-reports/
+          retention-days: 14
 
   publish:
-    needs: build
+    needs: [build, mcp-tests]
+    if: needs.build.outputs.publish == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:

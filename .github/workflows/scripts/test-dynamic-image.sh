@@ -3,10 +3,12 @@ set -euo pipefail
 
 # Checks the actual runtime image, using the repository's hello-world plugin.
 # All data and ports are temporary; no provider credentials are needed.
-image=${1:?Usage: test-dynamic-image.sh IMAGE PLUGIN_SO}
-plugin=${2:?Usage: test-dynamic-image.sh IMAGE PLUGIN_SO}
+image=${1:?Usage: test-dynamic-image.sh IMAGE PLUGIN_SO UI_INDEX_HTML}
+plugin=${2:?Usage: test-dynamic-image.sh IMAGE PLUGIN_SO UI_INDEX_HTML}
+built_index=${3:?Usage: test-dynamic-image.sh IMAGE PLUGIN_SO UI_INDEX_HTML}
 plugin="$(cd "$(dirname "$plugin")" && pwd)/$(basename "$plugin")"
 test -f "$plugin"
+test -s "$built_index"
 scratch=$(mktemp -d)
 container=
 cleanup() {
@@ -36,9 +38,11 @@ curl --fail --silent --show-error --retry 30 --retry-delay 2 --retry-all-errors 
 curl --fail --silent --show-error "$url/api/plugins/loaded" | \
   jq -e '.plugins | index("hello-world") != null' > /dev/null
 curl --fail --silent --show-error "$url/" > "$scratch/index.html"
+# The served shell must be the one built in this run, not a stale or placeholder UI.
+cmp "$built_index" "$scratch/index.html" || { echo 'FAIL: served UI differs from this build' >&2; exit 1; }
 # Check a real frontend asset, not just a placeholder returning HTTP 200.
 asset=$(sed -nE 's/.*<script[^>]*src="([^"]+\.js)".*/\1/p' "$scratch/index.html" | head -1)
 [[ "$asset" == /* && "$asset" != //* ]]
 curl --fail --silent --show-error "$url$asset" > "$scratch/app.js"
 test -s "$scratch/app.js"
-echo 'PASS: gateway health, embedded frontend asset, dynamic hello-world plugin'
+echo 'PASS: gateway health, UI from this build, embedded frontend asset, dynamic hello-world plugin'

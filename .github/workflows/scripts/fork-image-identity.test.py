@@ -14,12 +14,13 @@ sha = "abcdef1234567890"
 base = (root / "transports/version").read_text().strip()
 with tempfile.TemporaryDirectory() as directory:
     output = Path(directory) / "output"
-    for kind, ref, expected in [
-        ("tag", f"image/{base}-sofian.1", f"{base}+sofian.1.{sha[:12]}"),
-        ("tag", "image/custom_name", f"{base}+sofian.{sha[:12]}"),
-        ("branch", "dev", f"{base}+sofian.{sha[:12]}"),
-        ("tag", "image/999.0.0-sofian.1", None),
-        ("tag", "image/bad tag", None),
+    for kind, ref, expected, publish in [
+        ("tag", f"image/{base}-sofian.1", f"{base}+sofian.1.{sha[:12]}", "true"),
+        ("tag", "image/custom_name", f"{base}+sofian.{sha[:12]}", "true"),
+        ("branch", "dev", f"{base}+sofian.{sha[:12]}", "false"),
+        ("branch", "feature/example", f"{base}+sofian.{sha[:12]}", "false"),
+        ("tag", "image/999.0.0-sofian.1", None, None),
+        ("tag", "image/bad tag", None, None),
     ]:
         output.write_text("")
         env = dict(os.environ, GITHUB_REF_TYPE=kind, GITHUB_REF_NAME=ref,
@@ -33,4 +34,5 @@ with tempfile.TemporaryDirectory() as directory:
             values = dict(line.split("=", 1) for line in output.read_text().splitlines())
             assert values["version"] == expected, values
             assert values["tag"] == (ref.removeprefix("image/") if kind == "tag" else f"dev-{sha[:12]}-42"), values
-print("PASS: tagged, custom, dev, mismatched and invalid image identities")
+            assert values["publish"] == publish, values
+print("PASS: tagged, custom, dev, feature-branch, mismatched and invalid image identities")
