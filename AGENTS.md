@@ -1081,3 +1081,17 @@ cd ui && npm run build
 * Follow **strict folder structure and routing conventions**
 * Use **the right tool for the right problem**
 * Keep code **simple, predictable, and maintainable**
+
+## Agent skills
+
+### Issue tracker
+
+GitHub Issues on the fork `sofianbll/bifrost`, never on upstream `maximhq/bifrost`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context. See `docs/agents/domain.md`.
