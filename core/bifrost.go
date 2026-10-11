@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	mcpproto "github.com/mark3labs/mcp-go/mcp"
 
 	"github.com/maximhq/bifrost/core/keyselectors"
 	"github.com/maximhq/bifrost/core/mcp"
@@ -3098,6 +3099,29 @@ func (bifrost *Bifrost) ExecuteChatMCPTool(ctx *schemas.BifrostContext, toolCall
 	return bifrost.MCPManager.ExecuteChatTool(ctx, toolCall)
 }
 
+// ExecuteNativeMCPTool retains the original MCP result for the hosted /mcp endpoint.
+func (bifrost *Bifrost) ExecuteNativeMCPTool(ctx *schemas.BifrostContext, toolCall *schemas.ChatAssistantMessageToolCall) (*mcpproto.CallToolResult, *schemas.BifrostError) {
+	if ctx == nil {
+		ctx = bifrost.ctx
+	} else {
+		ensureMCPRawStorageContext(ctx)
+		ensureMCPTracerContext(ctx, bifrost.getTracer())
+		bifrost.setModelCatalogOnContext(ctx)
+	}
+	if bifrost.MCPManager == nil {
+		return nil, &schemas.BifrostError{Error: &schemas.ErrorField{Message: "mcp is not configured"}}
+	}
+	return bifrost.MCPManager.ExecuteNativeTool(ctx, toolCall)
+}
+
+// ReadMCPAppResource reads a UI resource through the linked tool's authorized client.
+func (bifrost *Bifrost) ReadMCPAppResource(ctx *schemas.BifrostContext, linkedToolName, originalURI string) (*mcpproto.ReadResourceResult, error) {
+	if bifrost.MCPManager == nil {
+		return nil, fmt.Errorf("mcp is not configured")
+	}
+	return bifrost.MCPManager.ReadAppResource(ctx, linkedToolName, originalURI)
+}
+
 // ExecuteResponsesMCPTool executes an MCP tool call and returns the result as a responses
 // message. Thin delegator — see ExecuteChatMCPTool for the rationale.
 func (bifrost *Bifrost) ExecuteResponsesMCPTool(ctx *schemas.BifrostContext, toolCall *schemas.ResponsesToolMessage) (*schemas.ResponsesMessage, *schemas.BifrostError) {
@@ -4262,7 +4286,7 @@ func (bifrost *Bifrost) GetAvailableMCPTools(ctx *schemas.BifrostContext) []sche
 	if bifrost.MCPManager == nil {
 		return nil
 	}
-	return bifrost.MCPManager.GetAvailableTools(ctx)
+	return bifrost.MCPManager.GetAvailableGatewayTools(ctx)
 }
 
 // AddMCPClient adds a new MCP client to the Bifrost instance.

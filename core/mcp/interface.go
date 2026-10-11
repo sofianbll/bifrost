@@ -6,6 +6,7 @@ import (
 	"context"
 	"time"
 
+	mcpproto "github.com/mark3labs/mcp-go/mcp"
 	"github.com/maximhq/bifrost/core/schemas"
 )
 
@@ -19,6 +20,7 @@ type MCPManagerInterface interface {
 
 	// GetAvailableTools returns all available MCP tools for the given context
 	GetAvailableTools(ctx *schemas.BifrostContext) []schemas.ChatTool
+	GetAvailableGatewayTools(ctx *schemas.BifrostContext) []schemas.ChatTool
 
 	// UpdateToolManagerConfig updates the configuration for the tool manager.
 	// DisableAutoToolInject in the config controls auto injection — pass the
@@ -54,6 +56,8 @@ type MCPManagerInterface interface {
 	// ExecuteChatMCPTool / ExecuteResponsesMCPTool delegate here.
 	ExecuteChatTool(ctx *schemas.BifrostContext, toolCall *schemas.ChatAssistantMessageToolCall) (*schemas.ChatMessage, *schemas.BifrostError)
 	ExecuteResponsesTool(ctx *schemas.BifrostContext, toolCall *schemas.ResponsesToolMessage) (*schemas.ResponsesMessage, *schemas.BifrostError)
+	ExecuteNativeTool(ctx *schemas.BifrostContext, toolCall *schemas.ChatAssistantMessageToolCall) (*mcpproto.CallToolResult, *schemas.BifrostError)
+	ReadAppResource(ctx *schemas.BifrostContext, linkedToolName, originalURI string) (*mcpproto.ReadResourceResult, error)
 
 	// Client Management
 	// GetClients returns all MCP clients

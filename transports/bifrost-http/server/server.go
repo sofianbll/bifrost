@@ -18,6 +18,7 @@ import (
 
 	"github.com/fasthttp/router"
 	"github.com/google/uuid"
+	"github.com/mark3labs/mcp-go/mcp"
 	bifrost "github.com/maximhq/bifrost/core"
 	"github.com/maximhq/bifrost/core/network"
 	"github.com/maximhq/bifrost/core/schemas"
@@ -517,6 +518,16 @@ func (s *BifrostHTTPServer) RequiresPerCallConnection(config *schemas.MCPClientC
 func (s *BifrostHTTPServer) ExecuteChatMCPTool(ctx context.Context, toolCall *schemas.ChatAssistantMessageToolCall) (*schemas.ChatMessage, *schemas.BifrostError) {
 	bifrostCtx := schemas.NewBifrostContext(ctx, schemas.NoDeadline)
 	return s.Client.ExecuteChatMCPTool(bifrostCtx, toolCall)
+}
+
+func (s *BifrostHTTPServer) ExecuteNativeMCPTool(ctx context.Context, toolCall *schemas.ChatAssistantMessageToolCall) (*mcp.CallToolResult, *schemas.BifrostError) {
+	bifrostCtx := schemas.NewBifrostContext(ctx, schemas.NoDeadline)
+	return s.Client.ExecuteNativeMCPTool(bifrostCtx, toolCall)
+}
+
+func (s *BifrostHTTPServer) ReadMCPAppResource(ctx context.Context, linkedToolName, originalURI string) (*mcp.ReadResourceResult, error) {
+	bifrostCtx := schemas.NewBifrostContext(ctx, schemas.NoDeadline)
+	return s.Client.ReadMCPAppResource(bifrostCtx, linkedToolName, originalURI)
 }
 
 // ExecuteResponsesMCPTool executes an MCP tool call and returns the result as a responses message.

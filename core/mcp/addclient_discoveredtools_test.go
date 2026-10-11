@@ -2,6 +2,7 @@ package mcp
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
 	"github.com/maximhq/bifrost/core/schemas"
@@ -106,6 +107,33 @@ func TestAddClient_PerUserHeaders_DiscoveredToolsStateSelection(t *testing.T) {
 // path (connectToMCPClient) already does. Without one, nothing ever
 // revisits a client whose DiscoveredTools was empty/nil at add time — it
 // would sit at Healthy/0-tools forever.
+func TestAddClient_RestoresMCPAppMetadataFromDiscoveredTools(t *testing.T) {
+	raw := json.RawMessage(`{"name":"read_checkpoint","_meta":{"ui":{"visibility":["app"]}}}`)
+	m := NewMCPManager(context.Background(), schemas.MCPConfig{}, nil, &MockLogger{}, nil)
+	config := &schemas.MCPClientConfig{
+		ID:                "app-metadata-restore",
+		Name:              "app_metadata_restore",
+		ConnectionType:    schemas.MCPConnectionTypeHTTP,
+		ConnectionString:  schemas.NewSecretVar("https://example.invalid/mcp"),
+		AuthType:          schemas.MCPAuthTypePerUserHeaders,
+		PerUserHeaderKeys: []string{"X-User-Token"},
+		DiscoveredTools: map[string]schemas.ChatTool{
+			"app_metadata_restore-read_checkpoint": {
+				Type:       schemas.ChatToolTypeFunction,
+				MCPRawTool: raw,
+				MCPAppOnly: true,
+			},
+		},
+	}
+
+	require.NoError(t, m.AddClient(context.Background(), config))
+	state, ok := snapshotAddClientState(m, config.ID)
+	require.True(t, ok)
+	tool := state.ToolMap["app_metadata_restore-read_checkpoint"]
+	assert.True(t, tool.MCPAppOnly)
+	assert.JSONEq(t, string(raw), string(tool.MCPRawTool))
+}
+
 func TestAddClient_PerCallConnection_StartsConnectionChecker(t *testing.T) {
 	m := NewMCPManager(context.Background(), schemas.MCPConfig{}, nil, &MockLogger{}, nil)
 

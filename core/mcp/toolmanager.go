@@ -15,6 +15,7 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/maximhq/bifrost/core/mcp/credstore"
 	"github.com/maximhq/bifrost/core/schemas"
+	"github.com/tidwall/gjson"
 )
 
 // ClientManager interface for accessing MCP clients and tools
@@ -238,6 +239,14 @@ func precomputeToolSerialization(tools map[string]schemas.ChatTool) {
 }
 
 func (m *ToolsManager) GetAvailableTools(ctx *schemas.BifrostContext) []schemas.ChatTool {
+	return m.getAvailableTools(ctx, false)
+}
+
+func (m *ToolsManager) GetAvailableGatewayTools(ctx *schemas.BifrostContext) []schemas.ChatTool {
+	return m.getAvailableTools(ctx, true)
+}
+
+func (m *ToolsManager) getAvailableTools(ctx *schemas.BifrostContext, includeAppOnly bool) []schemas.ChatTool {
 	availableToolsPerClient := m.clientManager.GetToolPerClient(ctx)
 	// Flatten tools from all clients into a single slice, avoiding duplicates
 	var availableTools []schemas.ChatTool
@@ -262,12 +271,21 @@ func (m *ToolsManager) GetAvailableTools(ctx *schemas.BifrostContext) []schemas.
 		if client.ExecutionConfig.IsCodeModeClient {
 			includeCodeModeTools = true
 		}
+		// Apps need native results and their ordinary callback tools even when
+		// this client uses Code Mode. Inspect only the caller's admitted tools.
+		nativeAppClient := includeAppOnly && slices.ContainsFunc(clientTools, func(tool schemas.ChatTool) bool {
+			uri := gjson.GetBytes(tool.MCPRawTool, "_meta.ui.resourceUri")
+			return uri.Type == gjson.String && strings.HasPrefix(uri.Str, "ui://")
+		})
 		// Add tools from this client, checking for duplicates
 		for _, tool := range clientTools {
+			if tool.MCPAppOnly && !includeAppOnly {
+				continue
+			}
 			if tool.Function != nil && tool.Function.Name != "" && !seenToolNames[tool.Function.Name] {
 				seenToolNames[tool.Function.Name] = true
 				schemas.AppendToContextList(ctx, schemas.BifrostContextKeyMCPAddedTools, tool.Function.Name)
-				if !client.ExecutionConfig.IsCodeModeClient {
+				if !client.ExecutionConfig.IsCodeModeClient || nativeAppClient {
 					availableTools = append(availableTools, tool)
 				}
 			}
@@ -636,7 +654,8 @@ func (m *ToolsManager) ExecuteTool(
 	now := time.Now()
 
 	// Execute the tool in Chat format (internal execution format)
-	chatResult, clientName, originalToolName, err := m.executeToolInternal(ctx, toolCall, clientConn, executionConfig, toolNameMapping)
+	var rawResult *mcp.CallToolResult
+	chatResult, clientName, originalToolName, err := m.executeToolInternal(ctx, toolCall, clientConn, executionConfig, toolNameMapping, &rawResult)
 	if err != nil {
 		return nil, err
 	}
@@ -648,13 +667,18 @@ func (m *ToolsManager) ExecuteTool(
 		ToolName:   originalToolName,
 		Latency:    latency,
 	}
+	var rawJSON json.RawMessage
+	if rawResult != nil {
+		rawJSON, _ = json.Marshal(rawResult)
+	}
 
 	// Return result in the appropriate format
 	switch request.RequestType {
 	case schemas.MCPRequestTypeChatToolCall:
 		return &schemas.BifrostMCPResponse{
-			ChatMessage: chatResult,
-			ExtraFields: extraFields,
+			ChatMessage:  chatResult,
+			MCPRawResult: rawJSON,
+			ExtraFields:  extraFields,
 		}, nil
 	case schemas.MCPRequestTypeResponsesToolCall:
 		// Validate chatResult is not nil before conversion
@@ -667,6 +691,7 @@ func (m *ToolsManager) ExecuteTool(
 		}
 		return &schemas.BifrostMCPResponse{
 			ResponsesMessage: responsesMessage,
+			MCPRawResult:     rawJSON,
 			ExtraFields:      extraFields,
 		}, nil
 	default:
@@ -683,6 +708,7 @@ func (m *ToolsManager) executeToolInternal(
 	clientConn *client.Client,
 	executionConfig *schemas.MCPClientConfig,
 	toolNameMapping map[string]string,
+	rawResult **mcp.CallToolResult,
 ) (*schemas.ChatMessage, string, string, error) {
 	toolName := *toolCall.Function.Name
 
@@ -737,6 +763,9 @@ func (m *ToolsManager) executeToolInternal(
 			Arguments: arguments,
 		},
 	}
+	if meta, ok := ctx.Value(schemas.MCPContextKeyToolCallMeta).(*mcp.Meta); ok {
+		callRequest.Params.Meta = meta
+	}
 
 	// ToolCallRetryConfig, not ConnectRetryConfig/PerCallConnectRetryConfig:
 	// unlike a bare connect, this call may not be idempotent, so it only gets
@@ -772,6 +801,7 @@ func (m *ToolsManager) executeToolInternal(
 		// the per-auth-type mechanics.
 		if isAuthFailureErrorText(callErr.Error()) {
 			if retryResponse, recovered := m.attemptAuthFailureRecovery(ctx, toolName, callRequest, executionConfig, toolExecutionTimeout); recovered {
+				*rawResult = retryResponse
 				responseText := extractTextFromMCPResponse(retryResponse, toolName)
 				// Mirrors the non-retry success path below: the retry's own
 				// IsError is the upstream server reporting a failed execution
@@ -788,6 +818,7 @@ func (m *ToolsManager) executeToolInternal(
 	}
 
 	// Extract text from MCP response
+	*rawResult = toolResponse
 	responseText := extractTextFromMCPResponse(toolResponse, toolName)
 
 	// Create tool response message. toolResponse.IsError is the server reporting a

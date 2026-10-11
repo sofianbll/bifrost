@@ -34,6 +34,19 @@ func computeToolsHash(tools map[string]schemas.ChatTool, toolNameMapping map[str
 	if data, err := json.Marshal(tools); err == nil {
 		h.Write(data)
 	}
+	// ChatTool's provider JSON intentionally excludes MCP metadata. Include it
+	// here so a metadata-only UI change refreshes the hosted /mcp catalogue.
+	toolNames := make([]string, 0, len(tools))
+	for name := range tools {
+		toolNames = append(toolNames, name)
+	}
+	slices.Sort(toolNames)
+	for _, name := range toolNames {
+		h.Write([]byte(name))
+		h.Write([]byte{0})
+		h.Write(tools[name].MCPRawTool)
+		h.Write([]byte{0})
+	}
 	h.Write([]byte{0}) // separator so {"a":"b"} tools + {} mapping can't collide with {} tools + {"a":"b"} mapping
 	if data, err := json.Marshal(toolNameMapping); err == nil {
 		h.Write(data)
@@ -669,6 +682,30 @@ func shouldSkipToolForRequest(ctx context.Context, clientName, toolName string) 
 
 // convertMCPToolToBifrostSchema converts an MCP tool definition to Bifrost format.
 func convertMCPToolToBifrostSchema(mcpTool *mcp.Tool, logger schemas.Logger) schemas.ChatTool {
+	rawTool, _ := json.Marshal(mcpTool)
+	appOnly := false
+	if mcpTool.Meta != nil {
+		if ui, ok := mcpTool.Meta.AdditionalFields["ui"].(map[string]any); ok {
+			visibility, ok := ui["visibility"].([]any)
+			if !ok {
+				if values, valid := ui["visibility"].([]string); valid {
+					visibility = make([]any, len(values))
+					for i, value := range values {
+						visibility[i] = value
+					}
+					ok = true
+				}
+			}
+			if ok {
+				appOnly = true
+				for _, value := range visibility {
+					if value == "model" {
+						appOnly = false
+					}
+				}
+			}
+		}
+	}
 	var properties *schemas.OrderedMap
 	if len(mcpTool.InputSchema.Properties) > 0 {
 		// Fix array schemas on the source map before copying to OrderedMap
@@ -723,7 +760,9 @@ func convertMCPToolToBifrostSchema(mcpTool *mcp.Tool, logger schemas.Logger) sch
 	}
 
 	return schemas.ChatTool{
-		Type: schemas.ChatToolTypeFunction,
+		Type:       schemas.ChatToolTypeFunction,
+		MCPRawTool: rawTool,
+		MCPAppOnly: appOnly,
 		Function: &schemas.ChatToolFunction{
 			Name:        mcpTool.Name,
 			Description: schemas.Ptr(mcpTool.Description),
