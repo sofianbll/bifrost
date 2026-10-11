@@ -2142,6 +2142,7 @@ run-provider-harness-test: $(if $(HELP),,install-newman) ## Run the Bifrost prov
 		printf '  %-18s %s\n' ""                "  Composes with PROVIDER and FEATURE (predicates AND together)."; \
 		printf '  %-18s %s\n' "BASE_URL=<url>"  "Bifrost gateway URL (default: http://localhost:8080). Skips auto-start if /health responds."; \
 		printf '  %-18s %s\n' "APP_DIR=<dir>"   "Config dir passed to 'make dev' if Bifrost isn't already running (default: tests/integrations/python)."; \
+		printf '  %-18s %s\n' "HARNESS_SOURCE_COLLECTION=<path>" "Source Postman collection for augmentation (default: tests/e2e/api/collections/provider-harness.json)."; \
 		printf '  %-18s %s\n' "FOLDER=\"<name>\"" "Scope to a single Postman folder (substring match, e.g. \"8. Cross-Model\"). Pre-filters (like PROVIDER/FEATURE) AND is"; \
 		printf '  %-18s %s\n' ""                "  passed to newman's own --folder as the final scope. In parallel mode (default), provider forks with zero items"; \
 		printf '  %-18s %s\n' ""                "  in that folder are skipped cleanly instead of forked-then-failed - use with PROVIDER=<one> to run a single fork."; \
@@ -2539,7 +2540,7 @@ run-provider-harness-test: $(if $(HELP),,install-newman) ## Run the Bifrost prov
 	: "unresolved {{vertexAccessToken}} placeholder and 401 en masse."; \
 	export VERTEX_ACCESS_TOKEN_VAL; \
 	$(USE_NODE); run_quiet node tests/e2e/api/runners/augment-provider-harness.mjs \
-		--source tests/e2e/api/collections/provider-harness.json \
+		--source "$(or $(HARNESS_SOURCE_COLLECTION),tests/e2e/api/collections/provider-harness.json)" \
 		--out tmp/harness-augmented.json || { say "$(RED)Harness augmentation failed$(NC)"; exit 1; }; \
 	COLLECTION_FILE="tmp/harness-augmented.json"; \
 	: "SMOKE_MANIFEST alone carries smoke mode: it is both the truth test and the flag value."; \

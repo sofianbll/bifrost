@@ -1,0 +1,235 @@
+name: Fork Docker image
+
+on:
+  push:
+    # main mirrors upstream; every other branch is tested, only image tags publish.
+    branches: ['**', '!main']
+    tags: ['image/**']
+
+permissions:
+  contents: read
+
+# A newer push supersedes a test-only run; publishing runs are never cancelled.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref_type == 'branch' }}
+
+jobs:
+  build:
+    if: github.repository == 'sofianbll/bifrost'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Image identity
+        id: identity
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF_TYPE" == tag ]]; then
+            tag="${GITHUB_REF_NAME#image/}"
+          else
+            tag="dev-${GITHUB_SHA:0:12}-${GITHUB_RUN_NUMBER}"
+          fi
+          [[ "$tag" =~ ^[a-z0-9_][a-z0-9_.-]{0,79}$ ]] || { echo 'Invalid image tag'; exit 1; }
+          base="$(cat transports/version)"
+          version="${base}+sofian.${GITHUB_SHA:0:12}"
+          if [[ "$tag" =~ ^([0-9]+\.[0-9]+\.[0-9]+)-sofian\.([1-9][0-9]*)$ ]]; then
+            [[ "${BASH_REMATCH[1]}" == "$base" ]] || { echo 'Image tag does not match transports/version'; exit 1; }
+            version="${base}+sofian.${BASH_REMATCH[2]}.${GITHUB_SHA:0:12}"
+          fi
+          # Branches only test: nothing reaches the registry.
+          publish=false
+          if [[ "$GITHUB_REF_TYPE" == tag ]]; then publish=true; fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "publish=$publish" >> "$GITHUB_OUTPUT"
+      - name: Check image version convention
+        run: python3 .github/workflows/scripts/fork-image-identity.test.py
+      - uses: step-security/setup-buildx-action@f931205d68723ad9589fd2a7e2ece238bf9de341 # v4.0.0
+      - name: Build gateway and UI
+        uses: step-security/docker-build-push-action@846549baaf047e867d038826129a64d81df0f704 # v7.1.0
+        with:
+          context: .
+          file: transports/Dockerfile.local
+          platforms: linux/${{ matrix.arch }}
+          load: true
+          tags: bifrost:candidate
+          build-args: |
+            DYNAMIC=1
+            VERSION=${{ steps.identity.outputs.version }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ steps.identity.outputs.version }}
+          cache-from: type=gha,scope=fork-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=fork-${{ matrix.arch }}
+      - name: Run existing Go tests and compile example plugin
+        uses: step-security/docker-build-push-action@846549baaf047e867d038826129a64d81df0f704 # v7.1.0
+        with:
+          context: .
+          file: transports/Dockerfile.local
+          target: plugin-artifact
+          platforms: linux/${{ matrix.arch }}
+          outputs: type=local,dest=${{ runner.temp }}/plugin
+          build-args: |
+            DYNAMIC=1
+            VERSION=${{ steps.identity.outputs.version }}
+          cache-from: type=gha,scope=fork-${{ matrix.arch }}
+      - name: Test the image
+        id: image-probe
+        env:
+          PLUGIN_DIR: ${{ runner.temp }}/plugin
+        run: bash .github/workflows/scripts/test-dynamic-image.sh bifrost:candidate "$PLUGIN_DIR/hello-world.so" "$PLUGIN_DIR/ui-index.html"
+      - uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
+        if: matrix.arch == 'amd64'
+        with:
+          go-version: "1.27.0"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        if: matrix.arch == 'amd64'
+        with:
+          node-version: "25"
+      - name: Check fork release version comparison
+        if: matrix.arch == 'amd64'
+        run: node --experimental-strip-types --test ui/lib/utils/compareVersions.test.ts
+      - name: Run deterministic MCP Apps wire cases
+        timeout-minutes: 10
+        if: matrix.arch == 'amd64'
+        run: bash .github/workflows/scripts/test-mcp-apps-fixture.sh bifrost:candidate "$RUNNER_TEMP/mcpapps-fixture-reports"
+      - name: Compare MCP Apps with stock Bifrost 2.2.4
+        timeout-minutes: 10
+        if: matrix.arch == 'amd64'
+        run: bash .github/workflows/scripts/test-mcp-apps-fixture.sh --baseline "$RUNNER_TEMP/mcpapps-fixture-reports"
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        if: always() && matrix.arch == 'amd64'
+        with:
+          name: mcp-apps-fixture
+          path: ${{ runner.temp }}/mcpapps-fixture-reports/
+          if-no-files-found: error
+          retention-days: 14
+      - name: Install existing Playwright dependency and Chromium
+        if: ${{ !cancelled() && matrix.arch == 'amd64' && steps.image-probe.outcome == 'success' }}
+        run: |
+          npm ci --prefix tests/e2e
+          tests/e2e/node_modules/.bin/playwright install --with-deps chromium
+      - name: Bootstrap pinned MCP Apps reference host
+        id: reference-host
+        if: ${{ !cancelled() && matrix.arch == 'amd64' && steps.image-probe.outcome == 'success' }}
+        run: node tests/mcpapps/bootstrap-reference-host.mjs --directory "$RUNNER_TEMP/ext-apps"
+      - name: Qualify real MCP Apps and their reference-host rendering
+        timeout-minutes: 20
+        if: ${{ !cancelled() && matrix.arch == 'amd64' && steps.image-probe.outcome == 'success' && steps.reference-host.outcome == 'success' }}
+        run: >-
+          python3 tests/mcpapps/ci.py --image bifrost:candidate
+          --work-dir "$RUNNER_TEMP/mcpapps-private"
+          --report-dir "$RUNNER_TEMP/mcpapps-reports"
+          --render-script tests/mcpapps/render-reference-host.mjs
+          --reference-host-dir "$RUNNER_TEMP/ext-apps"
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        if: always() && matrix.arch == 'amd64'
+        with:
+          name: mcp-apps-qualification
+          path: |
+            ${{ runner.temp }}/mcpapps-reports/
+            ${{ runner.temp }}/mcpapps-fixture-reports/
+          retention-days: 14
+      - uses: step-security/docker-login-action@870af644803bf9f204aed474adbad2958fec048b # v4.1.0
+        if: steps.identity.outputs.publish == 'true'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Push the tested image without rebuilding
+        if: steps.identity.outputs.publish == 'true'
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: |
+          image="ghcr.io/$GITHUB_REPOSITORY:build-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-$ARCH"
+          docker tag bifrost:candidate "$image"
+          docker push "$image"
+          mkdir -p "$RUNNER_TEMP/digests"
+          docker inspect --format '{{index .RepoDigests 0}}' "$image" > "$RUNNER_TEMP/digests/$ARCH.txt"
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        if: steps.identity.outputs.publish == 'true'
+        with:
+          name: digest-${{ matrix.arch }}
+          path: ${{ runner.temp }}/digests/*.txt
+          retention-days: 7
+    outputs:
+      tag: ${{ steps.identity.outputs.tag }}
+      publish: ${{ steps.identity.outputs.publish }}
+
+  mcp-tests:
+    if: github.repository == 'sofianbll/bifrost'
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
+        with:
+          go-version: "1.27.0"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "25"
+      - name: Run MCP tests against the example MCP servers
+        run: make test-mcp
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        if: always()
+        with:
+          name: mcp-test-reports-${{ matrix.runner }}
+          path: test-reports/
+          retention-days: 14
+
+  publish:
+    needs: [build, mcp-tests]
+    if: needs.build.outputs.publish == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      packages: write
+    steps:
+      - uses: step-security/setup-buildx-action@f931205d68723ad9589fd2a7e2ece238bf9de341 # v4.0.0
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          pattern: digest-*
+          merge-multiple: true
+          path: digests
+      - uses: step-security/docker-login-action@870af644803bf9f204aed474adbad2958fec048b # v4.1.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish multi-platform image
+        env:
+          IMAGE_TAG: ${{ needs.build.outputs.tag }}
+        run: |
+          image="ghcr.io/$GITHUB_REPOSITORY:$IMAGE_TAG"
+          docker buildx imagetools create --tag "$image" "$(cat digests/amd64.txt)" "$(cat digests/arm64.txt)"
+          docker buildx imagetools inspect "$image"
+          digest=$(docker buildx imagetools inspect "$image" --format '{{json .Manifest}}' | jq -r .digest)
+          [[ "$digest" =~ ^sha256:[a-f0-9]{64}$ ]]
+          {
+            echo '### Published image (AMD64 + ARM64)'
+            echo "\`$image\`"
+            echo 'Pin this exact image in Compose:'
+            echo "\`ghcr.io/$GITHUB_REPOSITORY@$digest\`"
+            echo "Source commit: \`$GITHUB_SHA\`"
+          } >> "$GITHUB_STEP_SUMMARY"
