@@ -58,6 +58,9 @@ settings.local.json
 .cursor/
 .claude/*
 !.claude/skills/
+# Fork-only: cloud session setup (docs/agents/cloud-sessions.md)
+!.claude/settings.json
+!.claude/cloud/
 
 # Python specific
 **/__pycache__/**

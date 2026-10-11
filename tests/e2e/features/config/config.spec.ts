@@ -610,3 +610,28 @@ test.describe('Config Settings', () => {
     })
   })
 })
+
+
+test.describe('Fork release notification', () => {
+  test('ignores build metadata but still shows newer upstream releases', async ({ page }) => {
+    let latest = 'v2.2.3'
+    await page.route('**/api/version', (route) => route.fulfill({
+      status: 200, contentType: 'application/json', body: JSON.stringify('v2.2.3+sofian.1.abc123'),
+    }))
+    await page.route('https://getbifrost.ai/latest-release', (route) => route.fulfill({
+      status: 200, contentType: 'application/json', body: JSON.stringify({ name: latest }),
+    }))
+    await page.goto('/workspace/config/client-settings')
+    await page.waitForLoadState('networkidle')
+    await page.getByTestId('topbar-menu-btn').click()
+    await expect(page.getByText('v2.2.3+sofian.1.abc123', { exact: true })).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(page.getByText('v2.2.3 is now available.', { exact: true })).toHaveCount(0)
+    await page.screenshot({ path: test.info().outputPath('fork-no-false-update.png'), fullPage: true })
+
+    latest = 'v2.2.4'
+    await page.reload()
+    await expect(page.getByText('v2.2.4 is now available.', { exact: true })).toBeVisible()
+    await page.screenshot({ path: test.info().outputPath('upstream-update.png'), fullPage: true })
+  })
+})
