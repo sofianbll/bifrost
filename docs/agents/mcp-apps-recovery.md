@@ -19,11 +19,11 @@ This is the fork's recovery ledger. The authoritative scope is [spec #1](https:/
 | `codex/mcp-apps-relay-224` | Native Apps relay, deterministic fixture, wire regression cases and MCP docs | No |
 | `codex/mcp-apps-fork-224` | Integration, image/cloud tooling and external-server/render gates | Yes |
 
-These branches are being assembled as a stack. Their existence alone does not mean that builds, full CI or release checks have passed.
+The four branches are assembled as a stack and exist on the fork. The three contribution branches compile independently with the generated, identical 2.2.4 UI assets. Their existence and unit checks do not establish App rendering or release readiness.
 
 ## Accepted decision
 
-On 2026-10-11 the owner chose the compatible Chat error behavior: a nested tool error remains a value available to the script. A script execution failure marks the outer `executeToolCode` result as `isError`. The stale fatal-error wording in #8/#9/#1 must be read together with this decision; do not change upstream Chat tests to make fatal tool errors pass.
+On 2026-10-11 the owner chose the compatible Chat error behavior: a nested tool error remains a value available to the script. A script execution failure marks the outer `executeToolCode` result as `isError`. Native Go handler exceptions retain the upstream runtime-failure behavior; remote protocol-marked MCP errors remain script values. The stale fatal-error wording in #8/#9/#1 must be read together with this decision; do not change upstream Chat tests to make fatal tool errors pass.
 
 Native App results still preserve their own `isError`, `content`, `structuredContent` and `_meta`. A Code Mode script returns text and opens no App view. Progressive drawing remains a host responsibility.
 
@@ -33,12 +33,21 @@ Native App results still preserve their own `isError`, `content`, `structuredCon
 
 Three local Claude session logs from October 1–5 were inspected for this project. They confirm the existing specification, CI work and the unpushed cloud setup. Old 2.2.3 screenshots and QA reports remain historical evidence; they are not qualification of this 2.2.4 stack.
 
+## Current verification
+
+- [CI run 38155382598](https://github.com/sofianbll/bifrost/actions/runs/38155382598) tests code at `b80b3a38b6845578959ceb3063b4730be084c9c9`. Both MCP JUnit reports contain 699 cases, 29 skipped, zero failures and zero errors. Both architectures pass the gateway/UI build, race checks and dynamic plugin/image probe.
+- The AMD64 deterministic fixture step failed. Its diagnostic and the real-server/reference-host verdict are still being collected; no App gate is marked complete from the successful unit suites.
+- Local contribution builds passed on each branch with generated stock 2.2.4 UI assets; `npm run build-enterprise` passed build and type checking. Temporary build assets, dependencies and binaries were removed afterwards.
+- The local runner fixes select each Code Mode client's advertised native tool and locate the reference host's App frames without CSS Module class names. The mapping regression was observed red, then the Python/Node self-checks passed. They are not yet qualified by the current remote run.
+- Three upstream PR bodies are prepared under `docs/agents/pr-drafts/`. No upstream PR, image tag, registry publication or deployment has been created.
+- The owner explicitly authorized recoverable cleanup of the three contribution worktrees. Native Codex archive requests returned `queued`; the directories remained present at verification. The chat was repinned. Treat cleanup as unconfirmed until the native artifact inventory shows archived worktrees.
+
 ## Completion gates
 
-- [ ] #4: stack assembled; each lower branch builds independently; old branch preserved; new branch names recorded on the fork.
+- [x] #4: stack assembled; each lower branch builds independently; old branch preserved; new branch names recorded on the fork.
 - [ ] #5–#7: local STDIO Apps fixture and exact wire cases for discovery, resources, native results, callbacks and permissions.
 - [ ] #8–#9: compatible errors, direct App calls with Code Mode, text-only scripts, documented limitations.
-- [ ] #10: empty-store grants red/green on the exact 2.2.4 base; focused race repetitions.
+- [x] #10: empty-store grants red/green on the exact 2.2.4 base; focused race repetitions.
 - [ ] #11: persistent-connection 403 reproduced and compared with stock upstream, or explicitly left unresolved with evidence limits.
 - [ ] #12: four real Apps qualified in fork CI with exact package versions and redacted artifacts.
 - [ ] #13: real reference-host Playwright gate passes, including Virtual MCP, callbacks, direct calls with Code Mode, and connection-stall check.
