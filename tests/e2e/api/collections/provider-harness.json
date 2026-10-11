@@ -176339,6 +176339,10 @@
             "method": "POST",
             "header": [
               {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-codemode-errors"
+              },
+              {
                 "key": "Content-Type",
                 "value": "application/json"
               },
@@ -176388,6 +176392,10 @@
           "request": {
             "method": "POST",
             "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-codemode-errors"
+              },
               {
                 "key": "Content-Type",
                 "value": "application/json"
