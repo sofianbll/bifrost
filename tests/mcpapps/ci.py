@@ -60,6 +60,24 @@ def result_ok(status, body):
     return status == 200 and isinstance(result, dict) and not result.get("isError", False)
 
 
+def nested_error_value_probe(status, body, native_status, native_body):
+    result = body.get("result", {})
+    text = "\n".join(block.get("text", "") for block in result.get("content", [])
+                     if block.get("type") == "text")
+    native = native_body.get("result", {})
+    native_text = "\n".join(block.get("text", "") for block in native.get("content", [])
+                           if block.get("type") == "text")
+    checks = {
+        "outer_result_ok": result_ok(status, body),
+        "script_completed": "Execution completed successfully." in text,
+        "native_error_confirmed": native_status == 200 and native.get("isError") is True and
+                                  "Debug text content" in native_text,
+        "nested_result_printed": "Print output:" in text and "Debug text content" in text,
+        "text_only": not result.get("_meta") and not result.get("structuredContent"),
+    }
+    return all(checks.values()), checks
+
+
 def gateway_command(image, name, network, app_dir):
     return ["docker", "run", "-d", "--user", f"{os.getuid()}:{os.getgid()}", "--name", name, "--network", network,
             "-p", "127.0.0.1::8080", "-v", f"{app_dir}:/app/data", image]
@@ -144,14 +162,19 @@ def qualify(base_url, credentials, manifest, report):
                "has_structured_content": bool(result.get("structuredContent")), "has_meta": bool(result.get("_meta")),
                "text_sha256": hashlib.sha256(text.encode()).hexdigest() if text else None})
     code_path = manifest["routes"]["code_mode"]["debug"]
+    debug_arguments = {"contentType": "text", "multipleBlocks": False,
+                       "includeStructuredContent": False, "includeMeta": False,
+                       "simulateError": True}
+    native_status, native_body = rpc(base_url, code_path, "tools/call", {
+        "name": manifest["apps"]["debug"]["code_native_name"], "arguments": debug_arguments}, token("code_mode"))
     status, body = rpc(base_url, code_path, "tools/call", {"name": "executeToolCode",
-                       "arguments": {"code": 'result = code_debug.debug_tool(contentType="text", simulateError=True)'}}, token("code_mode"))
+                       "arguments": {"code": 'result = code_debug.debug_tool(contentType="text", multipleBlocks=False, includeStructuredContent=False, includeMeta=False, simulateError=True)\nprint(result)'}}, token("code_mode"))
     result = body.get("result", {})
     text = "\n".join(block.get("text", "") for block in result.get("content", []) if block.get("type") == "text")
-    check("code-mode/debug: nested tool error remains a value", result_ok(status, body) and
-          "Execution completed successfully." in text and "error" in text.lower() and
-          not result.get("_meta") and not result.get("structuredContent"),
-          {"http_status": status, "is_error": bool(result.get("isError")),
+    nested_error_ok, nested_error_checks = nested_error_value_probe(status, body, native_status, native_body)
+    check("code-mode/debug: nested tool error remains a value", nested_error_ok,
+          {"http_status": status, "is_error": bool(result.get("isError")), **nested_error_checks,
+           "text_length": len(text),
            "text_sha256": hashlib.sha256(text.encode()).hexdigest() if text else None})
     status, body = rpc(base_url, code_path, "tools/call", {"name": "executeToolCode",
                        "arguments": {"code": "result = definitely_not_defined + 1"}}, token("code_mode"))
@@ -285,6 +308,20 @@ def self_check():
     assert mapped_port("127.0.0.1:49152\n") == 49152
     assert result_ok(200, {"result": {"isError": False}})
     assert not result_ok(200, {"result": {"isError": True}})
+    nested_error = {"result": {"content": [{"type": "text", "text":
+        "Print output:\nDebug text content #1\nExecution completed successfully."}]}}
+    native_error = {"result": {"isError": True,
+        "content": [{"type": "text", "text": "Debug text content #1"}]}}
+    assert nested_error_value_probe(200, nested_error, 200, native_error) == (True, {
+        "outer_result_ok": True, "script_completed": True, "native_error_confirmed": True,
+        "nested_result_printed": True, "text_only": True})
+    # This reproduces the former false negative: remote error content need not
+    # contain the word "error" because isError is the actual protocol flag.
+    assert "error" not in "Debug text content #1".lower()
+    assert not nested_error_value_probe(200, nested_error, 200,
+        {"result": {"isError": False, "content": [{"type": "text", "text": "Debug text content #1"}]}})[0]
+    assert not nested_error_value_probe(200, {"result": {"isError": True,
+        "content": [{"type": "text", "text": "Execution runtime error"}]}}, 200, native_error)[0]
     attempts = []
     def fake_remove(resource):
         attempts.append(resource)

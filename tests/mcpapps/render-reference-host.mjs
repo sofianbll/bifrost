@@ -12,6 +12,7 @@ import { performance } from "node:perf_hooks";
 const HOST_REPOSITORY = "https://github.com/modelcontextprotocol/ext-apps";
 const HOST_VERSION = "2.0.3";
 const HOST_COMMIT = "82221c0c8ce7661efa6771c9d461511b1650495f";
+const FORM_ACTION_TIMEOUT_MS = 10000;
 const require = createRequire(new URL("../e2e/package.json", import.meta.url));
 
 function option(name, fallback) {
@@ -87,6 +88,10 @@ function successfulToolResult(result) {
   return Boolean(result && result.hasResult && !result.rpcError && !result.isError);
 }
 
+function actionTimeout(timeoutMs) {
+  return Math.min(timeoutMs, FORM_ACTION_TIMEOUT_MS);
+}
+
 function nativeToolName(app, mode) {
   const name = mode === "code_mode" ? app.code_native_name : app.native_name;
   if (typeof name !== "string" || !name) fail(`Missing native tool for ${mode}`);
@@ -115,12 +120,15 @@ async function selfCheck() {
   assert.equal(successfulToolResult({ hasResult: false, rpcError: true, isError: false }), false);
   assert.equal(successfulToolResult({ hasResult: false, rpcError: false, isError: false }), false);
   assert.equal(successfulToolResult({ hasResult: true, rpcError: false, isError: true }), false);
+  assert.equal(actionTimeout(120000), FORM_ACTION_TIMEOUT_MS);
+  assert.equal(actionTimeout(5000), 5000);
+  await checkProxyCleanup();
   assert.equal(await portAvailable(0), true);
   const occupied = createTcpServer();
   const occupiedPort = await listen(occupied);
   try { assert.equal(await portAvailable(occupiedPort), false); }
   finally { await new Promise((resolvePromise) => occupied.close(resolvePromise)); }
-  console.log("PASS renderer self-check (route and native tool mapping, JSON-RPC failures, credential redaction, port availability); no host was launched");
+  console.log("PASS renderer self-check (route and native tool mapping, JSON-RPC failures, credential redaction, bounded form actions, SSE cleanup, port availability); no host was launched");
 }
 
 function classifyFailure(appId, error) {
@@ -152,6 +160,7 @@ async function openPorts(count) {
 
 function createGatewayProxy(baseUrl, path, headers, secrets) {
   const calls = [];
+  const upstreamRequests = new Set();
   const target = new URL(path, baseUrl);
   const server = createServer(async (incoming, outgoing) => {
     if (incoming.method === "OPTIONS") {
@@ -217,7 +226,13 @@ function createGatewayProxy(baseUrl, path, headers, secrets) {
         });
         response.on("error", (error) => { if (!outgoing.destroyed) outgoing.destroy(error); });
       });
+      upstreamRequests.add(upstream);
+      upstream.once("close", () => upstreamRequests.delete(upstream));
+      outgoing.once("close", () => {
+        if (!outgoing.writableEnded) upstream.destroy();
+      });
       upstream.on("error", (error) => {
+        if (outgoing.destroyed) return;
         outgoing.writeHead(502, { "access-control-allow-origin": "*", "content-type": "text/plain" });
         outgoing.end(redact(error.message, secrets));
       });
@@ -228,7 +243,71 @@ function createGatewayProxy(baseUrl, path, headers, secrets) {
       outgoing.end(redact(error.message, secrets));
     }
   });
-  return { server, calls, target };
+  return { server, calls, target, upstreamRequests };
+}
+
+function closeProxy(proxy) {
+  if (!proxy.server.listening) return Promise.resolve();
+  const closed = new Promise((resolvePromise, reject) => {
+    proxy.server.close((error) => error && error.code !== "ERR_SERVER_NOT_RUNNING" ? reject(error) : resolvePromise());
+  });
+  proxy.server.closeAllConnections();
+  for (const upstream of proxy.upstreamRequests) upstream.destroy();
+  return closed;
+}
+
+async function within(promise, timeoutMs, message) {
+  let timer;
+  try {
+    await Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error(message)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function checkProxyCleanup() {
+  let upstreamStartCount = 0;
+  let upstreamCloseCount = 0;
+  const upstreamServer = createServer((_request, response) => {
+    upstreamStartCount++;
+    response.writeHead(200, { "content-type": "text/event-stream" });
+    response.write("event: ready\ndata: {}\n\n");
+    response.on("close", () => { upstreamCloseCount++; });
+  });
+  const upstreamPort = await listen(upstreamServer);
+  const proxy = createGatewayProxy(`http://127.0.0.1:${upstreamPort}`, "/mcp", {}, []);
+  let client;
+  try {
+    const proxyPort = await listen(proxy.server);
+    const openStream = () => {
+      const request = httpRequest(`http://127.0.0.1:${proxyPort}/mcp`, {
+        method: "POST",
+        headers: { "content-type": "application/json", accept: "text/event-stream" },
+      });
+      request.on("error", () => {});
+      request.end(JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} }));
+      return request;
+    };
+    client = openStream();
+    client.once("response", (response) => response.once("data", () => client.destroy()));
+    await waitFor(() => upstreamStartCount === 1, 1000, "SSE self-check did not open an upstream request");
+    await waitFor(() => upstreamCloseCount === 1, 1000, "Closing the downstream SSE client did not close its upstream response");
+    client = openStream();
+    await waitFor(() => upstreamStartCount === 2, 1000, "Second SSE self-check did not open an upstream request");
+    await within(closeProxy(proxy), 1000, "Closing the proxy did not finish within one second");
+    await waitFor(() => upstreamCloseCount === 2, 1000, "Closing the proxy did not close its upstream SSE response");
+  } finally {
+    client?.destroy();
+    await within(closeProxy(proxy), 1000, "Proxy cleanup hung during self-check teardown");
+    upstreamServer.closeAllConnections();
+    await within(new Promise((resolvePromise) => upstreamServer.close(resolvePromise)), 1000,
+      "Upstream self-check server did not close");
+  }
 }
 
 async function startHost(repositoryDir, servers) {
@@ -294,22 +373,53 @@ async function startProxy(baseUrl, route, headers, secrets) {
 }
 
 async function pageLogs(browser, target, runCase, timeoutMs, secrets) {
+  const formTimeout = actionTimeout(timeoutMs);
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   const page = await context.newPage();
   const logs = [];
   page.on("console", (message) => logs.push({ type: message.type(), text: redact(message.text(), secrets) }));
   page.on("pageerror", (error) => logs.push({ type: "pageerror", text: redact(error.message, secrets) }));
   page.on("requestfailed", (request) => logs.push({ type: "requestfailed", text: redact(`${request.method()} ${request.url()}: ${request.failure()?.errorText ?? "unknown"}`, secrets) }));
-  await page.goto(`${target.hostUrl}/?tool=${encodeURIComponent(runCase.tool)}&theme=hide`, { waitUntil: "domcontentloaded", timeout: timeoutMs });
-  const toolSelect = page.getByLabel("Tool", { exact: true });
-  await toolSelect.waitFor({ state: "visible", timeout: timeoutMs });
-  await page.getByLabel("Server", { exact: true }).locator("option").first().waitFor({ state: "attached", timeout: timeoutMs });
-  await toolSelect.selectOption(runCase.tool, { timeout: timeoutMs });
-  await page.getByLabel("Input", { exact: true }).fill(JSON.stringify(runCase.input));
-  await page.getByRole("button", { name: "Call Tool" }).click();
-  const iframe = page.locator("iframe").first();
-  await iframe.waitFor({ state: "visible", timeout: timeoutMs });
-  return { context, page, iframe, logs };
+  try {
+    await page.goto(`${target.hostUrl}/?tool=${encodeURIComponent(runCase.tool)}&theme=hide`, { waitUntil: "domcontentloaded", timeout: formTimeout });
+    const toolSelect = page.getByLabel("Tool", { exact: true });
+    const serverSelect = page.getByLabel("Server", { exact: true });
+    await toolSelect.waitFor({ state: "visible", timeout: formTimeout });
+    await serverSelect.locator("option").first().waitFor({ state: "attached", timeout: formTimeout });
+    try {
+      await waitFor(async () => (await toolSelect.locator("option").evaluateAll((options) => options.map((option) => option.value)))
+        .then((values) => values.includes(runCase.tool)), formTimeout, `Reference host did not expose tool ${runCase.tool}`);
+    } catch {
+      const [servers, tools] = await Promise.all([
+        serverSelect.locator("option").evaluateAll((options) => options.map((option) => option.textContent?.trim() ?? "")),
+        toolSelect.locator("option").evaluateAll((options) => options.map((option) => option.value)),
+      ]);
+      fail(`Reference host form did not expose ${runCase.tool}; servers=${JSON.stringify(servers)}, tools=${JSON.stringify(tools)}`);
+    }
+    await toolSelect.selectOption(runCase.tool, { timeout: formTimeout });
+    await page.getByLabel("Input", { exact: true }).fill(JSON.stringify(runCase.input), { timeout: formTimeout });
+    const callButton = page.getByRole("button", { name: "Call Tool" });
+    await callButton.waitFor({ state: "visible", timeout: formTimeout });
+    try {
+      await waitFor(() => callButton.isEnabled(), formTimeout, `Call Tool stayed disabled for ${runCase.tool}`);
+    } catch {
+      const [selectedTool, input, disabled] = await Promise.all([
+        toolSelect.inputValue(),
+        page.getByLabel("Input", { exact: true }).inputValue(),
+        callButton.isDisabled(),
+      ]);
+      let inputValid = true;
+      try { JSON.parse(input); } catch { inputValid = false; }
+      fail(`Reference host did not enable ${runCase.tool}; selectedTool=${JSON.stringify(selectedTool)}, inputValid=${inputValid}, buttonDisabled=${disabled}`);
+    }
+    await callButton.click({ timeout: formTimeout });
+    const iframe = page.locator("iframe").first();
+    await iframe.waitFor({ state: "visible", timeout: formTimeout });
+    return { context, page, iframe, logs };
+  } catch (error) {
+    await context.close();
+    throw error;
+  }
 }
 
 // Selectors and loaded states come from the pinned official App sources.
@@ -403,7 +513,7 @@ async function renderCase(browser, manifest, credentials, appId, route, mode, ou
     await writeFile(join(outDir, `${id}.console.json`), JSON.stringify({ console: browserState?.logs ?? [], host: redact(target?.logs.join("") ?? "", secrets), calls: proxy.calls.map((call) => ({ rpcMethod: call.rpcMethod, toolCalls: call.toolCalls.map((tool) => tool.name), results: call.results.map((result) => ({ name: result.name, isError: result.isError })) })) }, null, 2) + "\n", { mode: 0o600 });
     if (browserState) await browserState.context.close();
     if (target) await stopChild(target.child);
-    await new Promise((resolvePromise) => proxy.server.close(resolvePromise));
+    await closeProxy(proxy);
   }
 }
 
@@ -460,7 +570,7 @@ async function renderCheckpoint(browser, manifest, credentials, appId, outDir, s
     await writeFile(join(outDir, "excalidraw-checkpoint.console.json"), JSON.stringify({ console: browserState?.logs ?? [], host: redact(target?.logs.join("") ?? "", secrets), calls: proxy.calls.map((call) => ({ rpcMethod: call.rpcMethod, toolCalls: call.toolCalls.map((tool) => tool.name), results: call.results.map((result) => ({ name: result.name, isError: result.isError })) })) }, null, 2) + "\n", { mode: 0o600 });
     if (browserState) await browserState.context.close();
     if (target) await stopChild(target.child);
-    await new Promise((resolvePromise) => proxy.server.close(resolvePromise));
+    await closeProxy(proxy);
   }
 }
 
@@ -469,10 +579,11 @@ async function checkFourConnections(browser, manifest, credentials, outDir, secr
   if (appIds.length !== 4) fail(`Expected four Apps for the connection-stall check; found ${appIds.length}`);
   const proxies = await Promise.all(appIds.map((appId) => startProxy(manifest.base_url, routePath(manifest, "direct", appId), credentials.direct ?? {}, secrets)));
   let target;
+  let context;
   let browserState;
   try {
     target = await startHost(option("--host-dir", ""), proxies.map((proxy) => proxy.url));
-    const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+    context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
     const page = await context.newPage();
     const logs = [];
     page.on("console", (message) => logs.push({ type: message.type(), text: redact(message.text(), secrets) }));
@@ -486,9 +597,9 @@ async function checkFourConnections(browser, manifest, credentials, outDir, secr
     return { id: "four-connections-stall", status: "passed", connections: proxies.length, allListedTools: proxies.every((proxy) => proxy.calls.some((call) => call.rpcMethod.includes("tools/list"))), hostLogs: redact(target.logs.join(""), secrets), console: logs };
   } finally {
     await writeFile(join(outDir, "four-connections.console.json"), JSON.stringify({ console: browserState?.logs ?? [], host: redact(target?.logs.join("") ?? "", secrets), calls: proxies.map((proxy) => proxy.calls.map((call) => ({ rpcMethod: call.rpcMethod, toolCalls: call.toolCalls.map((tool) => tool.name) }))) }, null, 2) + "\n", { mode: 0o600 });
-    if (browserState) await browserState.context.close();
+    if (context) await context.close();
     if (target) await stopChild(target.child);
-    await Promise.all(proxies.map((proxy) => new Promise((resolvePromise) => proxy.server.close(resolvePromise))));
+    await Promise.all(proxies.map(closeProxy));
   }
 }
 

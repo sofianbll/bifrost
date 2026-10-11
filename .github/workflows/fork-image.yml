@@ -102,8 +102,16 @@ jobs:
         with:
           node-version: "25"
       - name: Run deterministic MCP Apps wire cases
+        timeout-minutes: 10
         if: matrix.arch == 'amd64'
         run: bash .github/workflows/scripts/test-mcp-apps-fixture.sh bifrost:candidate "$RUNNER_TEMP/mcpapps-fixture-reports"
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        if: always() && matrix.arch == 'amd64'
+        with:
+          name: mcp-apps-fixture
+          path: ${{ runner.temp }}/mcpapps-fixture-reports/
+          if-no-files-found: error
+          retention-days: 14
       - name: Install existing Playwright dependency and Chromium
         if: ${{ !cancelled() && matrix.arch == 'amd64' && steps.image-probe.outcome == 'success' }}
         run: |
@@ -114,6 +122,7 @@ jobs:
         if: ${{ !cancelled() && matrix.arch == 'amd64' && steps.image-probe.outcome == 'success' }}
         run: node tests/mcpapps/bootstrap-reference-host.mjs --directory "$RUNNER_TEMP/ext-apps"
       - name: Qualify real MCP Apps and their reference-host rendering
+        timeout-minutes: 20
         if: ${{ !cancelled() && matrix.arch == 'amd64' && steps.image-probe.outcome == 'success' && steps.reference-host.outcome == 'success' }}
         run: >-
           python3 tests/mcpapps/ci.py --image bifrost:candidate

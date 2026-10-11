@@ -39,9 +39,9 @@ def build_config():
         entry["stdio_config"] = {"command": f"/repo/examples/mcps/{binary}/bin/{binary}", "args": args}
         entry["allow_by_default"] = False
     virtual_mcps = [entry for entry in profile["mcp"]["virtual_mcps"]
-                    if entry["endpoint_slug"] == "mcp-apps-virtual"]
+                    if entry["endpoint_slug"] in ("mcp-apps-full-virtual", "mcp-apps-limited-virtual")]
     keys = [entry for entry in profile["governance"]["virtual_keys"] if entry["value"] in KEYS.values()]
-    if {entry["value"] for entry in keys} != set(KEYS.values()) or len(virtual_mcps) != 1:
+    if {entry["value"] for entry in keys} != set(KEYS.values()) or len(virtual_mcps) != 2:
         raise RuntimeError("shared profile is missing fixture grants after stack integration")
     return {
         "client": {"enable_logging": False, "enforce_governance_header": True,
@@ -78,6 +78,12 @@ def validate_collection(path, feature, expected):
     return len(requests)
 
 
+def validate_executions(report, feature, expected):
+    executions = report.get("run", {}).get("executions", [])
+    if len(executions) != expected:
+        raise RuntimeError(f"{feature}: expected {expected} Newman executions, found {len(executions)}")
+
+
 def redact(value):
     if isinstance(value, dict):
         return {key: "<redacted>" if key.lower() in ("authorization", "proxy-authorization")
@@ -104,8 +110,14 @@ def self_check():
     assert all(not key["provider_configs"] for key in config["governance"]["virtual_keys"])
     second = next(c for c in config["mcp"]["client_configs"] if c["name"] == "mcp_apps_fixture_second")
     assert not second.get("is_code_mode_client", False)
-    assert config["mcp"]["virtual_mcps"][0]["virtual_key_ids"] == ["vk-mcp-apps-full", "vk-mcp-apps-limited"]
-    assert config["mcp"]["virtual_mcps"][0]["tools"] == [{"mcp_client_name": "mcp_apps_fixture", "tool_names": ["*"]}]
+    vmcps = {entry["endpoint_slug"]: entry for entry in config["mcp"]["virtual_mcps"]}
+    full_vmcp = vmcps["mcp-apps-full-virtual"]
+    limited_vmcp = vmcps["mcp-apps-limited-virtual"]
+    assert full_vmcp["virtual_key_ids"] == ["vk-mcp-apps-full"]
+    assert full_vmcp["tools"] == [{"mcp_client_name": name, "tool_names": ["*"]}
+                                  for name in FIXTURE_NAMES[:2]]
+    assert limited_vmcp["virtual_key_ids"] == ["vk-mcp-apps-limited"]
+    assert limited_vmcp["tools"] == [{"mcp_client_name": "mcp_apps_fixture", "tool_names": ["open_view"]}]
     limited = next(key for key in config["governance"]["virtual_keys"] if key["value"] == KEYS["limited_no_app"])
     assert limited["mcp_configs"] == [{"mcp_client_name": "mcp_apps_fixture", "tools_to_execute": ["structured_result"]}]
     sample = {"item": [{"name": "ok", "request": {"url": "{{baseUrl}}/mcp/x"}}]}
@@ -121,6 +133,13 @@ def self_check():
             pass
         else:
             raise AssertionError("inference route guard accepted a non-MCP request")
+    validate_executions({"run": {"executions": [{}]}}, "self-check", 1)
+    try:
+        validate_executions({"run": {"executions": []}}, "self-check", 1)
+    except RuntimeError:
+        pass
+    else:
+        raise AssertionError("execution count guard accepted a skipped request")
     safe = redact({"Authorization": "Bearer sk-bf-example", "body": "token sk-bf-example"})
     assert safe == {"Authorization": "<redacted>", "body": "token <redacted>"}
     with tempfile.TemporaryDirectory() as temp:
@@ -128,7 +147,7 @@ def self_check():
         failure = json.loads((Path(temp) / "fixture-error.json").read_text())
         assert failure["error_type"] == "RuntimeError"
         assert "sk-bf-example" not in failure["message"] and "<redacted>" in failure["message"]
-    print("PASS fixture CI self-check (config scope, route guard, report and early-failure redaction)")
+    print("PASS fixture CI self-check (config scope, route and execution count guards, report redaction)")
 
 
 def rpc(url, path, method, params, token):
@@ -162,7 +181,8 @@ def ready(url):
         raise RuntimeError("candidate /health did not become ready within 180 seconds")
 
     routes = (("/mcp/mcp-apps-fixture", "full", False),
-              ("/mcp/mcp-apps-virtual", "full", False),
+              ("/mcp/mcp-apps-full-virtual", "full", False),
+              ("/mcp/mcp-apps-limited-virtual", "limited", False),
               ("/mcp", "full", False),
               ("/mcp/error-test-server", "codemode_errors", True))
     init = {"protocolVersion": "2025-06-18", "clientInfo": {"name": "fixture-ci-readiness", "version": "1"},
@@ -173,9 +193,15 @@ def ready(url):
             raise RuntimeError(f"MCP initialize readiness failed on {path} (HTTP {status})")
         status, body = rpc(url, path, "tools/list", {}, KEYS[key])
         tools = body.get("result", {}).get("tools", [])
-        if status != 200 or not tools or (needs_code and "executeToolCode" not in {t.get("name") for t in tools}):
+        names = {tool.get("name", "") for tool in tools}
+        if status != 200 or not tools or (needs_code and "executeToolCode" not in names):
             raise RuntimeError(f"MCP tools/list readiness failed on {path} (HTTP {status}, tools={len(tools)})")
-    print("PASS candidate health and MCP readiness on four fixture routes", flush=True)
+        if path == "/mcp" and "mcp_apps_fixture_second-open_view" not in names:
+            raise RuntimeError("aggregate readiness did not expose the second fixture App")
+        if key == "limited" and (not any(name.endswith("open_view") for name in names)
+                                  or any(name.endswith("fail_tool") for name in names)):
+            raise RuntimeError("limited Virtual MCP readiness did not enforce its tool grant")
+    print("PASS candidate health and MCP readiness on five fixture routes", flush=True)
 
 
 def run(command, cwd, env, log):
@@ -308,6 +334,7 @@ def main(args):
                 (report_dir / f"{feature}-exit-code.txt").write_text(str(rc) + "\n")
                 if not report_ok:
                     raise RuntimeError(f"{feature}: Make target produced no Newman JSON report")
+                validate_executions(json.loads(raw_report.read_text()), feature, counts[feature])
                 if rc:
                     print(f"FAIL {feature} harness (exit {rc}); redacted reports: {report_dir}", flush=True)
                     pass_fail = rc
