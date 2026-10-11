@@ -302,6 +302,28 @@ async function pageLogs(browser, target, runCase, timeoutMs, secrets) {
   return { context, page, iframe, logs };
 }
 
+// Selectors and loaded states come from the pinned official App sources.
+async function assertAppContent(iframe, appId, result, timeoutMs) {
+  const inner = iframe.contentFrame().frameLocator("iframe");
+  if (appId === "excalidraw") {
+    await inner.locator("svg").filter({ hasText: "MCP Apps" }).first().waitFor({ state: "visible", timeout: timeoutMs });
+  } else if (appId === "debug") {
+    await inner.locator("#event-log .log-entry").filter({ has: inner.locator(".log-type.ontoolresult") }).filter({ hasText: "Debug text content" }).first().waitFor({ state: "visible", timeout: timeoutMs });
+  } else if (appId === "monitor") {
+    const hostname = result.structuredContent?.hostname;
+    if (typeof hostname !== "string" || !hostname) fail("Monitor result omitted its hostname");
+    await waitFor(async () => (await inner.locator("#info-hostname").textContent()) === hostname && /^\d+(?:\.\d+)?%$/.test((await inner.locator("#memory-percent").textContent()) ?? ""), timeoutMs, "Monitor did not show returned system information and live memory metrics");
+  } else if (appId === "pdf") {
+    await inner.locator("#viewer").waitFor({ state: "visible", timeout: timeoutMs });
+    await inner.locator("#loading").waitFor({ state: "hidden", timeout: timeoutMs });
+    await inner.locator("#error").waitFor({ state: "hidden", timeout: timeoutMs });
+    await waitFor(async () => inner.locator("#pdf-canvas").evaluate((canvas) => {
+      const pixels = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height).data;
+      return pixels.some((value, index) => index % 4 !== 3 && value < 240);
+    }), timeoutMs, "PDF canvas never rendered document pixels");
+  } else fail(`Unknown App content assertion: ${appId}`);
+}
+
 async function screenshotAndAssert(page, iframe, screenshotPath, timeoutMs) {
   const inner = iframe.contentFrame().frameLocator("iframe");
   await inner.locator("body").waitFor({ state: "visible", timeout: timeoutMs });
@@ -309,7 +331,7 @@ async function screenshotAndAssert(page, iframe, screenshotPath, timeoutMs) {
     const panel = document.querySelector(".appIframePanel iframe");
     return !!panel && panel.getBoundingClientRect().width > 0 && panel.getBoundingClientRect().height > 0;
   }, null, { timeout: timeoutMs });
-  const pixels = await iframe.screenshot({ path: screenshotPath, animations: "disabled", timeout: timeoutMs });
+  const pixels = await inner.locator("body").screenshot({ path: screenshotPath, animations: "disabled", timeout: timeoutMs });
   if (pixels.length < 1000) fail("App iframe screenshot is unexpectedly small");
   const nonBlankPixels = await page.evaluate(async (base64) => {
     const image = new Image();
@@ -353,11 +375,13 @@ async function renderCase(browser, manifest, credentials, appId, route, mode, ou
   try {
     target = await startHost(option("--host-dir", ""), [proxy.url]);
     browserState = await pageLogs(browser, target, { tool: app.native_name, input: app.native_arguments ?? {} }, timeoutMs, secrets);
-    const screenshot = await screenshotAndAssert(browserState.page, browserState.iframe, join(outDir, `${id}.png`), timeoutMs);
+    await waitFor(() => proxy.calls.some((call) => call.results.some((result) => result.name === app.native_name)), timeoutMs, "The native App tool result did not complete");
     const calls = proxy.calls.flatMap((call) => call.toolCalls);
     if (!calls.some((call) => call.name === app.native_name)) fail(`Reference host did not call ${app.native_name}`);
     const result = proxy.calls.flatMap((call) => call.results).find((item) => item.name === app.native_name);
-    if (!result || result.isError) fail(`Reference host tool call ${app.native_name} did not complete successfully`);
+    if (!successfulToolResult(result)) fail(`Reference host tool call ${app.native_name} did not complete successfully`);
+    await assertAppContent(browserState.iframe, appId, result.result, timeoutMs);
+    const screenshot = await screenshotAndAssert(browserState.page, browserState.iframe, join(outDir, `${id}.png`), timeoutMs);
     return { id, app: appId, route: mode === "code_mode" ? "direct" : route, mode, status: "passed", ...screenshot, gatewayPath, hostLogs: redact(target.logs.join(""), secrets), console: browserState.logs };
   } catch (error) {
     if (appId === "pdf" && browserState?.logs.some((entry) => /content.security.policy|worker-src|worker.*blocked|blocked.*worker/i.test(entry.text))) {
