@@ -555,6 +555,9 @@ async function renderCheckpoint(browser, manifest, credentials, appId, outDir, s
       fail("save_checkpoint callback did not include both the seed and a new edited element");
     }
 
+    // Excalidraw's fullscreen editor overlays the host form until Escape returns it inline.
+    await browserState.page.keyboard.press("Escape");
+    await inner.getByRole("button", { name: /Edit/ }).waitFor({ state: "visible", timeout: actionTimeout(timeoutMs) });
     await browserState.page.getByLabel(/^Input/).fill(JSON.stringify({ elements: JSON.stringify([{ type: "restoreCheckpoint", id: saveInput.id }]) }));
     await browserState.page.getByRole("button", { name: "Call Tool" }).click();
     await waitFor(() => proxy.calls.some((call) => call.results.some((result) => /read_checkpoint/.test(result.name))), timeoutMs, "Excalidraw read_checkpoint callback did not complete from the App view");
