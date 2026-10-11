@@ -9,11 +9,11 @@ native Go exception / script failure -> MCP isError
 
 ## Evidence
 
-Ported to `transports/v2.2.6` (`8b4fce4f1709d66f9208d02f50552da522535f9e`). Focused local checks and independent HTTP builds pass; real 2.2.6 CI qualification is pending. The CI results listed below are historical 2.2.4 evidence.
+Based on `transports/v2.2.6` (`8b4fce4f1709d66f9208d02f50552da522535f9e`). [Integration CI 38181001842](https://github.com/sofianbll/bifrost/actions/runs/38181001842) qualifies commit `e1ca7961489c07d348fe19c95fc26a423dffb64a`; the three contribution branches also compile independently with identical stock UI assets.
 
-- Before: the handler regression loses `isError`; the legacy fork also fails seven STDIO error scenarios.
-- After: focused handler and Starlark checks pass. Both architecture reports in CI run 38172752771 contain 699 total cases, 670 passed, 29 skipped, zero failures and zero errors; the seven legacy failures and native-handler regression pass without changing upstream expectations.
-- Both offline error-test-server wire cases pass in CI run 38172752771 (2 requests, 6 assertions, no assertion failure). Full release verification is tracked in the recovery ledger.
+- **Before:** the named stock 2.2.6 wire assertion for script failure loses outer `isError`. Remote nested validation errors already remain script values upstream.
+- **After:** both exact error-server requests pass all six assertions. The comparator confirms the script-failure correction while preserving the existing green nested-error behavior.
+- Focused handler, Starlark and STDIO checks pass. Both architecture MCP suites pass 675 tests / 29 skipped / zero failures. New upstream invocation-time and pre-hook Code Mode authorization remain intact.
 
 ## Merge Danger
 

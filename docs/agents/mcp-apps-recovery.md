@@ -12,17 +12,18 @@ The owner selected the current stable release on October 11. The active base is 
 - All three contribution branches independently compile the HTTP transport with identical generated official 2.2.6 UI assets. The stock UI build/typecheck passed, index SHA256 `f88c2fd1003ba3bc8baf11dcbac6588a53537b1524ba2b5f7782f63810d44047`. Generated worktree assets/binary were removed.
 - The existing integration worktree is reused, even though its directory name ends in `integration-224`. The original checkout and all historical 2.2.4 refs are preserved. The last baseline-oracle correction is committed locally at `04730cca1` on D224 and not pushed.
 - Fork UI build/typecheck passes; six version-comparator tests use the existing Vitest runner in the Docker UI builder. The config E2E file parses and retains the two upstream setup-lock scenarios; the full dashboard Playwright suite has not been run locally.
-- First 2.2.6 CI run [38180478201](https://github.com/sofianbll/bifrost/actions/runs/38180478201) passes both architecture MCP jobs: 675 passed, 29 skipped, zero failures per job. Both image builds stop before fixture/stock/browser checks because the comparator test used `node:test` while the Docker builder invokes Vitest. Repair 1 restores the existing runner and removes the duplicate standalone Node step; six Vitest tests and the UI build/typecheck pass locally. Full image and wire qualification still require a new CI run.
-- D226 preserves upstream's OSS setup lock and its new UI tests. Private test `/api` calls use a synthetic setup token; `/mcp` keeps VK auth/grants. The official stock image is pinned to linux/amd64 digest `sha256:fde9a1dc6c04c847c31ad93c89703fcc62a13c53ac0be824fe30171f5fbc620c`. Real 2.2.6 fixture/stock/render CI evidence is still pending.
+- First 2.2.6 CI run [38180478201](https://github.com/sofianbll/bifrost/actions/runs/38180478201) passes both architecture MCP jobs: 675 passed, 29 skipped, zero failures per job. Both image builds stop before fixture/stock/browser checks because the comparator test used `node:test` while the Docker builder invokes Vitest. Repair 1 restores the existing runner and removes the duplicate standalone Node step; six Vitest tests and the UI build/typecheck pass locally. Full image and wire qualification then required the new CI run recorded below.
+- [CI run 38181001842](https://github.com/sofianbll/bifrost/actions/runs/38181001842) at `e1ca7961489c07d348fe19c95fc26a423dffb64a` passes gateway/UI builds, image probes and both MCP suites on both architectures (675 passed / 29 skipped / zero failures each). Candidate and official stock 2.2.6 each execute all 37+2 unique wire requests with HTTP responses. The candidate passes 149 assertions; the comparator confirms nine named red stock sentinels and seven green invariants on both. Downloaded JUnit/Newman/comparison reports were inspected. This is a whole-stack comparison, with independent focused A/B attribution. The run is entirely green: qualification 80/80; reference-host 18/18 in 48 seconds (16 renders, four simultaneous connections and checkpoint save/read restoration with three elements). Root inspected the checkpoint before/after and PDF, Debug and Monitor screenshots. The restored label is partly clipped, so complete viewport framing and native Codex remain release checks. Cleanup removes four containers, network, test image and private files. Registry login/push and publication are skipped.
+- D226 preserves upstream's OSS setup lock and its new UI tests. Private test `/api` calls use a synthetic setup token; `/mcp` keeps VK auth/grants. The official stock image is pinned to linux/amd64 digest `sha256:fde9a1dc6c04c847c31ad93c89703fcc62a13c53ac0be824fe30171f5fbc620c`. The 2.2.6 fixture/stock and real-App/browser gates pass in CI 38181001842.
 - Production upgrade preparation must account for explicit OAuth `issuer_url`, private management API setup auth, and two automatic `model_pricing` migrations found in the source. They add five nullable pricing columns; the changelog's claim of no migrations is not a DDL guarantee. No production store or deployment was touched.
-- GitHub #4, #8, #10, #12 and #13 were closed with explicit owner authorization and their 2.2.4 proof. This records completed historical implementation; it does not qualify the new base. #5–#7/#9 remain open for the final comparative wire evidence. #3 (cloud proxy), #11 (old HTTP/OAuth 403), #14 (release/native Codex/dogfood), and native worktree cleanup remain outstanding.
+- GitHub #4, #8, #10, #12 and #13 were closed with explicit owner authorization and their 2.2.4 proof. Those historical closures are now requalified by the 2.2.6 run above. #5–#7/#9 pass their wire gates and remain open awaiting owner closure authorization. #3 (cloud proxy), #11 (old HTTP/OAuth 403), #14 (release/native Codex/dogfood), and native worktree cleanup remain outstanding.
 
 ## Preserved starting point
 
 - Original checkout: `feature/mcp-apps-native` at `71174d96ae4763e1167f9acdb636df20e704bb41`, clean, one commit ahead of its remote.
 - That last local commit contains the cloud-session setup; it is preserved on the old branch and carried into the fork-only layer.
 - The fork had two remote branches and no pull requests when checked on 2026-10-11. The prototype branch exists only locally.
-- New contribution base: `transports/v2.2.4^{commit}` = `ed8371a9779bfbc8aa689d4d77964cf8ce9308bf`. The annotated tag object is not the source commit. `go.work` is generated locally and is not tracked upstream.
+- Historical contribution base: `transports/v2.2.4^{commit}` = `ed8371a9779bfbc8aa689d4d77964cf8ce9308bf`. The annotated tag object is not the source commit. `go.work` is generated locally and is not tracked upstream.
 - No production data, deployment, authentication or existing branch was changed by this recovery.
 
 ## Branch ownership
@@ -30,11 +31,11 @@ The owner selected the current stable release on October 11. The active base is 
 | Branch | Purpose | Fork-only material allowed |
 | --- | --- | --- |
 | `codex/mcp-errors-226` | Script-error result flag, preserving upstream Chat tool-error values | No |
-| `codex/mcp-firstboot-226` | Empty-store Virtual MCP and VK reconciliation, with 2.2.4 governance ordering | No |
+| `codex/mcp-firstboot-226` | Empty-store Virtual MCP and VK reconciliation, with upstream governance ordering and auth error handling | No |
 | `codex/mcp-apps-relay-226` | Native Apps relay, deterministic fixture, wire regression cases and MCP docs | No |
 | `codex/mcp-apps-fork-226` | Integration, image/cloud tooling and external-server/render gates | Yes |
 
-The four branches are assembled as a stack and exist on the fork. The three contribution branches compile independently with the generated, identical 2.2.4 UI assets. Their existence and unit checks do not establish App rendering or release readiness.
+The four branches are assembled as a stack and exist on the fork. The three active contribution branches compile independently with the generated, identical 2.2.6 UI assets. Their existence and unit checks do not establish App rendering or release readiness.
 
 ## Accepted decision
 
@@ -69,13 +70,13 @@ Three local Claude session logs from October 1–5 were inspected for this proje
 
 ## Completion gates
 
-- [ ] #4 new-base qualification: local 226 stack assembled; each lower branch builds independently; old branch preserved; new branch names recorded on the fork.
-- [ ] #5–#7: local STDIO fixture and all 37 exact wire cases pass; full comparative wire evidence against stock 2.2.4 remains absent. Invariants already supported upstream must not be reported as regressions.
-- [ ] #8–#9 new-base qualification: compatible error unit/STDIO tests and docs pass locally; full 2.2.6 wire evidence is pending.
-- [ ] #10 new-base qualification: red/green on the 2.2.6 startup path and race20 pass; shared Virtual MCP wire gate must also pass on the new base.
+- [x] #4 new-base qualification: local 226 stack assembled; each lower branch builds independently; old branch preserved; new branch names recorded on the fork.
+- [x] #5–#7 wire qualification: 37 exact candidate and stock 2.2.6 requests pass the comparator in CI 38181001842; eight named stock red sentinels and six green invariants are confirmed. GitHub closure awaits owner authorization. Existing green invariants are not reported as regressions.
+- [x] #8–#9 new-base wire qualification: compatible unit/STDIO checks and docs pass; both exact wire cases pass in CI 38181001842 with six assertions. Stock script failure is red, remote nested validation error remains a green invariant. #9 GitHub closure awaits owner authorization.
+- [x] #10 new-base qualification: red/green on the 2.2.6 startup path, race20 and shared Virtual MCP wire from an empty store pass.
 - [ ] #11: persistent-connection 403 reproduced and compared with stock upstream, or explicitly left unresolved with evidence limits.
-- [ ] #12 new-base qualification: historical four-App API gate passes on 2.2.4; rerun against 2.2.6 is pending.
-- [ ] #13 new-base qualification: historical reference-host 18/18 at dacabd3de (47 seconds); rerun against 2.2.6 is pending.
+- [x] #12 new-base qualification: the four real Apps pass the 80/80 integrated protocol/qualification gate on 2.2.6 in CI 38181001842.
+- [x] #13 new-base qualification: reference-host 18/18 on 2.2.6 in 48 seconds, including checkpoint save/read from a fresh view. Native Codex and complete viewport framing remain #14.
 - [ ] #3: actual Codex Cloud task, headless browser launch and cold/warm startup timing verified. The owner selected Codex instead of Claude; a bootstrap self-check alone cannot establish these.
 - [ ] #14: approved release image, explicit Pulsar deployment, owner-selected dogfood period, final Codex render/edit/partial-input check, then upstream PRs.
 

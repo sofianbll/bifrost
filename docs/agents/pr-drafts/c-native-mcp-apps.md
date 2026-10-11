@@ -10,12 +10,12 @@ iframe callback -> unambiguous admitted source
 
 ## Evidence
 
-Ported to `transports/v2.2.6` (`8b4fce4f1709d66f9208d02f50552da522535f9e`). Focused local checks and independent HTTP builds pass; real 2.2.6 CI qualification is pending. The CI results listed below are historical 2.2.4 evidence.
+Based on `transports/v2.2.6` (`8b4fce4f1709d66f9208d02f50552da522535f9e`). [Integration CI 38181001842](https://github.com/sofianbll/bifrost/actions/runs/38181001842) qualifies commit `e1ca7961489c07d348fe19c95fc26a423dffb64a`; the three contribution branches also compile independently with identical stock UI assets.
 
-- Schema and SQL regressions fail when gateway-only metadata is stored as flat Chat tools, then pass with the metadata envelope. Reload through `AddClient` is covered.
-- Focused core, config-store, handler and server checks pass. The fixture's MCP result decoder rejects an empty content type, then passes with valid text content.
-- The shared offline fixture passes all 37 MCP-only wire cases in CI run 38172752771 (143 assertions). The four real Apps pass all 79 API checks (three package servers pinned to 2.0.3; Excalidraw uses its public endpoint); all 16 reference-host App renders and four simultaneous connections pass. CI run 38174168690 additionally passes checkpoint save/read restoration and all 18 reference-host cases in 47 seconds. The final native Codex/release checks remain required before opening this PR. A full wire comparison against stock 2.2.4 has not been run; existing focused regressions supply only their own red/green evidence.
-- See the existing fork architecture document for the reviewer diagram; fork QA files, CI and cloud tooling are excluded from this branch.
+- **Before:** metadata persistence regressions lose `_meta.ui` with flat Chat tool rows. The stock 2.2.6 fixture demonstrates eight named missing-feature assertions while six existing-behavior/positive fixture invariants already pass.
+- **After:** schema/SQLite, live-map lookup, core, handler and server checks pass. All 37 exact Apps wire requests pass 143 assertions; the stock comparator validates the eight red sentinels and six green invariants. This is a whole-stack wire comparison, not isolated attribution of every stock failure to this relay.
+- The integrated four-real-App qualification passes 80/80 controls. The pinned official reference host passes 18/18 browser cases in 48 seconds: 16 renders, four simultaneous connections and actual checkpoint edit/save/read from a fresh view with three elements. Screenshots were inspected; the restored seed label is partly clipped, so full viewport framing/native Codex remain owner release checks.
+- The second Code Mode error pair passes six assertions; both architecture MCP suites pass 675 tests / 29 skipped / zero failures. Fork QA, image/cloud tooling and this external qualification runner are excluded from the contribution branch. The existing fork architecture document supplies the reviewer diagram.
 
 ## Merge Danger
 
