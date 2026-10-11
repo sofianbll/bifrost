@@ -10,7 +10,8 @@
         "tools_to_auto_execute": ["*"]
       },
       {
-        "name": "error-test-server",
+        "name": "errorTestServer",
+        "endpoint_slug": "error-test-server",
         "is_code_mode_client": true,
         "connection_type": "stdio",
         "stdio_config": {
@@ -1092,6 +1093,21 @@
       }
     ],
     "virtual_keys": [
+      {
+        "id": "vk-codemode-errors",
+        "name": "Code Mode errors fixture",
+        "value": "sk-bf-codemode-errors",
+        "is_active": true,
+        "provider_configs": [],
+        "mcp_configs": [
+          {
+            "mcp_client_name": "errorTestServer",
+            "tools_to_execute": [
+              "*"
+            ]
+          }
+        ]
+      }, 
       {
         "name": "Test Key",
         "id": "vk-test",
