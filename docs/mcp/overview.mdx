@@ -68,6 +68,12 @@ By default, Bifrost does NOT automatically execute tool calls. All tool executio
 
 ## How MCP Works in Bifrost
 
+### MCP Apps
+
+Bifrost relays MCP Apps when the connected MCP server publishes a UI tool and its `ui://` resource. Clients that negotiate `io.modelcontextprotocol/ui` receive the resource URI and HTML, including its MIME type and CSP metadata; tool calls keep their text, structured content, metadata and error marker. The same behavior applies through direct MCP client endpoints, Virtual MCPs and the aggregate `/mcp` endpoint, subject to the virtual key's existing tool grants.
+
+When a host calls an App tool directly, it can open the view from that tool's UI metadata. An App call nested inside `executeToolCode` returns the tool's text to the script; the script result has no App UI metadata or structured result for the host to render. The host opens views and controls progressive updates itself.
+
 Bifrost acts as both an **MCP client** (connecting to external tool servers) and optionally as an **MCP server** (exposing tools to external clients like Claude Desktop).
 
 ```mermaid

@@ -33,6 +33,18 @@ test('explicit status expectations accept only the expected response', () => {
   }
 });
 
+test('MCP Apps denial probes retain their explicit HTTP 403 contract', () => {
+  const fixture = collection.item.find(item => item.name.startsWith('128. MCP Apps fixture'));
+  const denied = fixture.item.filter(item => item.name.includes('denied ') && item.name.includes('MCP Apps fixture'));
+  assert.equal(denied.length, 10, 'all fixture denial probes should stay in the harness');
+  const forbidden = denied.filter(item => item.request.url.raw.endsWith('/mcp/mcp-apps-full-virtual') || item.request.url.raw.endsWith('/mcp/mcp-apps-limited-virtual') || item.request.url.raw.endsWith('/mcp/mcp-apps-fixture'));
+  assert.equal(forbidden.filter(item => item.name.startsWith('[EXPECT-403] ')).length, 6);
+  for (const item of forbidden.filter(item => item.name.startsWith('[EXPECT-403] '))) {
+    assert.equal(statusFailures(403, item.name), 0, item.name);
+    assert.equal(statusFailures(200, item.name), 1, item.name);
+  }
+});
+
 // The report-side classifiers (analyze-failures, rate-limit-backoff) must agree with
 // the collection gate above about which statuses a tagged row expects, or a passing
 // [EXPECT-400] row shows up as a failure in the report (seen live with #7307 rows).

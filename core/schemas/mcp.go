@@ -22,6 +22,53 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 )
 
+// StoredMCPTools keeps gateway-only metadata in the existing discovered-tools
+// column without adding provider-facing fields to ChatTool's JSON shape.
+func MarshalStoredMCPTools(tools map[string]ChatTool) ([]byte, error) {
+	stored := make(map[string]any, len(tools))
+	for name, tool := range tools {
+		stored[name] = struct {
+			Tool    ChatTool        `json:"tool"`
+			RawTool json.RawMessage `json:"raw_tool,omitempty"`
+			AppOnly bool            `json:"app_only,omitempty"`
+		}{tool, tool.MCPRawTool, tool.MCPAppOnly}
+	}
+	return json.Marshal(stored)
+}
+
+// UnmarshalStoredMCPTools also accepts the flat tool rows written before Apps.
+func UnmarshalStoredMCPTools(data []byte) (map[string]ChatTool, error) {
+	var rows map[string]json.RawMessage
+	if err := json.Unmarshal(data, &rows); err != nil {
+		return nil, err
+	}
+	tools := make(map[string]ChatTool, len(rows))
+	for name, row := range rows {
+		var fields map[string]json.RawMessage
+		if err := json.Unmarshal(row, &fields); err != nil {
+			return nil, err
+		}
+		var tool ChatTool
+		if _, wrapped := fields["tool"]; wrapped {
+			var stored struct {
+				Tool    ChatTool        `json:"tool"`
+				RawTool json.RawMessage `json:"raw_tool"`
+				AppOnly bool            `json:"app_only"`
+			}
+			if err := json.Unmarshal(row, &stored); err != nil {
+				return nil, err
+			}
+			tool = stored.Tool
+			tool.MCPRawTool = stored.RawTool
+			tool.MCPAppOnly = stored.AppOnly
+		} else if err := json.Unmarshal(row, &tool); err != nil {
+			return nil, err
+		}
+		tools[name] = tool
+	}
+	return tools, nil
+}
+
 // OAuth-related errors
 var (
 	ErrOAuth2ConfigNotFound       = errors.New("oauth2 config not found")

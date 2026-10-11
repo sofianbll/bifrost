@@ -1158,6 +1158,9 @@ setup-mcp-tests: ## Build all MCP test servers in examples/mcps/ (Go and TypeScr
 		$(ECHO) "$(RED)Some MCP test servers failed to build$(NC)"; \
 		exit 1; \
 	fi
+	@for mcp_name in mcp-apps-test-server error-test-server; do \
+		(cd examples/mcps/$$mcp_name && CGO_ENABLED=0 GOWORK=off go build -o bin/$$mcp_name .) || exit 1; \
+	done
 	@$(ECHO) ""
 	@$(ECHO) "$(GREEN)✓ All MCP test servers built$(NC)"
 

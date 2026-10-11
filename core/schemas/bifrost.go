@@ -254,6 +254,8 @@ const (
 	// Request context filtering takes priority over client config - context can override client exclusions.
 	MCPContextKeyIncludeClients BifrostContextKey = "mcp-include-clients" // Context key for whitelist client filtering
 	MCPContextKeyIncludeTools   BifrostContextKey = "mcp-include-tools"   // Context key for whitelist tool filtering (Note: toolName should be in "clientName-toolName" format for individual tools, or "clientName-*" for wildcard)
+	MCPContextKeyToolCallMeta   BifrostContextKey = "mcp-tool-call-meta"  // Original MCP tools/call params._meta for upstream passthrough
+	MCPContextKeyAllowAppOnly   BifrostContextKey = "mcp-allow-app-only"  // App callbacks are safe only when this gateway route serves one upstream client
 
 	BifrostContextKeySelectedKeyID                       BifrostContextKey = "bifrost-selected-key-id"                 // string (to store the selected key ID (set by bifrost governance plugin - DO NOT SET THIS MANUALLY))
 	BifrostContextKeySelectedKeyName                     BifrostContextKey = "bifrost-selected-key-name"               // string (to store the selected key name (set by bifrost governance plugin - DO NOT SET THIS MANUALLY))
@@ -1703,6 +1705,7 @@ type BifrostMCPResponse struct {
 	// BifrostMCPExecuteToolResponse in the next major bump.
 	ChatMessage      *ChatMessage
 	ResponsesMessage *ResponsesMessage
+	MCPRawResult     json.RawMessage `json:"-"` // Original tools/call result for the hosted MCP gateway
 
 	// Empty stub today; will hold ChatMessage/ResponsesMessage in the next major bump.
 	*BifrostMCPExecuteToolResponse
