@@ -108,7 +108,7 @@ jobs:
         timeout-minutes: 10
         if: matrix.arch == 'amd64'
         run: bash .github/workflows/scripts/test-mcp-apps-fixture.sh bifrost:candidate "$RUNNER_TEMP/mcpapps-fixture-reports"
-      - name: Compare MCP Apps with stock Bifrost 2.2.4
+      - name: Compare MCP Apps with stock Bifrost 2.2.6
         timeout-minutes: 10
         if: matrix.arch == 'amd64'
         run: bash .github/workflows/scripts/test-mcp-apps-fixture.sh --baseline "$RUNNER_TEMP/mcpapps-fixture-reports"

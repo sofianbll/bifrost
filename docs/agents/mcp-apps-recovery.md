@@ -47,7 +47,7 @@ Native App results still preserve their own `isError`, `content`, `structuredCon
 
 Three local Claude session logs from October 1–5 were inspected for this project. They confirm the existing specification, CI work and the unpushed cloud setup. Old 2.2.3 screenshots and QA reports remain historical evidence; they are not qualification of this 2.2.4 stack.
 
-## CI evidence and current verification
+## Historical 2.2.4 CI evidence
 
 - [CI run 38166694381](https://github.com/sofianbll/bifrost/actions/runs/38166694381) tests `0ac9c547b348bc66d61c9f3983638a97ab000fb6`. Both MCP JUnit reports contain 699 cases, 29 skipped, zero failures and zero errors. Both architectures pass gateway/UI build, race checks, dynamic plugin compilation and the image probe.
 - The deterministic AMD64 fixture passes all 37 MCP Apps and 2 Code Mode error requests, with exact execution counts and zero assertion failures. Six Newman request-level failures represent the intentionally tested HTTP 403 refusals; both runner exit codes are zero. The full/limited Virtual MCPs have distinct grants, JSON-RPC validation is scoped to MCP routes, and ten local harness-policy tests pass.
@@ -70,8 +70,8 @@ Three local Claude session logs from October 1–5 were inspected for this proje
 
 - [ ] #4 new-base qualification: local 226 stack assembled; each lower branch builds independently; old branch preserved; new branch names recorded on the fork.
 - [ ] #5–#7: local STDIO fixture and all 37 exact wire cases pass; full comparative wire evidence against stock 2.2.4 remains absent. Invariants already supported upstream must not be reported as regressions.
-- [x] #8–#9: compatible errors, direct App calls with Code Mode, text-only scripts, documented limitations.
-- [x] #10: empty-store grants red/green on the exact 2.2.4 base; focused race repetitions.
+- [ ] #8–#9 new-base qualification: compatible error unit/STDIO tests and docs pass locally; full 2.2.6 wire evidence is pending.
+- [ ] #10 new-base qualification: red/green on the 2.2.6 startup path and race20 pass; shared Virtual MCP wire gate must also pass on the new base.
 - [ ] #11: persistent-connection 403 reproduced and compared with stock upstream, or explicitly left unresolved with evidence limits.
 - [ ] #12 new-base qualification: historical four-App API gate passes on 2.2.4; rerun against 2.2.6 is pending.
 - [ ] #13 new-base qualification: historical reference-host 18/18 at dacabd3de (47 seconds); rerun against 2.2.6 is pending.
