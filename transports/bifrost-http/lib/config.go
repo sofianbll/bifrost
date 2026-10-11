@@ -1002,6 +1002,19 @@ func LoadConfig(ctx context.Context, configDirPath string) (*Config, error) {
 	loadWebhooksConfig(ctx, config, &configData)
 	// 8. Governance config
 	loadGovernanceConfig(ctx, config, &configData)
+	// Reconcile Virtual MCPs only after governance config has loaded so their
+	// virtual key assignments can resolve against the newly loaded virtual keys.
+	if configData.MCP != nil {
+		forceFileSync := configData.isConfigJSONSourceOfTruth() && configData.mcpSectionPresent("virtual_mcps")
+		if err := reconcileVirtualMCPsConfig(ctx, config.ConfigStore, configData.MCP.VirtualMCPs, forceFileSync); err != nil {
+			logger.Warn("failed to reconcile virtual MCPs from config.json: %v", err)
+		}
+		if forceFileSync {
+			if err := pruneVirtualMCPsConfigToFile(ctx, config.ConfigStore, configData.MCP.VirtualMCPs); err != nil {
+				logger.Warn("failed to prune virtual MCPs from config.json source of truth: %v", err)
+			}
+		}
+	}
 	// 9. Auth config
 	if err := loadAuthConfig(ctx, config, &configData); err != nil {
 		return nil, err
@@ -1938,20 +1951,6 @@ func loadMCPConfig(ctx context.Context, config *Config, configData *ConfigData) 
 	}
 	applyMCPGlobalSettingsToClientConfig(ctx, config, configData.MCP, configData.isConfigJSONSourceOfTruth() && configData.sectionPresent("mcp"))
 
-	// Reconcile Virtual MCPs declared under mcp.virtual_mcps. This runs after client configs are
-	// synced so tool specs can resolve their source MCP clients by name. forceFileSync makes
-	// config.json authoritative for the virtual_mcps subsection.
-	if configData.MCP != nil {
-		forceFileSync := configData.isConfigJSONSourceOfTruth() && configData.mcpSectionPresent("virtual_mcps")
-		if err := reconcileVirtualMCPsConfig(ctx, config.ConfigStore, configData.MCP.VirtualMCPs, forceFileSync); err != nil {
-			logger.Warn("failed to reconcile virtual MCPs from config.json: %v", err)
-		}
-		if forceFileSync {
-			if err := pruneVirtualMCPsConfigToFile(ctx, config.ConfigStore, configData.MCP.VirtualMCPs); err != nil {
-				logger.Warn("failed to prune virtual MCPs from config.json source of truth: %v", err)
-			}
-		}
-	}
 }
 
 // pinMCPClientImmutableFields rewrites a file-declared client so that fields

@@ -20811,3 +20811,497 @@ func TestResolveSetupToken_TrimsSurroundingWhitespace(t *testing.T) {
 	configData := &ConfigData{SetupToken: schemas.NewSecretVar("  my-token  ")}
 	assert.Equal(t, "my-token", resolveSetupToken(configData))
 }
+
+func TestApplyMCPGlobalSettingsToClientConfig_ToolSyncInterval(t *testing.T) {
+	tests := []struct {
+		name            string
+		fileInterval    time.Duration
+		fileIsTruth     bool
+		startingMinutes int
+		expectedMinutes int
+		expectPersisted bool
+		// expectedMCPCfg is what bifrost.Init receives afterwards: the file
+		// value when one is declared, the stored value backfilled when the
+		// store is authoritative and the file declares none.
+		expectedMCPCfg time.Duration
+	}{
+		{
+			name:            "zero with file as source of truth clears an existing value",
+			fileInterval:    0,
+			fileIsTruth:     true,
+			startingMinutes: 10,
+			expectedMinutes: 0,
+			expectPersisted: true,
+			expectedMCPCfg:  0,
+		},
+		{
+			name:            "zero with store as source of truth keeps the stored value and backfills the MCP config",
+			fileInterval:    0,
+			fileIsTruth:     false,
+			startingMinutes: 10,
+			expectedMinutes: 10,
+			expectPersisted: false,
+			expectedMCPCfg:  10 * time.Minute,
+		},
+		{
+			name:            "zero with no existing value is a no-op",
+			fileInterval:    0,
+			startingMinutes: 0,
+			expectedMinutes: 0,
+			expectPersisted: false,
+			expectedMCPCfg:  0,
+		},
+		{
+			name:            "whole minute converts and persists",
+			fileInterval:    5 * time.Minute,
+			startingMinutes: 10,
+			expectedMinutes: 5,
+			expectPersisted: true,
+			expectedMCPCfg:  5 * time.Minute,
+		},
+		{
+			name:            "whole minute overrides the stored value even when the store is source of truth",
+			fileInterval:    5 * time.Minute,
+			fileIsTruth:     false,
+			startingMinutes: 10,
+			expectedMinutes: 5,
+			expectPersisted: true,
+			expectedMCPCfg:  5 * time.Minute,
+		},
+		{
+			name:            "whole hour converts to minutes",
+			fileInterval:    5 * time.Hour,
+			startingMinutes: 0,
+			expectedMinutes: 300,
+			expectPersisted: true,
+			expectedMCPCfg:  5 * time.Hour,
+		},
+		{
+			name:            "non-minute duration is ignored as unset: stored value kept and handed to Init",
+			fileInterval:    90 * time.Second,
+			startingMinutes: 10,
+			expectedMinutes: 10,
+			expectPersisted: false,
+			expectedMCPCfg:  10 * time.Minute,
+		},
+		{
+			name:            "negative duration is rejected as unset: stored value kept and handed to Init",
+			fileInterval:    -time.Minute,
+			startingMinutes: 10,
+			expectedMinutes: 10,
+			expectPersisted: false,
+			expectedMCPCfg:  10 * time.Minute,
+		},
+		{
+			name:            "negative duration with file as source of truth still keeps the stored value",
+			fileInterval:    -time.Minute,
+			fileIsTruth:     true,
+			startingMinutes: 10,
+			expectedMinutes: 10,
+			expectPersisted: false,
+			expectedMCPCfg:  10 * time.Minute,
+		},
+		{
+			name:            "non-minute duration with file as source of truth still keeps the stored value",
+			fileInterval:    90 * time.Second,
+			fileIsTruth:     true,
+			startingMinutes: 10,
+			expectedMinutes: 10,
+			expectPersisted: false,
+			expectedMCPCfg:  10 * time.Minute,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			initTestLogger()
+			dir := t.TempDir()
+			store := createTestSQLiteConfigStore(t, dir)
+			ctx := context.Background()
+
+			clientConfig := &configstore.ClientConfig{MCPToolSyncInterval: tt.startingMinutes}
+			require.NoError(t, store.UpdateClientConfig(ctx, clientConfig))
+
+			cfg := &Config{ConfigStore: store, ClientConfig: clientConfig}
+			mcpCfg := &schemas.MCPConfig{ToolSyncInterval: tt.fileInterval}
+
+			applyMCPGlobalSettingsToClientConfig(ctx, cfg, mcpCfg, tt.fileIsTruth)
+
+			assert.Equal(t, tt.expectedMinutes, cfg.ClientConfig.MCPToolSyncInterval, "in-memory value")
+			assert.Equal(t, tt.expectedMCPCfg, mcpCfg.ToolSyncInterval, "value handed to bifrost.Init")
+
+			persisted, err := store.GetClientConfig(ctx)
+			require.NoError(t, err)
+			if tt.expectPersisted {
+				assert.Equal(t, tt.expectedMinutes, persisted.MCPToolSyncInterval, "persisted value")
+			} else {
+				assert.Equal(t, tt.startingMinutes, persisted.MCPToolSyncInterval, "value must not be persisted when unchanged/ignored")
+			}
+		})
+	}
+}
+
+// TestGetMCPConfig_CarriesGlobalToolSyncInterval pins that the MCP config
+// loaded from the store carries the client-config-backed global tool sync
+// interval, so a boot without an mcp section in config.json still hands
+// bifrost.Init the configured value instead of a zero that silently falls
+// back to the built-in default.
+func TestGetMCPConfig_CarriesGlobalToolSyncInterval(t *testing.T) {
+	initTestLogger()
+	store := createTestSQLiteConfigStore(t, t.TempDir())
+	ctx := context.Background()
+	require.NoError(t, store.UpdateClientConfig(ctx, &configstore.ClientConfig{MCPToolSyncInterval: 7}))
+
+	mcpCfg, err := store.GetMCPConfig(ctx)
+	require.NoError(t, err)
+	require.NotNil(t, mcpCfg)
+	assert.Equal(t, 7*time.Minute, mcpCfg.ToolSyncInterval)
+}
+
+// TestMCPClientConfigToTable_RejectsNegativeToolSyncInterval pins the config
+// file write path: a negative per-client interval is an error (the client is
+// skipped with a warning), not a third semantic.
+func TestMCPClientConfigToTable_RejectsNegativeToolSyncInterval(t *testing.T) {
+	_, err := mcpClientConfigToTable(&schemas.MCPClientConfig{ID: "neg", Name: "neg", ToolSyncInterval: -time.Minute})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "tool_sync_interval must be 0")
+}
+
+// TestUpdateMCPClientConfig_RejectsNegativeToolSyncInterval pins the store's
+// update path, which used to let a negative through while create rejected it.
+func TestUpdateMCPClientConfig_RejectsNegativeToolSyncInterval(t *testing.T) {
+	initTestLogger()
+	store := createTestSQLiteConfigStore(t, t.TempDir())
+	ctx := context.Background()
+	require.NoError(t, store.CreateMCPClientConfig(ctx, &schemas.MCPClientConfig{
+		ID:               "neg-update",
+		Name:             "neg-update",
+		ConnectionType:   schemas.MCPConnectionTypeHTTP,
+		ConnectionString: schemas.NewSecretVar("http://127.0.0.1:1/mcp"),
+	}))
+	err := store.UpdateMCPClientConfig(ctx, "neg-update", &configstoreTables.TableMCPClient{
+		ClientID:         "neg-update",
+		Name:             "neg-update",
+		ConnectionType:   "http",
+		ToolSyncInterval: -60,
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "tool_sync_interval must be non-negative")
+}
+
+// TestUpdateClientConfig_PersistsExplicitZeroToolSyncInterval pins that an
+// explicit 0 (the built-in default) survives the store's delete+create even
+// though the column carries a non-zero GORM default, so "0 = default" reads
+// back as 0 rather than 10.
+func TestUpdateClientConfig_PersistsExplicitZeroToolSyncInterval(t *testing.T) {
+	initTestLogger()
+	store := createTestSQLiteConfigStore(t, t.TempDir())
+	ctx := context.Background()
+	require.NoError(t, store.UpdateClientConfig(ctx, &configstore.ClientConfig{MCPToolSyncInterval: 5}))
+	require.NoError(t, store.UpdateClientConfig(ctx, &configstore.ClientConfig{MCPToolSyncInterval: 0}))
+
+	persisted, err := store.GetClientConfig(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, 0, persisted.MCPToolSyncInterval)
+}
+
+// TestGetMCPClientBySlugSkipsDisabled pins that a disabled MCP client's endpoint slug does not
+// resolve, so /mcp/<slug> is not served (admit returns 403) for a disabled direct client.
+func TestGetMCPClientBySlugSkipsDisabled(t *testing.T) {
+	c := &Config{
+		MCPConfig: &schemas.MCPConfig{
+			ClientConfigs: []*schemas.MCPClientConfig{
+				{ID: "enabled-id", Name: "Enabled", EndpointSlug: "live-slug"},
+				{ID: "disabled-id", Name: "Disabled", EndpointSlug: "dead-slug", Disabled: true},
+			},
+		},
+	}
+
+	id, name, ok := c.GetMCPClientBySlug("live-slug")
+	require.True(t, ok)
+	require.Equal(t, "enabled-id", id)
+	require.Equal(t, "Enabled", name)
+
+	_, _, ok = c.GetMCPClientBySlug("dead-slug")
+	require.False(t, ok, "a disabled client's slug must not resolve")
+}
+
+// TestReconcileVirtualMCPsConfig covers the config.json → store reconciliation for
+// mcp.virtual_mcps: create (with explicit slug + name-resolved tool client + VK attach),
+// idempotent no-op on unchanged hash, update on change, and prune of absent entries.
+func TestReconcileVirtualMCPsConfig(t *testing.T) {
+	initTestLogger()
+	ctx := context.Background()
+	store := createTestSQLiteConfigStore(t, createTempDir(t))
+
+	// Source MCP client (resolved by name) and a VK to attach to.
+	require.NoError(t, store.CreateMCPClientConfig(ctx, &schemas.MCPClientConfig{
+		ID: "client-1", Name: "github", ConnectionType: schemas.MCPConnectionTypeHTTP,
+	}))
+	require.NoError(t, store.CreateVirtualKey(ctx, &tables.TableVirtualKey{
+		ID: "vk-1", Name: "test-vk", Value: *schemas.NewSecretVar("vk_test123"), IsActive: schemas.Ptr(true),
+	}))
+
+	fileVMCPs := []schemas.VirtualMCPConfig{
+		{
+			Name:         "Platform Tools",
+			EndpointSlug: "platform-tools",
+			Enabled:      schemas.Ptr(true),
+			Tools: []schemas.MCPToolSpecConfig{
+				{MCPClientName: "github", ToolNames: []string{"create_pull_request"}},
+			},
+			VirtualKeyIDs: []string{"vk-1"},
+		},
+	}
+
+	// Create.
+	require.NoError(t, reconcileVirtualMCPsConfig(ctx, store, fileVMCPs, true))
+
+	vmcps, _, err := store.GetVirtualMCPsPaginated(ctx, configstore.VirtualMCPsQueryParams{Limit: 100})
+	require.NoError(t, err)
+	require.Len(t, vmcps, 1)
+	created := vmcps[0]
+	require.Equal(t, "Platform Tools", created.Name)
+	require.Equal(t, "platform-tools", created.EndpointSlug)
+	require.True(t, created.Enabled)
+	require.Len(t, created.ParsedTools, 1)
+	require.Equal(t, "client-1", created.ParsedTools[0].MCPClientID, "tool client name should resolve to client ID")
+	require.NotEmpty(t, created.ConfigHash)
+
+	vkIDs, err := store.GetVirtualKeyIDsForVirtualMCP(ctx, created.ID)
+	require.NoError(t, err)
+	require.Equal(t, []string{"vk-1"}, vkIDs)
+
+	// Idempotent: unchanged file, hash matches, no error and slug unchanged.
+	require.NoError(t, reconcileVirtualMCPsConfig(ctx, store, fileVMCPs, false))
+	after, _, err := store.GetVirtualMCPsPaginated(ctx, configstore.VirtualMCPsQueryParams{Limit: 100})
+	require.NoError(t, err)
+	require.Len(t, after, 1)
+	require.Equal(t, created.ConfigHash, after[0].ConfigHash)
+
+	// Update: disable it and detach the VK.
+	fileVMCPs[0].Enabled = schemas.Ptr(false)
+	fileVMCPs[0].VirtualKeyIDs = nil
+	require.NoError(t, reconcileVirtualMCPsConfig(ctx, store, fileVMCPs, true))
+	updated, err := store.GetVirtualMCPByID(ctx, created.ID)
+	require.NoError(t, err)
+	require.False(t, updated.Enabled)
+	require.Equal(t, "platform-tools", updated.EndpointSlug, "endpoint_slug is immutable across updates")
+	vkIDs, err = store.GetVirtualKeyIDsForVirtualMCP(ctx, created.ID)
+	require.NoError(t, err)
+	require.Empty(t, vkIDs)
+
+	// Prune: absent from file removes it.
+	require.NoError(t, pruneVirtualMCPsConfigToFile(ctx, store, nil))
+	remaining, _, err := store.GetVirtualMCPsPaginated(ctx, configstore.VirtualMCPsQueryParams{Limit: 100})
+	require.NoError(t, err)
+	require.Empty(t, remaining)
+}
+
+// TestReconcileVirtualMCPsConfig_DerivesSlugFromName verifies an omitted endpoint_slug is
+// derived from the name.
+func TestReconcileVirtualMCPsConfig_DerivesSlugFromName(t *testing.T) {
+	initTestLogger()
+	ctx := context.Background()
+	store := createTestSQLiteConfigStore(t, createTempDir(t))
+
+	require.NoError(t, store.CreateMCPClientConfig(ctx, &schemas.MCPClientConfig{
+		ID: "client-1", Name: "github", ConnectionType: schemas.MCPConnectionTypeHTTP,
+	}))
+
+	require.NoError(t, reconcileVirtualMCPsConfig(ctx, store, []schemas.VirtualMCPConfig{
+		{
+			Name:  "My Tools",
+			Tools: []schemas.MCPToolSpecConfig{{MCPClientID: "client-1", ToolNames: []string{"*"}}},
+		},
+	}, true))
+
+	vmcps, _, err := store.GetVirtualMCPsPaginated(ctx, configstore.VirtualMCPsQueryParams{Limit: 100})
+	require.NoError(t, err)
+	require.Len(t, vmcps, 1)
+	require.Equal(t, "my-tools", vmcps[0].EndpointSlug)
+}
+
+// TestGenerateVirtualMCPHash_StableOrdering verifies the hash is independent of tool,
+// tool-name, and virtual-key-id declaration order, so reconcile treats reordered configs
+// as unchanged.
+func TestGenerateVirtualMCPHash_StableOrdering(t *testing.T) {
+	desc := "bundle"
+	tools1 := []configstoreTables.MCPToolSpec{
+		{MCPClientID: "a", ToolNames: []string{"t2", "t1"}},
+		{MCPClientID: "b", ToolNames: []string{"t3"}},
+	}
+	tools2 := []configstoreTables.MCPToolSpec{
+		{MCPClientID: "b", ToolNames: []string{"t3"}},
+		{MCPClientID: "a", ToolNames: []string{"t1", "t2"}},
+	}
+	h1 := GenerateVirtualMCPHash("vmcp", &desc, true, tools1, []string{"vk-2", "vk-1"})
+	h2 := GenerateVirtualMCPHash("vmcp", &desc, true, tools2, []string{"vk-1", "vk-2"})
+	require.Equal(t, h1, h2, "hash must be stable across ordering")
+
+	// A material change (enabled) must change the hash.
+	require.NotEqual(t, h1, GenerateVirtualMCPHash("vmcp", &desc, false, tools1, []string{"vk-1", "vk-2"}))
+}
+
+// TestReconcileVirtualMCPsConfig_DedupeNameAndID verifies duplicate names are rejected even when
+// the entries carry different IDs (not just repeated IDs), so a second write never races the DB's
+// unique-name constraint.
+func TestReconcileVirtualMCPsConfig_DedupeNameAndID(t *testing.T) {
+	initTestLogger()
+	ctx := context.Background()
+	store := createTestSQLiteConfigStore(t, createTempDir(t))
+	require.NoError(t, store.CreateMCPClientConfig(ctx, &schemas.MCPClientConfig{
+		ID: "client-1", Name: "github", ConnectionType: schemas.MCPConnectionTypeHTTP,
+	}))
+
+	tool := []schemas.MCPToolSpecConfig{{MCPClientID: "client-1", ToolNames: []string{"*"}}}
+	// Same name, different ID-ness: the second must be skipped by name, not slip through on the ID key.
+	require.NoError(t, reconcileVirtualMCPsConfig(ctx, store, []schemas.VirtualMCPConfig{
+		{Name: "Dup", Tools: tool},
+		{Name: "Dup", ID: 5, Tools: tool},
+	}, true))
+
+	vmcps, _, err := store.GetVirtualMCPsPaginated(ctx, configstore.VirtualMCPsQueryParams{Limit: 100})
+	require.NoError(t, err)
+	require.Len(t, vmcps, 1, "duplicate name with a different ID must be deduped")
+	require.Equal(t, "Dup", vmcps[0].Name)
+}
+
+func TestLoadConfig_FirstBootVirtualMCPVirtualKeyAssignment(t *testing.T) {
+	initTestLogger()
+	dir := t.TempDir()
+	configJSON := `{
+		"$schema":"https://www.getbifrost.ai/schema",
+		"config_store":{"enabled":true,"type":"sqlite","config":{"path":"` + filepath.Join(dir, "config.db") + `"}},
+		"mcp":{
+			"client_configs":[{"id":"client-1","name":"github","connection_type":"http","connection_string":"http://127.0.0.1:1"}],
+			"virtual_mcps":[{"name":"Platform Tools","endpoint_slug":"platform-tools","tools":[{"mcp_client_name":"github","tool_names":["*"]}],"virtual_key_ids":["vk-1"]}]
+		},
+		"governance":{"virtual_keys":[{"id":"vk-1","name":"test-vk","value":"sk-bf-test-vk","is_active":true}]}
+	}`
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "config.json"), []byte(configJSON), 0600))
+
+	config, err := LoadConfig(context.Background(), dir)
+	require.NoError(t, err)
+	defer config.Close(context.Background())
+
+	vmcps, _, err := config.ConfigStore.GetVirtualMCPsPaginated(context.Background(), configstore.VirtualMCPsQueryParams{Limit: 100})
+	require.NoError(t, err)
+	require.Len(t, vmcps, 1)
+	vkIDs, err := config.ConfigStore.GetVirtualKeyIDsForVirtualMCP(context.Background(), vmcps[0].ID)
+	require.NoError(t, err)
+	require.Equal(t, []string{"vk-1"}, vkIDs)
+}
+
+func TestLoadConfig_MCPClientStickinessChangePersistsAcrossRestart(t *testing.T) {
+	initTestLogger()
+	dir := t.TempDir()
+	configJSON := func(sticky bool) string {
+		return fmt.Sprintf(`{"$schema":"https://www.getbifrost.ai/schema","config_store":{"enabled":true,"type":"sqlite","config":{"path":%q}},"mcp":{"client_configs":[{"id":"client-1","name":"github","connection_type":"http","connection_string":"http://127.0.0.1:1","needs_session_stickiness":%t}]}}`, filepath.Join(dir, "config.db"), sticky)
+	}
+	writeConfig := func(sticky bool) {
+		t.Helper()
+		require.NoError(t, os.WriteFile(filepath.Join(dir, "config.json"), []byte(configJSON(sticky)), 0600))
+	}
+	ctx := context.Background()
+	writeConfig(false)
+	first, err := LoadConfig(ctx, dir)
+	require.NoError(t, err)
+	first.Close(ctx)
+
+	writeConfig(true)
+	second, err := LoadConfig(ctx, dir)
+	require.NoError(t, err)
+	defer second.Close(ctx)
+
+	stored, err := second.ConfigStore.GetMCPConfig(ctx)
+	require.NoError(t, err)
+	require.Len(t, stored.ClientConfigs, 1)
+	require.NotNil(t, stored.ClientConfigs[0].NeedsSessionStickiness)
+	require.True(t, *stored.ClientConfigs[0].NeedsSessionStickiness)
+}
+
+// governanceWithRoutingFallbacks decodes routing rules the way config.json is read, so each
+// fallback goes through RoutingFallback.UnmarshalJSON.
+func governanceWithRoutingFallbacks(t *testing.T, fallbacksJSON string) *configstore.GovernanceConfig {
+	t.Helper()
+	var governance configstore.GovernanceConfig
+	require.NoError(t, json.Unmarshal([]byte(`{"routing_rules":[{"id":"rr-1","name":"rr","cel_expression":"true","scope":"global",`+
+		`"targets":[{"provider":"openai","weight":1}],"fallbacks":`+fallbacksJSON+`}]}`), &governance))
+	return &governance
+}
+
+// TestResolveGovernanceKeyReferences_RoutingFallbacks pins config.json provider_key_name resolution
+// for routing-rule fallbacks: a name resolves to that provider's key_id and the alias is dropped,
+// other entries are untouched, and every invalid combination fails the load.
+func TestResolveGovernanceKeyReferences_RoutingFallbacks(t *testing.T) {
+	initTestLogger()
+	ctx := context.Background()
+	store := createTestSQLiteConfigStore(t, t.TempDir())
+	// Key names are unique across providers; the lookup still checks the name belongs to the fallback's provider.
+	require.NoError(t, store.AddProvider(ctx, schemas.Anthropic, configstore.ProviderConfig{Keys: []schemas.Key{
+		{ID: "k-anthropic-prod", Name: "Anthropic Prod", Value: *schemas.NewSecretVar("sk-a"), Models: schemas.WhiteList{"*"}, Weight: 1},
+	}}))
+	require.NoError(t, store.AddProvider(ctx, schemas.Vertex, configstore.ProviderConfig{Keys: []schemas.Key{
+		{ID: "k-vertex-prod", Name: "Vertex Prod", Value: *schemas.NewSecretVar("sk-v"), Models: schemas.WhiteList{"*"}, Weight: 1},
+	}}))
+	config := &Config{ConfigStore: store}
+
+	t.Run("resolves names per provider and leaves other entries alone", func(t *testing.T) {
+		governance := governanceWithRoutingFallbacks(t, `["openai/gpt-4o",`+
+			`{"provider":"vertex","model":"gemini-2.5-pro","provider_key_name":"Vertex Prod"},`+
+			`{"provider":"anthropic","provider_key_name":" Anthropic Prod "},`+
+			`{"provider":"anthropic","model":"claude-sonnet-4","key_id":"k-explicit"}]`)
+		require.NoError(t, resolveGovernanceKeyReferences(ctx, config, governance))
+
+		got := governance.RoutingRules[0].ParsedFallbacks
+		require.Len(t, got, 4)
+		want := []schemas.Fallback{
+			{Provider: schemas.OpenAI, Model: "gpt-4o"},
+			{Provider: schemas.Vertex, Model: "gemini-2.5-pro", KeyID: "k-vertex-prod"},
+			{Provider: schemas.Anthropic, KeyID: "k-anthropic-prod"},
+			{Provider: schemas.Anthropic, Model: "claude-sonnet-4", KeyID: "k-explicit"},
+		}
+		for i, fb := range got {
+			assert.Equal(t, want[i], fb.Resolved(), "fallback %d", i)
+			assert.Nil(t, fb.ProviderKeyName, "fallback %d kept its config-only alias", i)
+		}
+
+		// What gets stored: the resolved key_id, never the alias, and legacy strings untouched.
+		data, err := json.Marshal(got)
+		require.NoError(t, err)
+		assert.Equal(t, `["openai/gpt-4o",{"provider":"vertex","model":"gemini-2.5-pro","key_id":"k-vertex-prod"},`+
+			`{"provider":"anthropic","model":"","key_id":"k-anthropic-prod"},{"provider":"anthropic","model":"claude-sonnet-4","key_id":"k-explicit"}]`, string(data))
+	})
+
+	errorCases := []struct {
+		name      string
+		fallbacks string
+		wantErr   string
+	}{
+		{name: "unknown key name", fallbacks: `[{"provider":"vertex","provider_key_name":"Missing"}]`, wantErr: "fallback provider_key_name resolution failed"},
+		{name: "key name that belongs to another provider", fallbacks: `[{"provider":"anthropic","provider_key_name":"Vertex Prod"}]`, wantErr: "fallback provider_key_name resolution failed"},
+		{name: "key_id together with provider_key_name", fallbacks: `[{"provider":"vertex","key_id":"k","provider_key_name":"Vertex Prod"}]`, wantErr: "cannot set key_id together with provider_key_name"},
+		{name: "provider_key_name without a provider", fallbacks: `[{"provider_key_name":"Vertex Prod"}]`, wantErr: "requires provider to be set"},
+	}
+	for _, tc := range errorCases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := resolveGovernanceKeyReferences(ctx, config, governanceWithRoutingFallbacks(t, tc.fallbacks))
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tc.wantErr)
+			assert.Contains(t, err.Error(), `"rr-1"`, "the error must name the rule")
+		})
+	}
+
+	t.Run("a name reference without a config store fails the load", func(t *testing.T) {
+		err := resolveGovernanceKeyReferences(ctx, &Config{}, governanceWithRoutingFallbacks(t, `[{"provider":"vertex","provider_key_name":"Vertex Prod"}]`))
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "require config store")
+	})
+
+	t.Run("rules without name references need no config store", func(t *testing.T) {
+		governance := governanceWithRoutingFallbacks(t, `["openai/gpt-4o",{"provider":"vertex","key_id":"k-explicit"}]`)
+		require.NoError(t, resolveGovernanceKeyReferences(ctx, &Config{}, governance))
+		assert.Equal(t, schemas.Fallback{Provider: schemas.Vertex, KeyID: "k-explicit"}, governance.RoutingRules[0].ParsedFallbacks[1].Resolved())
+	})
+}
