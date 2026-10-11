@@ -380,6 +380,14 @@ def search(query: str, maxResults: int = None) -> dict:
 
 Executes Python code in a sandboxed Starlark interpreter with access to all code mode server tools.
 
+### MCP Apps and tool errors
+
+An MCP App tool can still be called directly when its client has Code Mode enabled. Its native tool definition retains the UI metadata, and a host that negotiated `io.modelcontextprotocol/ui` can read the linked `ui://` resource and render the view.
+
+Calling that same App tool from `executeToolCode` returns its text to the script. The outer `executeToolCode` result does not carry the nested tool's `structuredContent` or App `_meta`: the host opened the view from the definition of the tool it called, while `executeToolCode` has no UI definition. A host can render progressive updates when it chooses; the gateway does not implement progressive drawing.
+
+Tool errors returned by a nested MCP call are values the script can inspect. An error in the script itself (for example, a sandbox/runtime failure) marks the `executeToolCode` result with `isError`.
+
 **Parameters:**
 - `code` (required): Python code to execute
 

@@ -8,6 +8,56 @@
         "connection_string": "http://localhost:3012/sse",
         "tools_to_execute": ["*"],
         "tools_to_auto_execute": ["*"]
+      },
+      {
+        "name": "mcp_apps_fixture",
+        "endpoint_slug": "mcp-apps-fixture",
+        "is_code_mode_client": true,
+        "connection_type": "stdio",
+        "stdio_config": {
+          "command": "../../examples/mcps/mcp-apps-test-server/bin/mcp-apps-test-server",
+          "args": [
+            "first"
+          ]
+        },
+        "tools_to_execute": [
+          "*"
+        ],
+        "tools_to_auto_execute": []
+      },
+      {
+        "name": "mcp_apps_fixture_second",
+        "endpoint_slug": "mcp-apps-fixture-second",
+        "connection_type": "stdio",
+        "stdio_config": {
+          "command": "../../examples/mcps/mcp-apps-test-server/bin/mcp-apps-test-server",
+          "args": [
+            "second"
+          ]
+        },
+        "tools_to_execute": [
+          "*"
+        ],
+        "tools_to_auto_execute": []
+      }
+    ],
+    "virtual_mcps": [
+      {
+        "name": "MCP Apps Fixture",
+        "endpoint_slug": "mcp-apps-virtual",
+        "enabled": true,
+        "tools": [
+          {
+            "mcp_client_name": "mcp_apps_fixture",
+            "tool_names": [
+              "*"
+            ]
+          }
+        ],
+        "virtual_key_ids": [
+          "vk-mcp-apps-full",
+          "vk-mcp-apps-limited"
+        ]
       }
     ]
   },
@@ -1201,6 +1251,65 @@
             "weight": 1.0
           }
         ]
+      },
+      {
+        "id": "vk-mcp-apps-full",
+        "name": "MCP Apps full fixture",
+        "value": "sk-bf-mcp-apps-full",
+        "is_active": true,
+        "mcp_configs": [
+          {
+            "mcp_client_name": "mcp_apps_fixture",
+            "tools_to_execute": [
+              "*"
+            ]
+          },
+          {
+            "mcp_client_name": "mcp_apps_fixture_second",
+            "tools_to_execute": [
+              "*"
+            ]
+          }
+        ],
+        "provider_configs": []
+      },
+      {
+        "id": "vk-mcp-apps-limited",
+        "name": "MCP Apps limited fixture",
+        "value": "sk-bf-mcp-apps-limited",
+        "is_active": true,
+        "mcp_configs": [
+          {
+            "mcp_client_name": "mcp_apps_fixture",
+            "tools_to_execute": [
+              "open_view"
+            ]
+          }
+        ],
+        "provider_configs": []
+      },
+      {
+        "id": "vk-mcp-apps-limited-no-app",
+        "name": "MCP Apps limited without App access",
+        "value": "sk-bf-mcp-apps-limited-no-app",
+        "is_active": true,
+        "mcp_configs": [
+          {
+            "mcp_client_name": "mcp_apps_fixture",
+            "tools_to_execute": [
+              "structured_result"
+            ]
+          }
+        ],
+        "provider_configs": []
+      },
+      {
+        "id": "vk-mcp-apps-denied",
+        "name": "MCP Apps denied fixture",
+        "value": "sk-bf-mcp-apps-denied",
+        "is_active": true,
+        "mcp_configs": [],
+        "provider_configs": []
       }
     ]
   },

@@ -29,6 +29,8 @@ A Virtual MCP bundles tools you choose from one or more of your MCP servers. For
 
 Each vMCP is served at its own URL, `/mcp/<slug>`, and is reachable only through the virtual keys it's attached to. On enterprise, [access profiles](/enterprise/virtual-mcps) can also grant a vMCP (reachable through the profile's auto-allocated keys).
 
+MCP Apps pass through Virtual MCPs as part of the existing tool grant. When a client negotiates `io.modelcontextprotocol/ui`, an admitted App tool keeps its UI metadata and its namespaced `ui://` resource can be read at the same endpoint. Resource reads and App callbacks remain subject to that virtual key's tool access. If the host invokes the App tool directly, it can render the view; calling the tool from `executeToolCode` returns only text because the host called the script tool and that tool has no App view. Progressive drawing is handled by the host.
+
 ### The endpoint slug
 
 Every vMCP is served at `/mcp/<slug>`:
