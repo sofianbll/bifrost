@@ -22494,6 +22494,60 @@ func TestReconcileVirtualMCPsConfig_DedupeNameAndID(t *testing.T) {
 	require.Equal(t, "Dup", vmcps[0].Name)
 }
 
+func TestLoadConfig_FirstBootVirtualMCPVirtualKeyAssignment(t *testing.T) {
+	initTestLogger()
+	dir := t.TempDir()
+	configJSON := `{
+		"$schema":"https://www.getbifrost.ai/schema",
+		"config_store":{"enabled":true,"type":"sqlite","config":{"path":"` + filepath.Join(dir, "config.db") + `"}},
+		"mcp":{
+			"client_configs":[{"id":"client-1","name":"github","connection_type":"http","connection_string":"http://127.0.0.1:1"}],
+			"virtual_mcps":[{"name":"Platform Tools","endpoint_slug":"platform-tools","tools":[{"mcp_client_name":"github","tool_names":["*"]}],"virtual_key_ids":["vk-1"]}]
+		},
+		"governance":{"virtual_keys":[{"id":"vk-1","name":"test-vk","value":"sk-bf-test-vk","is_active":true}]}
+	}`
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "config.json"), []byte(configJSON), 0600))
+
+	config, err := LoadConfig(context.Background(), dir)
+	require.NoError(t, err)
+	defer config.Close(context.Background())
+
+	vmcps, _, err := config.ConfigStore.GetVirtualMCPsPaginated(context.Background(), configstore.VirtualMCPsQueryParams{Limit: 100})
+	require.NoError(t, err)
+	require.Len(t, vmcps, 1)
+	vkIDs, err := config.ConfigStore.GetVirtualKeyIDsForVirtualMCP(context.Background(), vmcps[0].ID)
+	require.NoError(t, err)
+	require.Equal(t, []string{"vk-1"}, vkIDs)
+}
+
+func TestLoadConfig_MCPClientStickinessChangePersistsAcrossRestart(t *testing.T) {
+	initTestLogger()
+	dir := t.TempDir()
+	configJSON := func(sticky bool) string {
+		return fmt.Sprintf(`{"$schema":"https://www.getbifrost.ai/schema","config_store":{"enabled":true,"type":"sqlite","config":{"path":%q}},"mcp":{"client_configs":[{"id":"client-1","name":"github","connection_type":"http","connection_string":"http://127.0.0.1:1","needs_session_stickiness":%t}]}}`, filepath.Join(dir, "config.db"), sticky)
+	}
+	writeConfig := func(sticky bool) {
+		t.Helper()
+		require.NoError(t, os.WriteFile(filepath.Join(dir, "config.json"), []byte(configJSON(sticky)), 0600))
+	}
+	ctx := context.Background()
+	writeConfig(false)
+	first, err := LoadConfig(ctx, dir)
+	require.NoError(t, err)
+	first.Close(ctx)
+
+	writeConfig(true)
+	second, err := LoadConfig(ctx, dir)
+	require.NoError(t, err)
+	defer second.Close(ctx)
+
+	stored, err := second.ConfigStore.GetMCPConfig(ctx)
+	require.NoError(t, err)
+	require.Len(t, stored.ClientConfigs, 1)
+	require.NotNil(t, stored.ClientConfigs[0].NeedsSessionStickiness)
+	require.True(t, *stored.ClientConfigs[0].NeedsSessionStickiness)
+}
+
 // governanceWithRoutingFallbacks decodes routing rules the way config.json is read, so each
 // fallback goes through RoutingFallback.UnmarshalJSON.
 func governanceWithRoutingFallbacks(t *testing.T, fallbacksJSON string) *configstore.GovernanceConfig {
