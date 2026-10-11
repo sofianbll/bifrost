@@ -4,6 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -P)"
 export BIFROST_REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd -P)"
 exec python3 - "$@" <<'PY'
+import base64
 import json
 import os
 from pathlib import Path
@@ -25,6 +26,35 @@ KEYS = {
     "limited_no_app": "sk-bf-mcp-apps-limited-no-app",
     "denied": "sk-bf-mcp-apps-denied",
     "codemode_errors": "sk-bf-codemode-errors",
+}
+BASELINE_IMAGE = "maximhq/bifrost@sha256:74826952fd6f1fc32f7bf8c364c41e27d996d0d03e4157ca8b55ddadaacb0668"
+FIXTURE_RESOURCE_URI = "ui://mcp-apps-test-server/view.html"
+BASELINE_SENTINELS = {
+    "mcp-apps": (
+        ("MCP Apps fixture direct initialize negotiates UI", "UI extension negotiated"),
+        ("MCP Apps fixture direct tools list preserves App metadata", "both URI fields and input schema survive discovery"),
+        ("MCP Apps fixture direct resources read returns HTML and CSP", "resource HTML MIME and CSP are relayed"),
+        ("MCP Apps fixture Virtual MCP full discovery", "Virtual MCP preserves both UI metadata fields"),
+        ("MCP Apps fixture aggregate discovery and namespaced UI URIs", "aggregate namespaces sources and marks callbacks app-only"),
+        ("MCP Apps fixture aggregate reads second source resource", "second resource routes to its own source"),
+        ("MCP Apps fixture aggregate namespaced callback routes second", "namespaced callback reaches correct instance"),
+        ("MCP Apps fixture limited direct resource remains readable", "MCP Apps fixture limited direct resource remains readable"),
+    ),
+    "codemode-errors": (
+        ("Code Mode failed script sets outer isError (codemode-errors)", "Starlark execution failure marks the outer result as an error"),
+    ),
+}
+BASELINE_INVARIANTS = {
+    "mcp-apps": (
+        ("MCP Apps fixture direct initialize omits UI without negotiation", "UI extension omitted without negotiation"),
+        ("MCP Apps fixture denied aggregate initialize", "denied aggregate initialize succeeds with empty capabilities"),
+        ("MCP Apps fixture denied aggregate tools list is empty", "denied aggregate returns empty tools"),
+        ("MCP Apps fixture Code Mode nested App call returns text only", "script returns nested text without structured App metadata"),
+        ("MCP Apps fixture Code Mode nested tool error remains script value", "nested tool error is returned to script as a value per upstream behavior"),
+    ),
+    "codemode-errors": (
+        ("Code Mode nested validation error remains a value (codemode-errors)", "executeToolCode succeeds when the nested tool returns an error value"),
+    ),
 }
 
 
@@ -64,6 +94,18 @@ def requests_in(node):
             yield from requests_in(value)
 
 
+def items_in(node):
+    if isinstance(node, dict):
+        if isinstance(node.get("request"), dict):
+            yield node
+        else:
+            for value in node.values():
+                yield from items_in(value)
+    elif isinstance(node, list):
+        for value in node:
+            yield from items_in(value)
+
+
 def validate_collection(path, feature, expected):
     collection = json.loads(path.read_text())
     requests = list(requests_in(collection.get("item", [])))
@@ -78,10 +120,73 @@ def validate_collection(path, feature, expected):
     return len(requests)
 
 
-def validate_executions(report, feature, expected):
+def executions_by_name(report, feature):
     executions = report.get("run", {}).get("executions", [])
-    if len(executions) != expected:
-        raise RuntimeError(f"{feature}: expected {expected} Newman executions, found {len(executions)}")
+    by_name = {}
+    for execution in executions:
+        name = execution.get("item", {}).get("name")
+        status = (execution.get("response") or {}).get("code")
+        if execution.get("skipped") or type(status) is not int or not 100 <= status <= 599:
+            raise RuntimeError(f"{feature}: request {name!r} was skipped or produced no HTTP response")
+        if not name or name in by_name:
+            raise RuntimeError(f"{feature}: missing or duplicate Newman request name {name!r}")
+        by_name[name] = execution
+    return by_name
+
+
+def validate_executions(report, feature, expected, expected_names):
+    by_name = executions_by_name(report, feature)
+    missing = sorted(set(expected_names) - by_name.keys())
+    extra = sorted(by_name.keys() - set(expected_names))
+    if len(by_name) != expected or missing or extra:
+        raise RuntimeError(f"{feature}: execution mismatch (expected {expected}, got {len(by_name)}; missing={missing}; extra={extra})")
+
+
+def failed_assertion(execution, assertion_name):
+    matches = [item for item in execution.get("assertions", []) if item.get("assertion") == assertion_name]
+    if len(matches) != 1:
+        raise RuntimeError(f"expected exactly one assertion {assertion_name!r}, found {len(matches)}")
+    return matches[0].get("error") is not None
+
+
+def compare_reports(stock, candidate, feature):
+    stock_items, candidate_items = executions_by_name(stock, feature + " stock"), executions_by_name(candidate, feature + " candidate")
+    for case, assertion in BASELINE_SENTINELS.get(feature, ()):
+        if case not in stock_items or case not in candidate_items or not failed_assertion(stock_items[case], assertion):
+            raise RuntimeError(f"{feature}: stock did not demonstrate red sentinel {case!r} / {assertion!r}")
+        if failed_assertion(candidate_items[case], assertion):
+            raise RuntimeError(f"{feature}: candidate still fails sentinel {case!r} / {assertion!r}")
+    for case, assertion in BASELINE_INVARIANTS.get(feature, ()):
+        if case not in stock_items or case not in candidate_items:
+            raise RuntimeError(f"{feature}: missing invariant execution {case!r}")
+        if failed_assertion(stock_items[case], assertion) or failed_assertion(candidate_items[case], assertion):
+            raise RuntimeError(f"{feature}: expected stock and candidate invariant to pass: {case!r}")
+    return {"stock_red_sentinels": [case for case, _ in BASELINE_SENTINELS.get(feature, ())],
+            "stock_green_invariants": [case for case, _ in BASELINE_INVARIANTS.get(feature, ())],
+            "stock_failed_assertions": sum(1 for e in stock_items.values() for a in e.get("assertions", [])
+                                            if a.get("error") is not None)}
+
+
+def contract_uri(client_name):
+    enc = lambda value: base64.urlsafe_b64encode(value.encode()).decode().rstrip("=")
+    return f"ui://bifrost/{enc(client_name)}/{enc(FIXTURE_RESOURCE_URI)}"
+
+
+def seed_stock_uris(collection_path):
+    collection = json.loads(collection_path.read_text())
+    seeds = {"mcpAppsDirectUri": contract_uri("mcp_apps_fixture"),
+             "mcpAppsVirtualUri": contract_uri("mcp_apps_fixture"),
+             "mcpAppsAggUri1": contract_uri("mcp_apps_fixture"),
+             "mcpAppsAggUri2": contract_uri("mcp_apps_fixture_second")}
+    variables = {entry.get("key"): entry for entry in collection.get("variable", [])}
+    for name, value in seeds.items():
+        if name in variables:
+            variables[name]["value"] = value
+            variables[name]["enabled"] = True
+        else:
+            collection.setdefault("variable", []).append({"key": name, "value": value, "type": "string"})
+    collection_path.write_text(json.dumps(collection, indent=2) + "\n")
+    return seeds
 
 
 def redact(value):
@@ -133,13 +238,102 @@ def self_check():
             pass
         else:
             raise AssertionError("inference route guard accepted a non-MCP request")
-    validate_executions({"run": {"executions": [{}]}}, "self-check", 1)
+    sample_exec = {"item": {"name": "one"}, "response": {"code": 200}, "assertions": []}
+    validate_executions({"run": {"executions": [sample_exec]}}, "self-check", 1, ["one"])
     try:
-        validate_executions({"run": {"executions": []}}, "self-check", 1)
+        validate_executions({"run": {"executions": []}}, "self-check", 1, ["one"])
     except RuntimeError:
         pass
     else:
-        raise AssertionError("execution count guard accepted a skipped request")
+        raise AssertionError("execution identity guard accepted a missing request")
+    try:
+        validate_executions({"run": {"executions": [sample_exec, sample_exec]}}, "self-check", 1, ["one"])
+    except RuntimeError:
+        pass
+    else:
+        raise AssertionError("execution identity guard accepted a duplicate request")
+    for incomplete in ({**sample_exec, "skipped": True}, {**sample_exec, "response": None}):
+        try:
+            validate_executions({"run": {"executions": [incomplete]}}, "self-check", 1, ["one"])
+        except RuntimeError:
+            pass
+        else:
+            raise AssertionError("execution identity guard accepted an unexecuted request")
+    assert contract_uri("mcp_apps_fixture") == "ui://bifrost/bWNwX2FwcHNfZml4dHVyZQ/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw"
+    assert contract_uri("mcp_apps_fixture_second") != contract_uri("mcp_apps_fixture")
+    def execution(name, checks=(), failed=(), extra_failed=()):
+        return {"item": {"name": name}, "response": {"code": 200}, "assertions": [
+            *({"assertion": assertion, "error": {"name": "AssertionError"}} for assertion in failed),
+            *({"assertion": assertion, "error": None} for assertion in checks if assertion not in failed),
+            *({"assertion": assertion, "error": {"name": "AssertionError"}} for assertion in extra_failed)]}
+    def report(failing_sentinels=(), fail_invariants=(), include_generic=False):
+        executions = []
+        for feature_name, checks in BASELINE_SENTINELS.items():
+            for case, assertion in checks:
+                failed = [assertion] if case in failing_sentinels else []
+                generic = ["Response has content (text or tool_use)"] if include_generic and case == checks[0][0] else []
+                executions.append(execution(case, checks=[assertion, *generic], failed=failed + generic))
+        for feature_name, checks in BASELINE_INVARIANTS.items():
+            for case, assertion in checks:
+                failed = [assertion] if case in fail_invariants else []
+                executions.append(execution(case, checks=[assertion], failed=failed))
+        return {"run": {"executions": executions}}
+    stock_report = report({case for checks in BASELINE_SENTINELS.values() for case, _ in checks}, include_generic=True)
+    candidate_report = report()
+    for feature in BASELINE_SENTINELS:
+        subset = lambda source: {"run": {"executions": [e for e in source["run"]["executions"]
+                                                          if any(e["item"]["name"] == case for case, _ in BASELINE_SENTINELS[feature] + BASELINE_INVARIANTS[feature])]}}
+        expected = [case for case, _ in BASELINE_SENTINELS[feature] + BASELINE_INVARIANTS[feature]]
+        validate_executions(subset(stock_report), feature, len(expected), expected)
+        validate_executions(subset(candidate_report), feature, len(expected), expected)
+        compare_reports(subset(stock_report), subset(candidate_report), feature)
+        try:
+            compare_reports(subset(stock_report), subset(stock_report), feature)
+        except RuntimeError:
+            pass
+        else:
+            raise AssertionError("baseline comparator accepted a failing candidate sentinel")
+        broken_invariant = json.loads(json.dumps(subset(stock_report)))
+        invariant_case, invariant_assertion = BASELINE_INVARIANTS[feature][0]
+        item = executions_by_name(broken_invariant, feature)[invariant_case]
+        next(a for a in item["assertions"] if a["assertion"] == invariant_assertion)["error"] = {"name": "AssertionError"}
+        try:
+            compare_reports(broken_invariant, subset(candidate_report), feature)
+        except RuntimeError:
+            pass
+        else:
+            raise AssertionError("baseline comparator accepted a failing stock invariant")
+    broken_stock = report()
+    try:
+        compare_reports({"run": {"executions": [e for e in broken_stock["run"]["executions"]
+                                                if e["item"]["name"] in {case for case, _ in BASELINE_SENTINELS["codemode-errors"] + BASELINE_INVARIANTS["codemode-errors"]}]}},
+                        {"run": {"executions": [e for e in candidate_report["run"]["executions"]
+                                                if e["item"]["name"] in {case for case, _ in BASELINE_SENTINELS["codemode-errors"] + BASELINE_INVARIANTS["codemode-errors"]}]}},
+                        "codemode-errors")
+    except RuntimeError:
+        pass
+    else:
+        raise AssertionError("baseline comparator accepted a stock build with no red sentinel")
+    candidate_names = {case for case, _ in BASELINE_SENTINELS["codemode-errors"] + BASELINE_INVARIANTS["codemode-errors"]}
+    candidate_subset = {"run": {"executions": [e for e in candidate_report["run"]["executions"]
+                                              if e["item"]["name"] in candidate_names]}}
+    sentinel_case = BASELINE_SENTINELS["codemode-errors"][0][0]
+    candidate_sentinel = next(e for e in candidate_subset["run"]["executions"] if e["item"]["name"] == sentinel_case)
+    candidate_sentinel["assertions"][0]["error"] = {"name": "AssertionError"}
+    try:
+        compare_reports({"run": {"executions": [e for e in stock_report["run"]["executions"]
+                                                if e["item"]["name"] in candidate_names]}},
+                        candidate_subset, "codemode-errors")
+    except RuntimeError:
+        pass
+    else:
+        raise AssertionError("baseline comparator accepted a failing candidate sentinel")
+    with tempfile.TemporaryDirectory() as temp:
+        collection_path = Path(temp) / "collection.json"
+        collection_path.write_text(json.dumps({"item": [], "variable": []}))
+        seeds = seed_stock_uris(collection_path)
+        written = json.loads(collection_path.read_text())
+        assert {entry["key"]: entry["value"] for entry in written["variable"]} == seeds
     safe = redact({"Authorization": "Bearer sk-bf-example", "body": "token sk-bf-example"})
     assert safe == {"Authorization": "<redacted>", "body": "token <redacted>"}
     with tempfile.TemporaryDirectory() as temp:
@@ -147,7 +341,7 @@ def self_check():
         failure = json.loads((Path(temp) / "fixture-error.json").read_text())
         assert failure["error_type"] == "RuntimeError"
         assert "sk-bf-example" not in failure["message"] and "<redacted>" in failure["message"]
-    print("PASS fixture CI self-check (config scope, route and execution count guards, report redaction)")
+    print("PASS fixture CI self-check (config scope, route/name guards, baseline red/green comparator, URI seeds, report redaction)")
 
 
 def rpc(url, path, method, params, token):
@@ -168,7 +362,7 @@ def rpc(url, path, method, params, token):
         return response.status, json.loads(raw)
 
 
-def ready(url):
+def wait_health(url):
     deadline = time.monotonic() + 180
     while time.monotonic() < deadline:
         try:
@@ -178,7 +372,11 @@ def ready(url):
         except (OSError, urllib.error.URLError):
             time.sleep(1)
     else:
-        raise RuntimeError("candidate /health did not become ready within 180 seconds")
+        raise RuntimeError("gateway /health did not become ready within 180 seconds")
+
+
+def ready(url):
+    wait_health(url)
 
     routes = (("/mcp/mcp-apps-fixture", "full", False),
               ("/mcp/mcp-apps-full-virtual", "full", False),
@@ -226,10 +424,11 @@ def main(args):
     if args == ["--self-check"]:
         self_check()
         return 0
+    baseline = args[0] == "--baseline" if args else False
     if len(args) != 2:
-        print("usage: test-mcp-apps-fixture.sh IMAGE REPORT_DIR | --self-check", file=sys.stderr)
+        print("usage: test-mcp-apps-fixture.sh IMAGE REPORT_DIR | --baseline REPORT_DIR | --self-check", file=sys.stderr)
         return 2
-    image, report_dir_arg = args
+    image, report_dir_arg = (BASELINE_IMAGE if baseline else args[0]), args[1]
     if os.environ.get("GITHUB_ACTIONS") != "true":
         raise RuntimeError("Docker and harness execution is restricted to GitHub Actions; use --self-check locally")
     report_dir = Path(report_dir_arg).resolve()
@@ -262,15 +461,30 @@ def main(args):
         env = {"PATH": os.environ.get("PATH", "/usr/bin:/bin"),
                "HOME": os.environ.get("HOME", str(temp)), "TMPDIR": tmp,
                "USE_INFISICAL": "0", "CI": "1"}
+        harness_source = source
+        make_source_args = []
+        uri_seeds = {}
+        if baseline:
+            harness_source = temp / "stock-provider-harness.json"
+            shutil.copy2(source, harness_source)
+            uri_seeds = seed_stock_uris(harness_source)
+            make_source_args = [f"HARNESS_SOURCE_COLLECTION={harness_source}"]
         augmented = temp / "augmented.json"
-        subprocess.run(["node", str(augment), "--source", str(source), "--out", str(augmented)],
+        subprocess.run(["node", str(augment), "--source", str(harness_source), "--out", str(augmented)],
                        cwd=ROOT, env=env, check=True)
         counts = {}
+        expected_names = {}
         for feature, expected in (("mcp-apps", 37), ("codemode-errors", 2)):
             filtered = temp / f"filtered-{feature}.json"
             subprocess.run(["node", str(filter_script), "--source", str(augmented), "--out", str(filtered),
                             "--feature", feature], cwd=ROOT, env=env, check=True)
-            count = len(list(requests_in(json.loads(filtered.read_text()).get("item", []))))
+            filtered_data = json.loads(filtered.read_text())
+            filtered_items = list(items_in(filtered_data.get("item", [])))
+            names = [item.get("name") for item in filtered_items]
+            if not names or any(not name for name in names) or len(names) != len(set(names)):
+                raise RuntimeError(f"{feature}: filtered request names are missing or duplicated")
+            expected_names[feature] = names
+            count = len(list(requests_in(filtered_data.get("item", []))))
             counts[feature] = validate_collection(filtered, feature, expected)
         if "mcp-apps" not in counts:
             raise RuntimeError("mcp-apps filter produced no MCP requests")
@@ -295,10 +509,13 @@ def main(args):
             base_config = json.loads(config_path.read_text())
             # The three stdio children must exist in the read-only repo mount at these exact paths.
             assert len(base_config["mcp"]["client_configs"]) == 3
-            if subprocess.run(["docker", "image", "inspect", image], stdout=subprocess.DEVNULL,
+            if baseline:
+                subprocess.run(["docker", "pull", "--platform", "linux/amd64", image],
+                               cwd=ROOT, env=env, check=True)
+            elif subprocess.run(["docker", "image", "inspect", image], stdout=subprocess.DEVNULL,
                               stderr=subprocess.DEVNULL).returncode:
                 raise RuntimeError(f"candidate image not present in Docker: {image}")
-            subprocess.run(["docker", "run", "-d", "--user", f"{os.getuid()}:{os.getgid()}", "--name", container, "-p", "127.0.0.1::8080",
+            subprocess.run(["docker", "run", "-d", "--platform", "linux/amd64", "--user", f"{os.getuid()}:{os.getgid()}", "--name", container, "-p", "127.0.0.1::8080",
                             "-e", "APP_DIR=/fixture-data", "-e", "LOG_LEVEL=warn",
                             "-v", f"{ROOT}:/repo:ro", "-v", f"{app_dir}:/fixture-data",
                             "-w", "/repo/transports/bifrost-http", image],
@@ -307,7 +524,7 @@ def main(args):
             port_line = subprocess.check_output(["docker", "port", container, "8080/tcp"], text=True).splitlines()[0]
             port = int(port_line.rsplit(":", 1)[1])
             base_url = f"http://127.0.0.1:{port}"
-            ready(base_url)
+            ready(base_url) if not baseline else wait_health(base_url)
 
             pass_fail = 0
             runs = [("mcp-apps", 60)]
@@ -316,7 +533,7 @@ def main(args):
             for index, (feature, cap) in enumerate(runs, start=1):
                 command = ["make", "run-provider-harness-test", "CI=1", "PARALLEL=0",
                            f"FEATURE={feature}", f"BASE_URL={base_url}", f"APP_DIR={app_dir}",
-                           f"HARNESS_MAX_REQUESTS={cap}"]
+                           f"HARNESS_MAX_REQUESTS={cap}", *make_source_args]
                 log = temp / f"{feature}.log"
                 (ROOT / "tmp/newman-report.json").unlink(missing_ok=True)
                 (ROOT / "tmp/harness-failures.md").unlink(missing_ok=True)
@@ -327,15 +544,31 @@ def main(args):
                     shutil.copy2(ROOT / "tmp/newman-report.json", raw_report)
                 if (ROOT / "tmp/harness-failures.md").is_file():
                     shutil.copy2(ROOT / "tmp/harness-failures.md", raw_failures)
-                archive_report(log, report_dir / f"{feature}-runner.log")
-                archive_report(ROOT / "tmp/harness-quiet.log", report_dir / f"{feature}-harness.log")
-                report_ok = archive_report(raw_report, report_dir / f"{feature}-newman-report.json")
-                failures_ok = archive_report(raw_failures, report_dir / f"{feature}-harness-failures.md")
-                (report_dir / f"{feature}-exit-code.txt").write_text(str(rc) + "\n")
+                prefix = "stock-" if baseline else ""
+                archive_report(log, report_dir / f"{prefix}{feature}-runner.log")
+                archive_report(ROOT / "tmp/harness-quiet.log", report_dir / f"{prefix}{feature}-harness.log")
+                report_ok = archive_report(raw_report, report_dir / f"{prefix}{feature}-newman-report.json")
+                failures_ok = archive_report(raw_failures, report_dir / f"{prefix}{feature}-harness-failures.md")
+                (report_dir / f"{prefix}{feature}-exit-code.txt").write_text(str(rc) + "\n")
                 if not report_ok:
                     raise RuntimeError(f"{feature}: Make target produced no Newman JSON report")
-                validate_executions(json.loads(raw_report.read_text()), feature, counts[feature])
-                if rc:
+                report_data = json.loads(raw_report.read_text())
+                validate_executions(report_data, feature, counts[feature], expected_names[feature])
+                if baseline:
+                    if rc == 0:
+                        raise RuntimeError(f"{feature}: stock Newman run passed despite the expected red sentinels")
+                    candidate_path = report_dir / f"{feature}-newman-report.json"
+                    candidate_rc_path = report_dir / f"{feature}-exit-code.txt"
+                    if not candidate_path.is_file() or not candidate_rc_path.is_file() or candidate_rc_path.read_text().strip() != "0":
+                        raise RuntimeError("baseline comparison requires a complete passing candidate run first")
+                    candidate_data = json.loads(candidate_path.read_text())
+                    validate_executions(candidate_data, feature, counts[feature], expected_names[feature])
+                    comparison = compare_reports(report_data, candidate_data, feature)
+                    comparison.update({"stock_image": image, "stock_release_tag": "v2.2.4-amd64",
+                                       "seeded_contract_uris": uri_seeds})
+                    (report_dir / f"{feature}-comparison.json").write_text(json.dumps(comparison, indent=2) + "\n")
+                    print(f"PASS {feature} stock comparison (expected red sentinels, green invariants)", flush=True)
+                elif rc:
                     print(f"FAIL {feature} harness (exit {rc}); redacted reports: {report_dir}", flush=True)
                     pass_fail = rc
                 else:
@@ -347,7 +580,7 @@ def main(args):
             if container_started:
                 gateway_log = temp / "gateway.log"
                 run(["docker", "logs", container], ROOT, env, gateway_log)
-                archive_report(gateway_log, report_dir / "fixture-gateway.log")
+                archive_report(gateway_log, report_dir / ("stock-fixture-gateway.log" if baseline else "fixture-gateway.log"))
                 subprocess.run(["docker", "rm", "-f", container], cwd=ROOT, env=env, check=True,
                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             for path in created_bins:

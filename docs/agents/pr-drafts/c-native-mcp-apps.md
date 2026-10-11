@@ -12,7 +12,7 @@ iframe callback -> unambiguous admitted source
 
 - Schema and SQL regressions fail when gateway-only metadata is stored as flat Chat tools, then pass with the metadata envelope. Reload through `AddClient` is covered.
 - Focused core, config-store, handler and server checks pass. The fixture's MCP result decoder rejects an empty content type, then passes with valid text content.
-- The shared offline fixture passes all 37 MCP-only wire cases in CI run 38172752771 (143 assertions). The four real Apps pass all 79 API checks (three package servers pinned to 2.0.3; Excalidraw uses its public endpoint); all 16 reference-host App renders and four simultaneous connections pass. Checkpoint restoration and the final native Codex/release checks remain required before opening this PR. A full wire comparison against stock 2.2.4 has not been run; existing focused regressions supply only their own red/green evidence.
+- The shared offline fixture passes all 37 MCP-only wire cases in CI run 38172752771 (143 assertions). The four real Apps pass all 79 API checks (three package servers pinned to 2.0.3; Excalidraw uses its public endpoint); all 16 reference-host App renders and four simultaneous connections pass. CI run 38174168690 additionally passes checkpoint save/read restoration and all 18 reference-host cases in 47 seconds. The final native Codex/release checks remain required before opening this PR. A full wire comparison against stock 2.2.4 has not been run; existing focused regressions supply only their own red/green evidence.
 - See the existing fork architecture document for the reviewer diagram; fork QA files, CI and cloud tooling are excluded from this branch.
 
 ## Merge Danger
