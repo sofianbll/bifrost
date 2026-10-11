@@ -8,6 +8,18 @@
         "connection_string": "http://localhost:3012/sse",
         "tools_to_execute": ["*"],
         "tools_to_auto_execute": ["*"]
+      },
+      {
+        "name": "error-test-server",
+        "is_code_mode_client": true,
+        "connection_type": "stdio",
+        "stdio_config": {
+          "command": "go",
+          "args": ["-C", "../../examples/mcps/error-test-server", "run", "."],
+          "envs": ["GOWORK=off"]
+        },
+        "tools_to_execute": ["*"],
+        "tools_to_auto_execute": ["*"]
       }
     ]
   },
