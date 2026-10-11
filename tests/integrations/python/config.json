@@ -8,6 +8,19 @@
         "connection_string": "http://localhost:3012/sse",
         "tools_to_execute": ["*"],
         "tools_to_auto_execute": ["*"]
+      },
+      {
+        "name": "errorTestServer",
+        "endpoint_slug": "error-test-server",
+        "is_code_mode_client": true,
+        "connection_type": "stdio",
+        "stdio_config": {
+          "command": "go",
+          "args": ["-C", "../../examples/mcps/error-test-server", "run", "."],
+          "envs": ["GOWORK=off"]
+        },
+        "tools_to_execute": ["*"],
+        "tools_to_auto_execute": ["*"]
       }
     ]
   },
@@ -1080,6 +1093,21 @@
       }
     ],
     "virtual_keys": [
+      {
+        "id": "vk-codemode-errors",
+        "name": "Code Mode errors fixture",
+        "value": "sk-bf-codemode-errors",
+        "is_active": true,
+        "provider_configs": [],
+        "mcp_configs": [
+          {
+            "mcp_client_name": "errorTestServer",
+            "tools_to_execute": [
+              "*"
+            ]
+          }
+        ]
+      },
       {
         "name": "Test Key",
         "id": "vk-test",
