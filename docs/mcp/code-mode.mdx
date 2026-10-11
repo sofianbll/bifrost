@@ -391,7 +391,7 @@ Executes Python code in a sandboxed Starlark interpreter with access to all code
 - Assign to `result` variable to return a value
 - Tool execution timeout applies (default 30s)
 
-Errors returned by tools called from the script are values the script can inspect and handle; they do not by themselves fail `executeToolCode`. If the script itself fails, `executeToolCode` returns an MCP result with `isError: true` and the script error text.
+Errors returned by tools called from the script are values the script can inspect and handle; they do not by themselves fail `executeToolCode`. If the script itself fails, `executeToolCode` returns an MCP result with `isError: true` and the script error text. Exceptions raised by native Go handlers in `bifrostInternal` remain script execution failures, matching the existing upstream behavior.
 
 **Syntax notes:**
 - Use keyword arguments: `server.tool(param="value")` NOT `server.tool({"param": "value"})`
