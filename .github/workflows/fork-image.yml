@@ -105,16 +105,16 @@ jobs:
         if: matrix.arch == 'amd64'
         run: bash .github/workflows/scripts/test-mcp-apps-fixture.sh bifrost:candidate "$RUNNER_TEMP/mcpapps-fixture-reports"
       - name: Install existing Playwright dependency and Chromium
-        if: always() && matrix.arch == 'amd64' && steps.image-probe.outcome == 'success'
+        if: ${{ !cancelled() && matrix.arch == 'amd64' && steps.image-probe.outcome == 'success' }}
         run: |
           npm ci --prefix tests/e2e
           tests/e2e/node_modules/.bin/playwright install --with-deps chromium
       - name: Bootstrap pinned MCP Apps reference host
         id: reference-host
-        if: always() && matrix.arch == 'amd64' && steps.image-probe.outcome == 'success'
+        if: ${{ !cancelled() && matrix.arch == 'amd64' && steps.image-probe.outcome == 'success' }}
         run: node tests/mcpapps/bootstrap-reference-host.mjs --directory "$RUNNER_TEMP/ext-apps"
       - name: Qualify real MCP Apps and their reference-host rendering
-        if: always() && matrix.arch == 'amd64' && steps.image-probe.outcome == 'success' && steps.reference-host.outcome == 'success'
+        if: ${{ !cancelled() && matrix.arch == 'amd64' && steps.image-probe.outcome == 'success' && steps.reference-host.outcome == 'success' }}
         run: >-
           python3 tests/mcpapps/ci.py --image bifrost:candidate
           --work-dir "$RUNNER_TEMP/mcpapps-private"

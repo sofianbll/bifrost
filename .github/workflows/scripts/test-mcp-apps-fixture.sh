@@ -90,6 +90,12 @@ def redact(value):
     return value
 
 
+def write_failure_report(report_dir, error):
+    report_dir.mkdir(parents=True, exist_ok=True)
+    details = {"error_type": type(error).__name__, "message": redact(str(error))}
+    (report_dir / "fixture-error.json").write_text(json.dumps(details, indent=2) + "\n")
+
+
 def self_check():
     config = build_config()
     assert config["providers"] == {}
@@ -117,7 +123,12 @@ def self_check():
             raise AssertionError("inference route guard accepted a non-MCP request")
     safe = redact({"Authorization": "Bearer sk-bf-example", "body": "token sk-bf-example"})
     assert safe == {"Authorization": "<redacted>", "body": "token <redacted>"}
-    print("PASS fixture CI self-check (config scope, route guard, report redaction)")
+    with tempfile.TemporaryDirectory() as temp:
+        write_failure_report(Path(temp), RuntimeError("Authorization: Bearer sk-bf-example"))
+        failure = json.loads((Path(temp) / "fixture-error.json").read_text())
+        assert failure["error_type"] == "RuntimeError"
+        assert "sk-bf-example" not in failure["message"] and "<redacted>" in failure["message"]
+    print("PASS fixture CI self-check (config scope, route guard, report and early-failure redaction)")
 
 
 def rpc(url, path, method, params, token):
@@ -290,6 +301,8 @@ def main(args):
                     shutil.copy2(ROOT / "tmp/newman-report.json", raw_report)
                 if (ROOT / "tmp/harness-failures.md").is_file():
                     shutil.copy2(ROOT / "tmp/harness-failures.md", raw_failures)
+                archive_report(log, report_dir / f"{feature}-runner.log")
+                archive_report(ROOT / "tmp/harness-quiet.log", report_dir / f"{feature}-harness.log")
                 report_ok = archive_report(raw_report, report_dir / f"{feature}-newman-report.json")
                 failures_ok = archive_report(raw_failures, report_dir / f"{feature}-harness-failures.md")
                 (report_dir / f"{feature}-exit-code.txt").write_text(str(rc) + "\n")
@@ -305,6 +318,9 @@ def main(args):
             return pass_fail
         finally:
             if container_started:
+                gateway_log = temp / "gateway.log"
+                run(["docker", "logs", container], ROOT, env, gateway_log)
+                archive_report(gateway_log, report_dir / "fixture-gateway.log")
                 subprocess.run(["docker", "rm", "-f", container], cwd=ROOT, env=env, check=True,
                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             for path in created_bins:
@@ -315,6 +331,11 @@ if __name__ == "__main__":
     try:
         raise SystemExit(main(sys.argv[1:]))
     except (OSError, subprocess.CalledProcessError, RuntimeError, ValueError) as error:
+        if len(sys.argv) == 3:
+            try:
+                write_failure_report(Path(sys.argv[2]).resolve(), error)
+            except OSError:
+                print("fixture CI could not write the redacted failure report", file=sys.stderr)
         print(f"fixture CI failed: {error}", file=sys.stderr)
         raise SystemExit(1)
 PY

@@ -36,9 +36,10 @@ Three local Claude session logs from October 1–5 were inspected for this proje
 ## Current verification
 
 - [CI run 38155382598](https://github.com/sofianbll/bifrost/actions/runs/38155382598) tests code at `b80b3a38b6845578959ceb3063b4730be084c9c9`. Both MCP JUnit reports contain 699 cases, 29 skipped, zero failures and zero errors. Both architectures pass the gateway/UI build, race checks and dynamic plugin/image probe.
-- The AMD64 deterministic fixture step failed. Its diagnostic and the real-server/reference-host verdict are still being collected; no App gate is marked complete from the successful unit suites.
+- The AMD64 deterministic fixture step failed. The real-server/reference-host step did not finish within the observed job budget; the test-only run was cancelled, with the official conclusion updated at 17:35 UTC. The downloaded global log archive excludes AMD64 and no qualification artifact was available, so its fixture cause and rendering remain unestablished. No App gate is marked complete from the successful unit suites.
 - Local contribution builds passed on each branch with generated stock 2.2.4 UI assets; `npm run build-enterprise` passed build and type checking. Temporary build assets, dependencies and binaries were removed afterwards.
 - The local runner fixes select each Code Mode client's advertised native tool and locate the reference host's App frames without CSS Module class names. The mapping regression was observed red, then the Python/Node self-checks passed. They are not yet qualified by the current remote run.
+- The next runner retains redacted early failures, gateway logs and the harness quiet log. The real early-failure artifact path and self-check pass without Docker or harness execution. App gates now use `!cancelled()` while report upload retains `always()`; actionlint 1.7.12 passes (shellcheck and pyflakes were unavailable).
 - Three upstream PR bodies are prepared under `docs/agents/pr-drafts/`. No upstream PR, image tag, registry publication or deployment has been created.
 - The owner explicitly authorized recoverable cleanup of the three contribution worktrees. Native Codex archive requests returned `queued`; the directories remained present at verification. The chat was repinned. Treat cleanup as unconfirmed until the native artifact inventory shows archived worktrees.
 
