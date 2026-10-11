@@ -565,7 +565,7 @@ func (s *StarlarkCodeMode) callMCPTool(ctx *schemas.BifrostContext, clientName, 
 		}
 
 		rawResult := extractTextFromMCPResponse(toolResponse, effectiveToolName)
-		if after, ok := strings.CutPrefix(rawResult, "Error: "); ok {
+		if after, ok := strings.CutPrefix(rawResult, "Error: "); ok && (clientName == codemcp.BifrostMCPClientKey || toolResponse == nil || !toolResponse.IsError) {
 			s.logger.Debug("%s Tool returned error result: %s.%s - %s", codemcp.CodeModeLogPrefix, clientName, effectiveToolName, after)
 			appendLog(fmt.Sprintf("[TOOL] %s.%s error result: %s", clientName, effectiveToolName, after))
 			return nil, fmt.Errorf("%s", after)
@@ -575,9 +575,7 @@ func (s *StarlarkCodeMode) callMCPTool(ctx *schemas.BifrostContext, clientName, 
 		logToolName := strings.ReplaceAll(effectiveToolName, "-", "_")
 		appendLog(fmt.Sprintf("[TOOL] %s.%s raw response: %s", clientName, logToolName, resultStr))
 
-		// The "Error: " prefix check above catches results a server renders as text;
-		// this carries the protocol-level flag (mcp.CallToolResult.IsError) for
-		// servers that set it instead. Nil-guarded to match extractTextFromMCPResponse.
+		// Keep protocol-marked tool errors as values even when their text starts with "Error:".
 		return &schemas.BifrostMCPResponse{
 			ChatMessage: createToolResponseMessage(toolCallReq, rawResult, toolResponse != nil && toolResponse.IsError),
 			ExtraFields: schemas.BifrostMCPResponseExtraFields{

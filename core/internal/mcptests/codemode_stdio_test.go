@@ -1249,6 +1249,27 @@ result = {"error_message": r}`,
 	}
 }
 
+func TestCodeMode_STDIO_ErrorTestServer_ToolErrorIsValue(t *testing.T) {
+	t.Parallel()
+
+	_, bifrost := setupCodeModeWithSTDIOServers(t, "error-test-server")
+	toolCall := CreateExecuteToolCodeCall("call-tool-error-value", `message = errorTestServer.return_error(error_type="validation")
+result = {"error_message": message}`)
+	result, bifrostErr := bifrost.ExecuteChatMCPTool(createTestContext(), &toolCall)
+	require.Nil(t, bifrostErr, "a tool error handled by the script should not fail executeToolCode")
+	require.NotNil(t, result)
+	require.NotNil(t, result.Content)
+	require.NotNil(t, result.Content.ContentStr)
+	returnValue, hasError, errorMsg := ParseCodeModeResponse(t, *result.Content.ContentStr)
+	assert.False(t, hasError, "nested tool errors are values, not executeToolCode failures: %s", errorMsg)
+	resultMap, ok := returnValue.(map[string]interface{})
+	require.True(t, ok)
+	assert.Contains(t, resultMap["error_message"], "Validation")
+	if result.ChatToolMessage != nil && result.ChatToolMessage.IsError != nil {
+		assert.False(t, *result.ChatToolMessage.IsError, "executeToolCode should succeed when the script handles the nested tool error")
+	}
+}
+
 func TestCodeMode_STDIO_ErrorTestServer_MalformedAndPartial(t *testing.T) {
 	t.Parallel()
 
