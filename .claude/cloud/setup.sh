@@ -25,7 +25,8 @@ failed=0
 step() { echo "+ $*"; "$@" || { echo "FAILED: $*"; failed=$((failed + 1)); }; }
 
 GO_REQUIRED_VERSION=1.27.0
-GO_INSTALL_DIR="$HOME/.cache/bifrost-go/$GO_REQUIRED_VERSION"
+GO_CACHE_ROOT=${XDG_CACHE_HOME:-$HOME/.cache}
+GO_INSTALL_DIR="$GO_CACHE_ROOT/bifrost-go/$GO_REQUIRED_VERSION"
 BOOTSTRAPPED_GOROOT=
 
 go_version_at_least_auto() {
@@ -64,7 +65,7 @@ download_pinned_go() {
     darwin-arm64) checksum=90493b3bbd5e10f91d12153198bf1994fd756399b4fec93b49b0c6e2acdeeb3e ;;
   esac
   archive="go$GO_REQUIRED_VERSION.$go_os-$go_arch.tar.gz"
-  parent="$HOME/.cache/bifrost-go"
+  parent="$GO_CACHE_ROOT/bifrost-go"
   mkdir -p "$parent" || { echo "Could not create isolated Go cache"; return 1; }
   if [ -e "$GO_INSTALL_DIR" ] || [ -L "$GO_INSTALL_DIR" ]; then
     if [ -x "$GO_INSTALL_DIR/bin/go" ] && go_is_pinned "$GO_INSTALL_DIR/bin/go"; then

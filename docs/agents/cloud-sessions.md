@@ -12,13 +12,24 @@ Codex Cloud does not use the Claude SessionStart hook. When preparing the Codex 
 bash .claude/cloud/setup.sh --codex
 ```
 
-The script verifies that `go` is a real compiler supporting automatic toolchain selection (Go 1.21+). If it is missing, too old, or another program with the same name, it installs Go 1.27.0 from the official archive into `$HOME/.cache/bifrost-go/1.27.0`, verifies its pinned SHA-256 and compiler version, and reuses that isolated installation on later starts. It then prepares MCP test dependencies, reports any failed step with a nonzero exit status, and prints the platform and elapsed time. Detailed output goes to `$TMPDIR/cloud-setup-codex.log`. It accepts `gotestsum` already available on `PATH`; otherwise it checks the configured `go env GOBIN`, falling back to `go env GOPATH` plus `/bin`.
+The script verifies that `go` is a real compiler supporting automatic toolchain selection (Go 1.21+). If it is missing, too old, or another program with the same name, it installs Go 1.27.0 from the official archive into `${XDG_CACHE_HOME:-$HOME/.cache}/bifrost-go/1.27.0`, verifies its pinned SHA-256 and compiler version, and reuses that isolated installation on later starts. It then prepares MCP test dependencies, reports any failed step with a nonzero exit status, and prints the platform and elapsed time. Detailed output goes to `$TMPDIR/cloud-setup-codex.log`. It accepts `gotestsum` already available on `PATH`; otherwise it checks the configured `go env GOBIN`, falling back to `go env GOPATH` plus `/bin`.
+
+For a runtime with a read-only home directory, set these ordinary cache variables in the environment configuration. Use a verified writable directory outside the checkout; do not override `HOME` or change filesystem permissions.
+
+| Environment variable | Value for the inspected runtime |
+| --- | --- |
+| `XDG_CACHE_HOME` | `/workspace/.cache` |
+| `GOPATH` | `/workspace/.cache/go` |
+| `GOCACHE` | `/workspace/.cache/go-build` |
+| `npm_config_cache` | `/workspace/.cache/npm` |
+
+These values must apply in both the install and agent phases. They contain no credentials. Verify cache persistence in the second task; setting a writable path does not prove snapshot reuse.
 
 The current Codex Cloud guide describes an Install script and a published environment snapshot; if the setup flow instead opens a setup terminal, run the same command there. Resolve the test executable again in the agent phase instead of relying on the setup process to preserve its shell environment. Run tests in one shell block with the Go binary directory added explicitly:
 
 ```bash
 set -e
-bifrost_go="$HOME/.cache/bifrost-go/1.27.0"
+bifrost_go="${XDG_CACHE_HOME:-$HOME/.cache}/bifrost-go/1.27.0"
 if [[ $("$bifrost_go/bin/go" version 2>/dev/null) == "go version go1.27.0 "* ]]; then
   export GOROOT="$bifrost_go"
   export PATH="$GOROOT/bin:$PATH"

@@ -34,6 +34,7 @@ cat > "$t/tools/test" <<'STUB'
 STUB
 ln -s "$t/make" "$t/tools/make"
 ln -s "$t/node" "$t/tools/node"
+ln -s "$t/npm" "$t/tools/npm"
 cat > "$t/tools/uname" <<'STUB'
 #!/bin/sh
 case "$1" in
@@ -84,13 +85,13 @@ exit 0
 GO
 chmod +x "$dest/go/bin/go"
 STUB
-chmod +x "$t/tools/"*
+chmod +x "$t/tools/test" "$t/tools/uname" "$t/tools/curl" "$t/tools/sha256sum" "$t/tools/tar"
 
 # run [ENV=val ...]: runs setup.sh in a clean env; leaves $t/calls, $t/out; echoes its exit code.
-run() { : > "$t/calls"; env -i PATH="$t:/usr/bin:/bin" HOME="$t/home" TMPDIR="$t" CALLS="$t/calls" "$@" "$(command -v bash)" "$here/setup.sh" > "$t/out" 2>&1; echo $?; }
+run() { : > "$t/calls"; env -i PATH="$t/tools:$t" HOME="$t/home" TMPDIR="$t" CALLS="$t/calls" "$@" "$(command -v bash)" "$here/setup.sh" > "$t/out" 2>&1; echo $?; }
 run_codex() {
   : > "$t/calls"
-  local run_path="$t:/usr/bin:/bin" assignment stub_go_version= bad_checksum=0 fail_download=0 test_uname_os=Linux test_uname_arch=x86_64 fail_on= goenv_gobin= claude_env_file= playwright=
+  local run_path="$t/tools:$t" assignment stub_go_version= bad_checksum=0 fail_download=0 test_uname_os=Linux test_uname_arch=x86_64 fail_on= goenv_gobin= claude_env_file= playwright= xdg_cache_home=
   for assignment in "$@"; do
     case "$assignment" in
       RUN_PATH=*) run_path=${assignment#RUN_PATH=} ;;
@@ -103,9 +104,10 @@ run_codex() {
       GOENV_GOBIN=*) goenv_gobin=${assignment#GOENV_GOBIN=} ;;
       CLAUDE_ENV_FILE=*) claude_env_file=${assignment#CLAUDE_ENV_FILE=} ;;
       BIFROST_CLOUD_PLAYWRIGHT=*) playwright=${assignment#BIFROST_CLOUD_PLAYWRIGHT=} ;;
+      XDG_CACHE_HOME=*) xdg_cache_home=${assignment#XDG_CACHE_HOME=} ;;
     esac
   done
-  env -i PATH="$run_path" HOME="$t/home" TMPDIR="$t" CALLS="$t/calls" \
+  env -i PATH="$run_path" HOME="$t/home" XDG_CACHE_HOME="$xdg_cache_home" TMPDIR="$t" CALLS="$t/calls" \
     EXPECTED_GO_SHA256=675c26c449cbb18fc24b74650de1eabbae6e16f64326fd85a283fb3b58280685 \
     BAD_GO_CHECKSUM="$bad_checksum" FAIL_GO_DOWNLOAD="$fail_download" STUB_GO_VERSION="$stub_go_version" TEST_UNAME_OS="$test_uname_os" TEST_UNAME_ARCH="$test_uname_arch" \
     FAIL_ON="$fail_on" GOENV_GOBIN="$goenv_gobin" CLAUDE_ENV_FILE="$claude_env_file" BIFROST_CLOUD_PLAYWRIGHT="$playwright" \
@@ -171,6 +173,13 @@ check "Codex: installed toolchain stays under isolated cache" '[ -x "$t/home/.ca
 
 rc=$(run_codex RUN_PATH="$t/tools")
 check "Codex: cached Go toolchain is reused without another download" '[ "$rc" = 0 ] && ! grep -q "^curl " "$t/calls" && grep -q "go list -deps -test ./mcp/... @ core" "$t/calls"'
+
+rm -rf "$t/home/.cache" "$t/custom-cache"
+rc=$(run_codex RUN_PATH="$t/tools" XDG_CACHE_HOME="$t/custom-cache")
+check "Codex: honors XDG_CACHE_HOME for isolated Go install" '[ "$rc" = 0 ] && [ -x "$t/custom-cache/bifrost-go/1.27.0/bin/go" ] && [ ! -e "$t/home/.cache/bifrost-go/1.27.0/bin/go" ]'
+
+rc=$(run_codex RUN_PATH="$t/tools" XDG_CACHE_HOME="$t/custom-cache")
+check "Codex: reuses Go from custom XDG cache" '[ "$rc" = 0 ] && ! grep -q "^curl " "$t/calls" && grep -q "go list -deps -test ./mcp/... @ core" "$t/calls"'
 
 rm -rf "$t/home/.cache"
 rc=$(run_codex RUN_PATH="$t/tools:$t" STUB_GO_VERSION='not the Go compiler')
