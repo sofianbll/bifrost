@@ -29,8 +29,9 @@ def load_manifest():
     assert set(data["apps"]) == {"excalidraw", "pdf", "debug", "monitor"}
     assert len(data["routes"]["direct"]) == 4 and len(data["routes"]["code_mode"]) == 4
     assert data["pdf_tool_execution_timeout"] == "60s" and data["pdf_long_poll_seconds"] == 30
-    for app in data["apps"].values():
-        assert app["native_name"] and app["native_arguments"] is not None and app["code"]
+    for name, app in data["apps"].items():
+        assert app["native_name"].startswith(name + "-") and app["native_arguments"] is not None and app["code"]
+        app["code_native_name"] = app["code_namespace"] + "-" + app["native_name"].removeprefix(name + "-")
     for name in ("pdf", "debug", "monitor"):
         assert data["apps"][name]["version"] == "2.0.3"
     return data
@@ -119,8 +120,7 @@ def qualify(base_url, credentials, manifest, report):
                   "content_blocks": len(result.get("content", [])), "has_structured_content": bool(result.get("structuredContent"))})
     for app, path in manifest["routes"]["code_mode"].items():
         key = "code_mode"
-        name = manifest["apps"][app]["native_name"].removeprefix(app + "-")
-        name = manifest["apps"][app]["code_namespace"] + "-" + name
+        name = manifest["apps"][app]["code_native_name"]
         status, body = rpc(base_url, path, "initialize", init, token(key))
         check(f"code-mode/{app}: initialize", result_ok(status, body), {"http_status": status})
         status, body = rpc(base_url, path, "tools/list", {}, token(key))
@@ -250,6 +250,10 @@ def cleanup_resources(started, network_created, image_built, network, image, com
 
 def self_check():
     manifest = load_manifest()
+    assert {name: entry["code_native_name"] for name, entry in manifest["apps"].items()} == {
+        "excalidraw": "code_excalidraw-create_view", "pdf": "code_pdf-display_pdf",
+        "debug": "code_debug-debug-tool", "monitor": "code_monitor-get-system-info",
+    }
     assert sum(len(manifest["routes"][kind]) for kind in ("direct", "code_mode")) == 8
     assert len(manifest["routes"]["direct"]) * 3 + len(manifest["routes"]["code_mode"]) == 16
     assert all(manifest["apps"][name]["package"] and manifest["apps"][name]["version"] == "2.0.3"
@@ -378,7 +382,7 @@ def main():
         qualification_manifest = {
             "base_url": base_url,
             "apps": {name: {key: value for key, value in entry.items()
-                            if key in ("native_name", "native_arguments", "html_resource_required")}
+                            if key in ("native_name", "code_native_name", "native_arguments", "html_resource_required")}
                      for name, entry in manifest["apps"].items()},
             "routes": manifest["routes"],
             "credentials_file": str(credentials_path),

@@ -87,6 +87,12 @@ function successfulToolResult(result) {
   return Boolean(result && result.hasResult && !result.rpcError && !result.isError);
 }
 
+function nativeToolName(app, mode) {
+  const name = mode === "code_mode" ? app.code_native_name : app.native_name;
+  if (typeof name !== "string" || !name) fail(`Missing native tool for ${mode}`);
+  return name;
+}
+
 async function selfCheck() {
   const manifest = { routes: {
     direct: { excalidraw: "/mcp/excalidraw" },
@@ -94,6 +100,10 @@ async function selfCheck() {
     virtual: "/mcp/codeapps",
     aggregate: "/mcp",
   } };
+  const app = { native_name: "debug-debug-tool", code_native_name: "code_debug-debug-tool" };
+  assert.equal(nativeToolName(app, "normal"), "debug-debug-tool");
+  assert.equal(nativeToolName(app, "code_mode"), "code_debug-debug-tool");
+  assert.throws(() => nativeToolName({ native_name: app.native_name }, "code_mode"), /Missing native tool/);
   assert.equal(routePath(manifest, "direct", "excalidraw"), "/mcp/excalidraw");
   assert.equal(routePath(manifest, "code_mode", "excalidraw"), "/mcp/excalidraw-code");
   assert.equal(routePath(manifest, "virtual", "excalidraw"), "/mcp/codeapps");
@@ -110,7 +120,7 @@ async function selfCheck() {
   const occupiedPort = await listen(occupied);
   try { assert.equal(await portAvailable(occupiedPort), false); }
   finally { await new Promise((resolvePromise) => occupied.close(resolvePromise)); }
-  console.log("PASS renderer self-check (route mapping, JSON-RPC failures, credential redaction, port availability); no host was launched");
+  console.log("PASS renderer self-check (route and native tool mapping, JSON-RPC failures, credential redaction, port availability); no host was launched");
 }
 
 function classifyFailure(appId, error) {
@@ -365,6 +375,7 @@ async function waitFor(predicate, timeoutMs, message) {
 async function renderCase(browser, manifest, credentials, appId, route, mode, outDir, secrets, timeoutMs) {
   const app = manifest.apps[appId];
   if (!app || typeof app.native_name !== "string" || !app.native_name) fail(`Missing native tool for ${appId}`);
+  const toolName = nativeToolName(app, mode);
   const routeKey = mode === "code_mode" ? "code_mode" : route;
   const gatewayPath = routePath(manifest, routeKey, appId);
   const headers = credentials[routeKey] ?? credentials[route] ?? {};
@@ -374,12 +385,12 @@ async function renderCase(browser, manifest, credentials, appId, route, mode, ou
   const id = `${appId}-${mode === "code_mode" ? "direct-codemode" : route}`;
   try {
     target = await startHost(option("--host-dir", ""), [proxy.url]);
-    browserState = await pageLogs(browser, target, { tool: app.native_name, input: app.native_arguments ?? {} }, timeoutMs, secrets);
-    await waitFor(() => proxy.calls.some((call) => call.results.some((result) => result.name === app.native_name)), timeoutMs, "The native App tool result did not complete");
+    browserState = await pageLogs(browser, target, { tool: toolName, input: app.native_arguments ?? {} }, timeoutMs, secrets);
+    await waitFor(() => proxy.calls.some((call) => call.results.some((result) => result.name === toolName)), timeoutMs, "The native App tool result did not complete");
     const calls = proxy.calls.flatMap((call) => call.toolCalls);
-    if (!calls.some((call) => call.name === app.native_name)) fail(`Reference host did not call ${app.native_name}`);
-    const result = proxy.calls.flatMap((call) => call.results).find((item) => item.name === app.native_name);
-    if (!successfulToolResult(result)) fail(`Reference host tool call ${app.native_name} did not complete successfully`);
+    if (!calls.some((call) => call.name === toolName)) fail(`Reference host did not call ${toolName}`);
+    const result = proxy.calls.flatMap((call) => call.results).find((item) => item.name === toolName);
+    if (!successfulToolResult(result)) fail(`Reference host tool call ${toolName} did not complete successfully`);
     await assertAppContent(browserState.iframe, appId, result.result, timeoutMs);
     const screenshot = await screenshotAndAssert(browserState.page, browserState.iframe, join(outDir, `${id}.png`), timeoutMs);
     return { id, app: appId, route: mode === "code_mode" ? "direct" : route, mode, status: "passed", ...screenshot, gatewayPath, hostLogs: redact(target.logs.join(""), secrets), console: browserState.logs };
