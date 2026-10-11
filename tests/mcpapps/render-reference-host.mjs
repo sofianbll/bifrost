@@ -389,13 +389,13 @@ async function pageLogs(browser, target, runCase, timeoutMs, secrets) {
     await serverSelect.locator("option").first().waitFor({ state: "attached", timeout: formTimeout });
     try {
       await waitFor(async () => (await toolSelect.locator("option").evaluateAll((options) => options.map((option) => option.value)))
-        .then((values) => values.includes(runCase.tool)), formTimeout, `Reference host did not expose tool ${runCase.tool}`);
-    } catch {
+        .includes(runCase.tool), formTimeout, `Reference host did not expose tool ${runCase.tool}`);
+    } catch (error) {
       const [servers, tools] = await Promise.all([
         serverSelect.locator("option").evaluateAll((options) => options.map((option) => option.textContent?.trim() ?? "")),
         toolSelect.locator("option").evaluateAll((options) => options.map((option) => option.value)),
       ]);
-      fail(`Reference host form did not expose ${runCase.tool}; servers=${JSON.stringify(servers)}, tools=${JSON.stringify(tools)}`);
+      fail(`Reference host form did not expose ${runCase.tool}; servers=${JSON.stringify(servers)}, tools=${JSON.stringify(tools)}; cause=${redact(error.message, secrets)}`);
     }
     await toolSelect.selectOption(runCase.tool, { timeout: formTimeout });
     await page.getByLabel(/^Input/).fill(JSON.stringify(runCase.input), { timeout: formTimeout });
