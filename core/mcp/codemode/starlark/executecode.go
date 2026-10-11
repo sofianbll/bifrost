@@ -547,7 +547,7 @@ func (s *StarlarkCodeMode) callMCPTool(ctx *schemas.BifrostContext, clientName, 
 		}
 
 		rawResult := extractTextFromMCPResponse(toolResponse, effectiveToolName)
-		if after, ok := strings.CutPrefix(rawResult, "Error: "); ok && (toolResponse == nil || !toolResponse.IsError) {
+		if after, ok := strings.CutPrefix(rawResult, "Error: "); ok && (clientName == codemcp.BifrostMCPClientKey || toolResponse == nil || !toolResponse.IsError) {
 			s.logger.Debug("%s Tool returned error result: %s.%s - %s", codemcp.CodeModeLogPrefix, clientName, effectiveToolName, after)
 			appendLog(fmt.Sprintf("[TOOL] %s.%s error result: %s", clientName, effectiveToolName, after))
 			return nil, fmt.Errorf("%s", after)
