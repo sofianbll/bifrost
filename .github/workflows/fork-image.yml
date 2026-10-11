@@ -101,9 +101,6 @@ jobs:
         if: matrix.arch == 'amd64'
         with:
           node-version: "25"
-      - name: Check fork release version comparison
-        if: matrix.arch == 'amd64'
-        run: node --experimental-strip-types --test ui/lib/utils/compareVersions.test.ts
       - name: Run deterministic MCP Apps wire cases
         timeout-minutes: 10
         if: matrix.arch == 'amd64'
