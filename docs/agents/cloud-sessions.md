@@ -12,11 +12,17 @@ Codex Cloud does not use the Claude SessionStart hook. When preparing the Codex 
 bash .claude/cloud/setup.sh --codex
 ```
 
-The script prepares the pinned Go toolchain and MCP test dependencies, reports any failed step with a nonzero exit status, and prints the platform and elapsed time. Detailed output goes to `$TMPDIR/cloud-setup-codex.log`. It accepts `gotestsum` already available on `PATH`; otherwise it checks the configured `go env GOBIN`, falling back to `go env GOPATH` plus `/bin`.
+The script verifies that `go` is a real compiler supporting automatic toolchain selection (Go 1.21+). If it is missing, too old, or another program with the same name, it installs Go 1.27.0 from the official archive into `$HOME/.cache/bifrost-go/1.27.0`, verifies its pinned SHA-256 and compiler version, and reuses that isolated installation on later starts. It then prepares MCP test dependencies, reports any failed step with a nonzero exit status, and prints the platform and elapsed time. Detailed output goes to `$TMPDIR/cloud-setup-codex.log`. It accepts `gotestsum` already available on `PATH`; otherwise it checks the configured `go env GOBIN`, falling back to `go env GOPATH` plus `/bin`.
 
 The current Codex Cloud guide describes an Install script and a published environment snapshot; if the setup flow instead opens a setup terminal, run the same command there. Resolve the test executable again in the agent phase instead of relying on the setup process to preserve its shell environment. Run tests in one shell block with the Go binary directory added explicitly:
 
 ```bash
+set -e
+bifrost_go="$HOME/.cache/bifrost-go/1.27.0"
+if [[ $("$bifrost_go/bin/go" version 2>/dev/null) == "go version go1.27.0 "* ]]; then
+  export GOROOT="$bifrost_go"
+  export PATH="$GOROOT/bin:$PATH"
+fi
 export GOTOOLCHAIN=auto
 if ! command -v gotestsum >/dev/null 2>&1; then
   go_bin="$(go env GOBIN)"
@@ -29,9 +35,9 @@ go version
 make test-mcp
 ```
 
-This lets the Makefile's `install-gotestsum` check and the later direct `gotestsum` invocation use the same executable, without assuming or changing a system-wide PATH. Codex Cloud documents Install script setup and isolated task workspaces in its [Cloud environments guide](https://learn.chatgpt.com/docs/environments/cloud-environments); add this script in the environment configuration, review the setup report, then publish or republish the environment before starting a new task. Package-manager network access covers the Go proxy/sums and npm registries needed here; this workflow needs no provider APIs.
+This resolves the isolated compiler before calling `go env` in the new shell. It lets the Makefile's `install-gotestsum` check and the later direct `gotestsum` invocation use the same executable, without assuming or changing a system-wide PATH. Codex Cloud documents Install script setup and isolated task workspaces in its [Cloud environments guide](https://learn.chatgpt.com/docs/environments/cloud-environments); add this script in the environment configuration, review the setup report, then publish or republish the environment before starting a new task. Package-manager network access covers the official Go archive host (`dl.google.com`), Go proxy/sums and npm registries needed here; this workflow needs no provider APIs.
 
-Verify in the first Codex Cloud task with the command block above. Record the `cloud-setup (codex)` platform/timing line and the test results when assessing setup overhead. This repository change does not configure or publish the user's Codex Cloud environment, and the script has not been run in an actual cloud task.
+Verify the prepared environment before publication, then run the command block above in two new Codex Cloud tasks: the first from the published snapshot and a second after preparation is cached. Record task creation, runtime readiness, the `cloud-setup (codex)` platform/timing line and test results separately; script time alone is not VM startup time. Editing a draft does not rerun setup in an existing task. Actual cloud qualification is tracked in [the recovery ledger](mcp-apps-recovery.md).
 
 ## Claude Code Cloud
 
@@ -52,12 +58,9 @@ What it does: resolves the Go toolchain pinned by `go.work` (Go 1.21+ downloads 
 
 ## Playwright (opt-in)
 
-Not needed for fork issue #13, which runs in GitHub Actions. The browser CDN is not on the Trusted list, so it is off by default. To turn it on:
+Set `BIFROST_CLOUD_PLAYWRIGHT=1` in the install command to check a headless browser. The script reuses `chromium` or `chromium-browser` already on PATH, installs the locked npm dependencies and passes its executable path explicitly to Playwright. This requires no browser CDN access.
 
-1. Network access: **Custom**, include the defaults, and add `cdn.playwright.dev` and `playwright.download.prss.microsoft.com`. These hosts are from Playwright's own download logic, not from the cloud docs; if the install fails, the log names the host it could not reach.
-2. Environment variable: `BIFROST_CLOUD_PLAYWRIGHT=1`.
-
-The script then runs `make install-playwright` (`npm ci` plus `playwright install --with-deps chromium`) and launches Chromium headless once as a check. The setup script runs as root, which `--with-deps` (apt) needs. Expect this to push the setup script towards the five-minute cache limit.
+When no system Chromium exists, the existing `make install-playwright` fallback downloads Playwright Chromium and its OS dependencies. That fallback needs browser CDN access (`cdn.playwright.dev` and `playwright.download.prss.microsoft.com`) and apt permissions; request any required network change before applying it. A successful browser launch is a dependency check, not MCP App rendering proof. #13 has separate GitHub Actions rendering evidence.
 
 ## Verify in the first cloud session
 
@@ -70,14 +73,21 @@ go version && command -v gotestsum gcc          # toolchain 1.27.x, gotestsum on
 make test-mcp                                   # see the known failures below
 ```
 
-**Historical failures on the preserved branch.** The October 5 CI and local run on `feature/mcp-apps-native` recorded: 7 `TestCodeMode_STDIO_ErrorTestServer_*` tests in `core/internal/mcptests/codemode_stdio_test.go` still assert the pre-`50e9bd199` behavior (a failing nested tool must not raise an execution error). A local run of 698 tests (29 skipped) had only those 7 failures. The 2.2.4 stack preserves upstream Chat tool-error values, as chosen by the owner on October 11. All tests must pass on the new stack; the seven historical failures are not accepted failures for it. See [the recovery ledger](mcp-apps-recovery.md) for current verification gates.
+**Historical failures on the preserved branch.** The October 5 CI and local run on `feature/mcp-apps-native` recorded: 7 `TestCodeMode_STDIO_ErrorTestServer_*` tests in `core/internal/mcptests/codemode_stdio_test.go` still assert the pre-`50e9bd199` behavior (a failing nested tool must not raise an execution error). A local run of 698 tests (29 skipped) had only those 7 failures. The active 2.2.6 stack preserves upstream Chat tool-error values, as chosen by the owner on October 11. All tests must pass on the new stack; the seven historical failures are not accepted failures for it. See [the recovery ledger](mcp-apps-recovery.md) for current verification gates.
 
 **Start-up overhead** (a criterion of #3). The `cloud-setup: ok in Ns` line times the script only, not VM provisioning. Compare two sessions: the first in a fresh environment (cold: the setup script runs, then the hook) and a second started after the environment cache exists (warm: the hook only). Compare each session's start-to-first-prompt time at claude.ai/code, and post both numbers and the `cloud-setup` lines as a comment on #3. If the setup script exceeds roughly five minutes, the environment is not cached; drop the slowest step from it and let the hook do that step.
 
-With the Playwright opt-in on, also run `(cd tests/e2e && node -e "require('@playwright/test').chromium.launch().then(b => b.close())")`; it exits 0 when headless Chromium launches.
+With the Playwright opt-in on, use the same installed browser in the agent phase:
+
+```bash
+bifrost_chromium=$(command -v chromium || command -v chromium-browser || true)
+(cd tests/e2e && node -e "require('@playwright/test').chromium.launch(process.argv[1] ? {executablePath: process.argv[1]} : {}).then(b => b.close())" "$bifrost_chromium")
+```
+
+Exit 0 confirms a headless launch; retain any failure as a failed cloud gate.
 
 If `go version` fails because `GOTOOLCHAIN` is `local`, add `GOTOOLCHAIN=auto` as an environment variable. If the setup script does not find the repo, the hook still does the same work on every session; fix the path in the setup script field.
 
 The environment facts above (Trusted domains incl. the Ubuntu apt mirrors, the setup script running as root, the roughly five-minute cache limit and seven-day expiry, SessionStart hooks having a 600 s timeout) are from <https://code.claude.com/docs/en/cloud-environments> as read on 2026-10-05. The working directory of the setup script is not documented, hence the check above.
 
-`bash .claude/cloud/setup.test.sh` checks the script's own logic (no-op outside the cloud, step order, failures never abort, Playwright opt-in) against stubbed tools, with no network.
+`bash .claude/cloud/setup.test.sh` checks the script's own logic (Claude no-op/best-effort, Codex failures, verified Go installation/cache and Playwright reuse/fallback) against stubbed tools, with no network.

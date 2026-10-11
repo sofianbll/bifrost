@@ -56,6 +56,8 @@ jobs:
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "publish=$publish" >> "$GITHUB_OUTPUT"
+      - name: Check cloud bootstrap logic
+        run: bash .claude/cloud/setup.test.sh
       - name: Check image version convention
         run: python3 .github/workflows/scripts/fork-image-identity.test.py
       - uses: step-security/setup-buildx-action@f931205d68723ad9589fd2a7e2ece238bf9de341 # v4.0.0
