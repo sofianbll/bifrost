@@ -10,8 +10,8 @@ native Go exception / script failure -> MCP isError
 ## Evidence
 
 - Before: the handler regression loses `isError`; the legacy fork also fails seven STDIO error scenarios.
-- After: focused handler and Starlark checks pass. Both architecture reports in CI run 38155382598 contain 699 cases, 29 skipped, zero failures and zero errors; the seven legacy failures and native-handler regression pass without changing upstream expectations.
-- Two offline error-test-server harness cases are included. Full verification is tracked in the recovery ledger; do not mark this ready until the fixture wire gate passes.
+- After: focused handler and Starlark checks pass. Both architecture reports in CI run 38172752771 contain 699 total cases, 670 passed, 29 skipped, zero failures and zero errors; the seven legacy failures and native-handler regression pass without changing upstream expectations.
+- Both offline error-test-server wire cases pass in CI run 38172752771 (2 requests, 6 assertions, no assertion failure). Full release verification is tracked in the recovery ledger.
 
 ## Merge Danger
 

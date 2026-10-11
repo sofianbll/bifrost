@@ -10,7 +10,7 @@ MCP clients -> governance keys -> Virtual MCP attachments
 
 - Before: `TestLoadConfig_FirstBootVirtualMCPVirtualKeyAssignment` is red on stock 2.2.4: expected `vk-1`, actual no attachment.
 - After: the same test passes, including `-race -count=20` (18.033 seconds). Focused checks pass again after stack integration.
-- Wire verification comes from the fixture gate on the integration branch. The old persistent-connection HTTP 403 remains a separate unresolved diagnosis.
+- Wire verification passes in the integration branch fixture gate of CI run 38172752771 (37 MCP Apps requests, 143 assertions, no assertion failure), including Virtual MCPs created from an empty store. The old persistent-connection HTTP 403 remains a separate unresolved diagnosis.
 
 ## Merge Danger
 
