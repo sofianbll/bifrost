@@ -17,7 +17,7 @@ The owner selected the current stable release on October 11. The active base is 
 - D226 preserves upstream's OSS setup lock and its new UI tests. Private test `/api` calls use a synthetic setup token; `/mcp` keeps VK auth/grants. The official stock image is pinned to linux/amd64 digest `sha256:fde9a1dc6c04c847c31ad93c89703fcc62a13c53ac0be824fe30171f5fbc620c`. The 2.2.6 fixture/stock and real-App/browser gates pass in CI 38181001842.
 - Production upgrade preparation must account for explicit OAuth `issuer_url`, private management API setup auth, and two automatic `model_pricing` migrations found in the source. They add five nullable pricing columns; the changelog's claim of no migrations is not a DDL guarantee. No production store or deployment was touched.
 - The private Codex Cloud draft now pins the CI-qualified 2.2.6 code commit `e1ca7961489c07d348fe19c95fc26a423dffb64a` and fetches `codex/mcp-apps-fork-226`. The owner-side UI confirms All changes saved, Only me, no secrets, unchanged network preset and no publication. This supersedes the historical 931447c91 Install pin below. Screenshot: `/private/tmp/bifrost-cloud-draft-226-script-20261012.png`. No further machine/proxy retry was made; bootstrap, Chromium and cold/warm timings remain unqualified after the failed probes.
-- GitHub #4, #8, #10, #12 and #13 were closed with explicit owner authorization and their 2.2.4 proof. Those historical closures are now requalified by the 2.2.6 run above. #5–#7/#9 pass their wire gates and remain open awaiting owner closure authorization. #3 (cloud proxy), #11 (old HTTP/OAuth 403), #14 (release/native Codex/dogfood), and native worktree cleanup remain outstanding.
+- GitHub #4, #8, #10, #12 and #13 were closed with explicit owner authorization and their 2.2.4 proof. Those historical closures are now requalified by the 2.2.6 run above. The owner approved closure of #5, #6, #7 and #9 on October 12. Their criteria and proof comments were updated; their closed states were verified on GitHub. #3 (cloud proxy), #11 (old HTTP/OAuth 403), #14 (release/native Codex/dogfood), and native worktree cleanup remain outstanding.
 
 ## Preserved starting point
 
@@ -72,13 +72,13 @@ Three local Claude session logs from October 1–5 were inspected for this proje
 ## Completion gates
 
 - [x] #4 new-base qualification: local 226 stack assembled; each lower branch builds independently; old branch preserved; new branch names recorded on the fork.
-- [x] #5–#7 wire qualification: 37 exact candidate and stock 2.2.6 requests pass the comparator in CI 38181001842; eight named stock red sentinels and six green invariants are confirmed. GitHub closure awaits owner authorization. Existing green invariants are not reported as regressions.
-- [x] #8–#9 new-base wire qualification: compatible unit/STDIO checks and docs pass; both exact wire cases pass in CI 38181001842 with six assertions. Stock script failure is red, remote nested validation error remains a green invariant. #9 GitHub closure awaits owner authorization.
+- [x] #5–#7 wire qualification: 37 exact candidate and stock 2.2.6 requests pass the comparator in CI 38181001842; eight named stock red sentinels and six green invariants are confirmed. Tickets #5, #6 and #7 are closed with explicit owner authorization. Existing green invariants are not reported as regressions.
+- [x] #8–#9 new-base wire qualification: compatible unit/STDIO checks and docs pass; both exact wire cases pass in CI 38181001842 with six assertions. Stock script failure is red, remote nested validation error remains a green invariant. Ticket #9 is closed with explicit owner authorization.
 - [x] #10 new-base qualification: red/green on the 2.2.6 startup path, race20 and shared Virtual MCP wire from an empty store pass.
-- [ ] #11: persistent-connection 403 reproduced and compared with stock upstream, or explicitly left unresolved with evidence limits.
+- [ ] #11: the owner is unsure whether the existing-store persistent-connection 403 still occurs and requests checking it at the final test. #14 includes this check; reproduction and cause remain unverified.
 - [x] #12 new-base qualification: the four real Apps pass the 80/80 integrated protocol/qualification gate on 2.2.6 in CI 38181001842.
 - [x] #13 new-base qualification: reference-host 18/18 on 2.2.6 in 48 seconds, including checkpoint save/read from a fresh view. Native Codex and complete viewport framing remain #14.
 - [ ] #3: actual Codex Cloud task, headless browser launch and cold/warm startup timing verified. The owner selected Codex instead of Claude; a bootstrap self-check alone cannot establish these.
-- [ ] #14: approved release image, explicit Pulsar deployment, owner-selected dogfood period, final Codex render/edit/partial-input check, then upstream PRs.
+- [ ] #14: approved release image, explicit Pulsar deployment, owner-selected dogfood period, final Codex render/edit/partial-input and existing-store 403 checks, then upstream PRs.
 
 Do not close a ticket merely because its code was ported. Record implemented, tested locally, CI-qualified and released as separate states. Production deployment and several days of dogfooding remain a separate owner gate; no tag or deployment is implied by a branch push.
