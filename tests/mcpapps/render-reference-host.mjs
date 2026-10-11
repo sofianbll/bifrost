@@ -382,8 +382,9 @@ async function pageLogs(browser, target, runCase, timeoutMs, secrets) {
   page.on("requestfailed", (request) => logs.push({ type: "requestfailed", text: redact(`${request.method()} ${request.url()}: ${request.failure()?.errorText ?? "unknown"}`, secrets) }));
   try {
     await page.goto(`${target.hostUrl}/?tool=${encodeURIComponent(runCase.tool)}&theme=hide`, { waitUntil: "domcontentloaded", timeout: formTimeout });
-    const toolSelect = page.getByLabel("Tool", { exact: true });
-    const serverSelect = page.getByLabel("Server", { exact: true });
+    // Wrapped controls contribute their option/value text to Playwright label matching.
+    const toolSelect = page.getByLabel(/^Tool/);
+    const serverSelect = page.getByLabel(/^Server/);
     await toolSelect.waitFor({ state: "visible", timeout: formTimeout });
     await serverSelect.locator("option").first().waitFor({ state: "attached", timeout: formTimeout });
     try {
@@ -397,7 +398,7 @@ async function pageLogs(browser, target, runCase, timeoutMs, secrets) {
       fail(`Reference host form did not expose ${runCase.tool}; servers=${JSON.stringify(servers)}, tools=${JSON.stringify(tools)}`);
     }
     await toolSelect.selectOption(runCase.tool, { timeout: formTimeout });
-    await page.getByLabel("Input", { exact: true }).fill(JSON.stringify(runCase.input), { timeout: formTimeout });
+    await page.getByLabel(/^Input/).fill(JSON.stringify(runCase.input), { timeout: formTimeout });
     const callButton = page.getByRole("button", { name: "Call Tool" });
     await callButton.waitFor({ state: "visible", timeout: formTimeout });
     try {
@@ -405,7 +406,7 @@ async function pageLogs(browser, target, runCase, timeoutMs, secrets) {
     } catch {
       const [selectedTool, input, disabled] = await Promise.all([
         toolSelect.inputValue(),
-        page.getByLabel("Input", { exact: true }).inputValue(),
+        page.getByLabel(/^Input/).inputValue(),
         callButton.isDisabled(),
       ]);
       let inputValid = true;
@@ -554,7 +555,7 @@ async function renderCheckpoint(browser, manifest, credentials, appId, outDir, s
       fail("save_checkpoint callback did not include both the seed and a new edited element");
     }
 
-    await browserState.page.getByLabel("Input", { exact: true }).fill(JSON.stringify({ elements: JSON.stringify([{ type: "restoreCheckpoint", id: saveInput.id }]) }));
+    await browserState.page.getByLabel(/^Input/).fill(JSON.stringify({ elements: JSON.stringify([{ type: "restoreCheckpoint", id: saveInput.id }]) }));
     await browserState.page.getByRole("button", { name: "Call Tool" }).click();
     await waitFor(() => proxy.calls.some((call) => call.results.some((result) => /read_checkpoint/.test(result.name))), timeoutMs, "Excalidraw read_checkpoint callback did not complete from the App view");
     const read = proxy.calls.flatMap((call) => call.results).find((item) => /read_checkpoint/.test(item.name));
@@ -589,7 +590,7 @@ async function checkFourConnections(browser, manifest, credentials, outDir, secr
     page.on("console", (message) => logs.push({ type: message.type(), text: redact(message.text(), secrets) }));
     page.on("pageerror", (error) => logs.push({ type: "pageerror", text: redact(error.message, secrets) }));
     await page.goto(target.hostUrl, { waitUntil: "domcontentloaded", timeout: timeoutMs });
-    const serverSelect = page.getByLabel("Server", { exact: true });
+    const serverSelect = page.getByLabel(/^Server/);
     await waitFor(async () => (await serverSelect.locator("option").count()) === 4, timeoutMs, "Reference host did not load all four MCP connections");
     for (const proxy of proxies) await waitFor(() => proxy.calls.some((call) => call.rpcMethod.includes("tools/list")), timeoutMs, "One of the four connections stalled before tools/list");
     await page.screenshot({ path: join(outDir, "four-connections.png"), fullPage: true, animations: "disabled" });

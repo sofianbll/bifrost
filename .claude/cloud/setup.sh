@@ -1,12 +1,26 @@
 #!/usr/bin/env bash
-# Fork-only: lets a Claude Code cloud session run the MCP Go suites and `make test-mcp` untouched.
-# Runs as the environment's setup script (result is cached) and as a SessionStart hook (fallback when
-# the cache is cold, and the only place CLAUDE_ENV_FILE exists). No-op outside the cloud.
-# See docs/agents/cloud-sessions.md. Never exits non-zero: a failing setup script would block the session.
-[ "${CLAUDE_CODE_REMOTE:-}" = true ] || exit 0
-cd "$(dirname "$0")/../.." || exit 0
+# Fork-only: prepares dependencies for MCP tests in Claude or Codex cloud.
+# Claude mode remains a best-effort SessionStart hook; --codex is for the Codex Cloud
+# install script and returns a failure status when dependencies are incomplete.
+# See docs/agents/cloud-sessions.md.
+mode=claude
+if [ "${1:-}" = --codex ]; then
+  mode=codex
+elif [ "$#" -gt 0 ]; then
+  echo "Usage: $0 [--codex]" >&2
+  exit 2
+fi
 
-log=${TMPDIR:-/tmp}/cloud-setup.log
+if [ "$mode" = claude ] && [ "${CLAUDE_CODE_REMOTE:-}" != true ]; then exit 0; fi
+if ! cd "$(dirname "$0")/../.."; then
+  [ "$mode" = codex ] && exit 1 || exit 0
+fi
+
+if [ "$mode" = codex ]; then
+  log=${TMPDIR:-/tmp}/cloud-setup-codex.log
+else
+  log=${TMPDIR:-/tmp}/cloud-setup.log
+fi
 failed=0
 step() { echo "+ $*"; "$@" || { echo "FAILED: $*"; failed=$((failed + 1)); }; }
 
@@ -30,13 +44,37 @@ step() { echo "+ $*"; "$@" || { echo "FAILED: $*"; failed=$((failed + 1)); }; }
     popd >/dev/null
   fi
 
-  # make test-mcp calls gotestsum directly; `go install` drops it in GOPATH/bin, which the VM may not have on PATH.
-  [ -z "${CLAUDE_ENV_FILE:-}" ] || echo "export PATH=\"${GOPATH:-$HOME/go}/bin:\$PATH\"" >> "$CLAUDE_ENV_FILE"
+  # The agent phase is a separate shell. Codex users will add this bin directory
+  # to PATH on the test command (documented and self-checked there), not via export here.
+  if [ "$mode" = codex ]; then
+    if command -v gotestsum >/dev/null 2>&1; then
+      echo "+ gotestsum available on PATH: $(command -v gotestsum)"
+    else
+      go_bin=${GOBIN:-$(go env GOBIN)}
+      [ -n "$go_bin" ] || go_bin="$(go env GOPATH)/bin"
+      step test -x "$go_bin/gotestsum"
+    fi
+  fi
+
+  # CLAUDE_ENV_FILE exists only in the SessionStart hook and persists PATH there.
+  if [ "$mode" = claude ] && [ -n "${CLAUDE_ENV_FILE:-}" ]; then
+    echo "export PATH=\"${GOPATH:-$HOME/go}/bin:\$PATH\"" >> "$CLAUDE_ENV_FILE"
+  fi
 } > "$log" 2>&1
 
+platform=$(uname -s 2>/dev/null || echo unknown)
 if [ "$failed" = 0 ]; then
-  echo "cloud-setup: ok in ${SECONDS}s (log: $log)"
+  if [ "$mode" = codex ]; then
+    echo "cloud-setup (codex): ok on $platform in ${SECONDS}s (log: $log)"
+  else
+    echo "cloud-setup: ok in ${SECONDS}s (log: $log)"
+  fi
 else
-  echo "cloud-setup: $failed step(s) FAILED in ${SECONDS}s, see $log"
+  if [ "$mode" = codex ]; then
+    echo "cloud-setup (codex): $failed step(s) FAILED on $platform in ${SECONDS}s, see $log"
+  else
+    echo "cloud-setup: $failed step(s) FAILED in ${SECONDS}s, see $log"
+  fi
 fi
+[ "$mode" = codex ] && exit "$failed"
 exit 0
