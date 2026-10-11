@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "apps": {
+    "excalidraw": {
+      "connection_type": "http",
+      "connection_string": "https://mcp.excalidraw.com/mcp",
+      "native_name": "excalidraw-create_view",
+      "code_namespace": "code_excalidraw",
+      "native_arguments": {"elements": "[]"},
+      "code": "result = code_excalidraw.create_view(elements=\"[]\")",
+      "html_resource_required": true
+    },
+    "pdf": {
+      "package": "@modelcontextprotocol/server-pdf",
+      "version": "2.0.3",
+      "port": 3001,
+      "native_name": "pdf-display_pdf",
+      "code_namespace": "code_pdf",
+      "native_arguments": {"url": "https://arxiv.org/pdf/1706.03762"},
+      "code": "result = code_pdf.display_pdf(url=\"https://arxiv.org/pdf/1706.03762\")",
+      "html_resource_required": true
+    },
+    "debug": {
+      "package": "@modelcontextprotocol/server-debug",
+      "version": "2.0.3",
+      "port": 3002,
+      "native_name": "debug-debug-tool",
+      "code_namespace": "code_debug",
+      "native_arguments": {"contentType": "text", "includeStructuredContent": true},
+      "code": "result = code_debug.debug_tool(contentType=\"text\", includeStructuredContent=True)",
+      "html_resource_required": true
+    },
+    "monitor": {
+      "package": "@modelcontextprotocol/server-system-monitor",
+      "version": "2.0.3",
+      "port": 3003,
+      "native_name": "monitor-get-system-info",
+      "code_namespace": "code_monitor",
+      "native_arguments": {},
+      "code": "result = code_monitor.get_system_info()",
+      "html_resource_required": true
+    }
+  },
+  "routes": {
+    "direct": {"excalidraw": "/mcp/excalidraw", "pdf": "/mcp/pdf", "debug": "/mcp/debug", "monitor": "/mcp/monitor"},
+    "code_mode": {"excalidraw": "/mcp/excalidraw-code", "pdf": "/mcp/pdf-code", "debug": "/mcp/debug-code", "monitor": "/mcp/monitor-code"},
+    "virtual": "/mcp/codeapps",
+    "aggregate": "/mcp"
+  },
+  "pdf_tool_execution_timeout": "60s",
+  "pdf_long_poll_seconds": 30
+}
