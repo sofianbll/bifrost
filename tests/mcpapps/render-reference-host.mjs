@@ -307,7 +307,7 @@ async function pageLogs(browser, target, runCase, timeoutMs, secrets) {
   await toolSelect.selectOption(runCase.tool, { timeout: timeoutMs });
   await page.getByLabel("Input", { exact: true }).fill(JSON.stringify(runCase.input));
   await page.getByRole("button", { name: "Call Tool" }).click();
-  const iframe = page.locator(".appIframePanel iframe").first();
+  const iframe = page.locator("iframe").first();
   await iframe.waitFor({ state: "visible", timeout: timeoutMs });
   return { context, page, iframe, logs };
 }
@@ -337,10 +337,10 @@ async function assertAppContent(iframe, appId, result, timeoutMs) {
 async function screenshotAndAssert(page, iframe, screenshotPath, timeoutMs) {
   const inner = iframe.contentFrame().frameLocator("iframe");
   await inner.locator("body").waitFor({ state: "visible", timeout: timeoutMs });
-  await page.waitForFunction(() => {
-    const panel = document.querySelector(".appIframePanel iframe");
-    return !!panel && panel.getBoundingClientRect().width > 0 && panel.getBoundingClientRect().height > 0;
-  }, null, { timeout: timeoutMs });
+  await waitFor(async () => {
+    const bounds = await iframe.boundingBox();
+    return bounds && bounds.width > 0 && bounds.height > 0;
+  }, timeoutMs, "App iframe has no visible dimensions");
   const pixels = await inner.locator("body").screenshot({ path: screenshotPath, animations: "disabled", timeout: timeoutMs });
   if (pixels.length < 1000) fail("App iframe screenshot is unexpectedly small");
   const nonBlankPixels = await page.evaluate(async (base64) => {
@@ -420,7 +420,7 @@ async function renderCheckpoint(browser, manifest, credentials, appId, outDir, s
     browserState = await pageLogs(browser, target, { tool: app.native_name, input: createInput }, timeoutMs, secrets);
     await screenshotAndAssert(browserState.page, browserState.iframe, join(outDir, "excalidraw-checkpoint-before.png"), timeoutMs);
 
-    const inner = browserState.page.frameLocator(".appIframePanel iframe").frameLocator("iframe");
+    const inner = browserState.page.frameLocator("iframe").frameLocator("iframe");
     await inner.getByRole("button", { name: /Edit/ }).click({ timeout: timeoutMs });
     const canvas = inner.locator(".excalidraw").first();
     await canvas.waitFor({ state: "visible", timeout: timeoutMs });
@@ -454,7 +454,7 @@ async function renderCheckpoint(browser, manifest, credentials, appId, outDir, s
     try { readData = JSON.parse(readText); } catch { fail("read_checkpoint callback did not return JSON checkpoint data"); }
     const elements = Array.isArray(readData) ? readData : readData.elements;
     if (!Array.isArray(elements) || !elements.some((element) => element?.id === "ci-seed") || !elements.some((element) => element?.id !== "ci-seed")) fail("read_checkpoint did not return the saved edited diagram");
-    const editedScreenshot = await screenshotAndAssert(browserState.page, browserState.page.locator(".appIframePanel iframe").last(), join(outDir, "excalidraw-checkpoint-after.png"), timeoutMs);
+    const editedScreenshot = await screenshotAndAssert(browserState.page, browserState.page.locator("iframe").last(), join(outDir, "excalidraw-checkpoint-after.png"), timeoutMs);
     return { id: "excalidraw-checkpoint-roundtrip", app: appId, route, status: "passed", checkpointId: saveInput.id, editedElementCount: elements.length, ...editedScreenshot, callbackCalls: [save.name, read.name], hostLogs: redact(target.logs.join(""), secrets), console: browserState.logs };
   } finally {
     await writeFile(join(outDir, "excalidraw-checkpoint.console.json"), JSON.stringify({ console: browserState?.logs ?? [], host: redact(target?.logs.join("") ?? "", secrets), calls: proxy.calls.map((call) => ({ rpcMethod: call.rpcMethod, toolCalls: call.toolCalls.map((tool) => tool.name), results: call.results.map((result) => ({ name: result.name, isError: result.isError })) })) }, null, 2) + "\n", { mode: 0o600 });
