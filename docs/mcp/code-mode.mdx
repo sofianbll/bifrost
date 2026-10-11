@@ -391,6 +391,8 @@ Executes Python code in a sandboxed Starlark interpreter with access to all code
 - Assign to `result` variable to return a value
 - Tool execution timeout applies (default 30s)
 
+Errors returned by tools called from the script are values the script can inspect and handle; they do not by themselves fail `executeToolCode`. If the script itself fails, `executeToolCode` returns an MCP result with `isError: true` and the script error text.
+
 **Syntax notes:**
 - Use keyword arguments: `server.tool(param="value")` NOT `server.tool({"param": "value"})`
 - Access dict values with brackets: `result["key"]` NOT `result.key`
