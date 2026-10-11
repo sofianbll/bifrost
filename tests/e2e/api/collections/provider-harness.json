@@ -59,8 +59,15 @@
           "// Only register the content-shape test when the request actually succeeded.",
           "// Otherwise newman reports it as passing (because of an early return) which is misleading next to a failing status.",
           "var __u = (pm.request && pm.request.url && pm.request.url.toString()) || '';",
+          "var __mcpNotification = false;",
+          "var __isMCPRoute = /(?:^|\\/)mcp(?:\\/|\\?|$)/.test(__u);",
+          "if (__isMCPRoute && pm.request.body && pm.request.body.raw) {",
+          "  try { var __mcpRequest = JSON.parse(pm.request.body.raw); __mcpNotification = __mcpRequest.jsonrpc === '2.0' && typeof __mcpRequest.method === 'string' && __mcpRequest.method.indexOf('notifications/') === 0 && !Object.prototype.hasOwnProperty.call(__mcpRequest, 'id'); } catch (e) {}",
+          "}",
+          "// JSON-RPC notifications have no body; only accepted HTTP 202/204 without a body skip content validation.",
+          "var __mcpNotificationAccepted = __mcpNotification && (pm.response.code === 202 || pm.response.code === 204) && !(pm.response.text() || '').trim();",
           "// Management API responses (/api/...) carry no inference content, so the shape check does not apply to them; those rows assert their own bodies.",
-          "var __skipShape = __u.indexOf('/api/') !== -1 || (__u.indexOf('/files/') !== -1 && (__u.indexOf('/content?') !== -1 || __u.slice(-8) === '/content')) || __u.indexOf('storage.googleapis.com') !== -1 || __u.indexOf('batchPredictionJobs') !== -1 || (__u.indexOf('/genai/v1beta/batches/') !== -1 && __u.indexOf(':cancel') !== -1);",
+          "var __skipShape = __mcpNotificationAccepted || __u.indexOf('/api/') !== -1 || (__u.indexOf('/files/') !== -1 && (__u.indexOf('/content?') !== -1 || __u.slice(-8) === '/content')) || __u.indexOf('storage.googleapis.com') !== -1 || __u.indexOf('batchPredictionJobs') !== -1 || (__u.indexOf('/genai/v1beta/batches/') !== -1 && __u.indexOf(':cancel') !== -1);",
           "if (pm.response.code < 400 && !__skipShape && (pm.response.headers.get('content-type') || '').indexOf('text/event-stream') === -1 && (pm.response.headers.get('content-type') || '').indexOf('vnd.amazon.eventstream') === -1 && (pm.response.headers.get('content-type') || '').indexOf('audio/') === -1) {",
           "  pm.test('Response has content (text or tool_use)', function () {",
           "    var j;",
@@ -73,7 +80,13 @@
           "    }",
           "    var hasContent = false;",
           "    var shape = 'unknown';",
-          "    if (j.answers && typeof j.answers === 'object' && !Array.isArray(j.answers)) {",
+          "    var __jsonRPCResult = j && Object.prototype.hasOwnProperty.call(j, 'result');",
+          "    var __jsonRPCError = j && Object.prototype.hasOwnProperty.call(j, 'error');",
+          "    var __jsonRPCErrorValid = __jsonRPCError && j.error && typeof j.error.code === 'number' && typeof j.error.message === 'string';",
+          "    if (/(?:^|\\/)mcp(?:\\/|\\?|$)/.test(__u) && j && j.jsonrpc === '2.0' && Object.prototype.hasOwnProperty.call(j, 'id') && (__jsonRPCResult !== __jsonRPCError) && (!__jsonRPCError || __jsonRPCErrorValid)) {",
+          "        shape = 'json-rpc';",
+          "        hasContent = true; // A valid JSON-RPC response envelope is the protocol response; route-specific checks assert its payload.",
+          "    } else if (j.answers && typeof j.answers === 'object' && !Array.isArray(j.answers)) {",
           "        shape = 'decisions';",
           "        hasContent = Object.keys(j.answers).length > 0;",
           "    } else if (j.message && typeof j.message === 'object' && (j.message.content !== undefined || Array.isArray(j.message.tool_calls))) {",
@@ -176868,13 +176881,13 @@
               "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\",\"params\":{}}"
             },
             "url": {
-              "raw": "{{baseUrl}}/mcp/mcp-apps-virtual",
+              "raw": "{{baseUrl}}/mcp/mcp-apps-full-virtual",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "mcp",
-                "mcp-apps-virtual"
+                "mcp-apps-full-virtual"
               ]
             }
           }
@@ -176916,13 +176929,13 @@
               "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"resources/read\",\"params\":{\"uri\":\"{{mcpAppsVirtualUri}}\"}}"
             },
             "url": {
-              "raw": "{{baseUrl}}/mcp/mcp-apps-virtual",
+              "raw": "{{baseUrl}}/mcp/mcp-apps-full-virtual",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "mcp",
-                "mcp-apps-virtual"
+                "mcp-apps-full-virtual"
               ]
             }
           }
@@ -176964,13 +176977,13 @@
               "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\",\"params\":{}}"
             },
             "url": {
-              "raw": "{{baseUrl}}/mcp/mcp-apps-virtual",
+              "raw": "{{baseUrl}}/mcp/mcp-apps-limited-virtual",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "mcp",
-                "mcp-apps-virtual"
+                "mcp-apps-limited-virtual"
               ]
             }
           }
@@ -177447,7 +177460,7 @@
           }
         },
         {
-          "name": "MCP Apps fixture denied Virtual MCP is forbidden",
+          "name": "[EXPECT-403] MCP Apps fixture denied Virtual MCP is forbidden",
           "event": [
             {
               "listen": "test",
@@ -177483,19 +177496,19 @@
               "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\",\"params\":{}}"
             },
             "url": {
-              "raw": "{{baseUrl}}/mcp/mcp-apps-virtual",
+              "raw": "{{baseUrl}}/mcp/mcp-apps-limited-virtual",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "mcp",
-                "mcp-apps-virtual"
+                "mcp-apps-limited-virtual"
               ]
             }
           }
         },
         {
-          "name": "MCP Apps fixture denied direct endpoint is forbidden",
+          "name": "[EXPECT-403] MCP Apps fixture denied direct endpoint is forbidden",
           "event": [
             {
               "listen": "test",
@@ -177926,7 +177939,7 @@
           }
         },
         {
-          "name": "MCP Apps fixture denied direct resource read",
+          "name": "[EXPECT-403] MCP Apps fixture denied direct resource read",
           "event": [
             {
               "listen": "test",
@@ -177974,7 +177987,7 @@
           }
         },
         {
-          "name": "MCP Apps fixture denied direct callback",
+          "name": "[EXPECT-403] MCP Apps fixture denied direct callback",
           "event": [
             {
               "listen": "test",
@@ -178022,7 +178035,7 @@
           }
         },
         {
-          "name": "MCP Apps fixture denied Virtual MCP resource read",
+          "name": "[EXPECT-403] MCP Apps fixture denied Virtual MCP resource read",
           "event": [
             {
               "listen": "test",
@@ -178058,19 +178071,19 @@
               "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"resources/read\",\"params\":{\"uri\":\"{{mcpAppsDirectUri}}\"}}"
             },
             "url": {
-              "raw": "{{baseUrl}}/mcp/mcp-apps-virtual",
+              "raw": "{{baseUrl}}/mcp/mcp-apps-limited-virtual",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "mcp",
-                "mcp-apps-virtual"
+                "mcp-apps-limited-virtual"
               ]
             }
           }
         },
         {
-          "name": "MCP Apps fixture denied Virtual MCP callback",
+          "name": "[EXPECT-403] MCP Apps fixture denied Virtual MCP callback",
           "event": [
             {
               "listen": "test",
@@ -178106,13 +178119,13 @@
               "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"save_state\",\"arguments\":{}}}"
             },
             "url": {
-              "raw": "{{baseUrl}}/mcp/mcp-apps-virtual",
+              "raw": "{{baseUrl}}/mcp/mcp-apps-limited-virtual",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "mcp",
-                "mcp-apps-virtual"
+                "mcp-apps-limited-virtual"
               ]
             }
           }
@@ -178175,7 +178188,7 @@
                   "var text = pm.response.text() || '';",
                   "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
                   "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(200); });",
-                  "pm.test('denied aggregate callback returns protocol error without leaking source tool', function () { pm.expect(body.error,text).to.be.an('object'); pm.expect((body.error.message||'').toLowerCase()).to.not.include('save_state'); pm.expect((body.error.message||'').toLowerCase()).to.not.include('open_view'); });"
+                  "pm.test('denied aggregate callback does not reveal source identity', function () { pm.expect(body.error,text).to.be.an('object'); var message=(body.error.message||'').toLowerCase(); pm.expect(message).to.not.include('mcp_apps_fixture'); pm.expect(message).to.not.include('mcp_apps_fixture_second'); });"
                 ]
               }
             }

@@ -67,8 +67,8 @@
     ],
     "virtual_mcps": [
       {
-        "name": "MCP Apps Fixture",
-        "endpoint_slug": "mcp-apps-virtual",
+        "name": "MCP Apps full fixture",
+        "endpoint_slug": "mcp-apps-full-virtual",
         "enabled": true,
         "tools": [
           {
@@ -76,10 +76,31 @@
             "tool_names": [
               "*"
             ]
+          },
+          {
+            "mcp_client_name": "mcp_apps_fixture_second",
+            "tool_names": [
+              "*"
+            ]
           }
         ],
         "virtual_key_ids": [
-          "vk-mcp-apps-full",
+          "vk-mcp-apps-full"
+        ]
+      },
+      {
+        "name": "MCP Apps limited fixture",
+        "endpoint_slug": "mcp-apps-limited-virtual",
+        "enabled": true,
+        "tools": [
+          {
+            "mcp_client_name": "mcp_apps_fixture",
+            "tool_names": [
+              "open_view"
+            ]
+          }
+        ],
+        "virtual_key_ids": [
           "vk-mcp-apps-limited"
         ]
       }
