@@ -22,8 +22,9 @@ For a runtime with a read-only home directory, set these ordinary cache variable
 | `GOPATH` | `/workspace/.cache/go` |
 | `GOCACHE` | `/workspace/.cache/go-build` |
 | `npm_config_cache` | `/workspace/.cache/npm` |
+| `GONOPROXY` | `github.com/klauspost/compress` |
 
-These values must apply in both the install and agent phases. They contain no credentials. Verify cache persistence in the second task; setting a writable path does not prove snapshot reuse.
+These values must apply in both the install and agent phases. They contain no credentials. The scoped `GONOPROXY` uses Go's official VCS source transport for the one public module whose proxy archive redirects to a denied Google Storage host; GitHub stays behind the inherited outbound proxy and module checksum validation remains enabled. See [Go module environment variables](https://go.dev/ref/mod#environment-variables). Verify cache persistence in the second task; setting a writable path does not prove snapshot reuse.
 
 The current Codex Cloud guide describes an Install script and a published environment snapshot; if the setup flow instead opens a setup terminal, run the same command there. Resolve the test executable again in the agent phase instead of relying on the setup process to preserve its shell environment. Run tests in one shell block with the Go binary directory added explicitly:
 
@@ -42,13 +43,30 @@ if ! command -v gotestsum >/dev/null 2>&1; then
 fi
 command -v gotestsum
 go version
-(cd core && go test ./mcp/...)
+(cd core && go test -count=1 ./mcp/...)
 make test-mcp
 ```
 
 This resolves the isolated compiler before calling `go env` in the new shell. It lets the Makefile's `install-gotestsum` check and the later direct `gotestsum` invocation use the same executable, without assuming or changing a system-wide PATH. Codex Cloud documents Install script setup and isolated task workspaces in its [Cloud environments guide](https://learn.chatgpt.com/docs/environments/cloud-environments); add this script in the environment configuration, review the setup report, then publish or republish the environment before starting a new task. Package-manager network access covers the official Go archive host (`dl.google.com`), Go proxy/sums and npm registries needed here; this workflow needs no provider APIs.
 
+The Start skill is a Cloud configuration field; if a task cannot discover it as a filesystem skill, use the documented shell block above directly. The tests need local sockets and Chromium needs socket system calls. Where the execution tool requires approval outside its command sandbox, request approval for those test commands only; keep the environment's network policy, proxy, mounts and global permissions intact.
+
 Verify the prepared environment before publication, then run the command block above in two new Codex Cloud tasks: the first from the published snapshot and a second after preparation is cached. Record task creation, runtime readiness, the `cloud-setup (codex)` platform/timing line and test results separately; script time alone is not VM startup time. Editing a draft does not rerun setup in an existing task. Actual cloud qualification is tracked in [the recovery ledger](mcp-apps-recovery.md).
+
+## Verified Codex qualification — 2026-10-12
+
+The private environment is published at code SHA `62b1e58fcd1df57a5c719ce16e16b8534cf0c6e3`. It preserves the Package managers preset, no additional domains and no provider secrets. The prepared runtime passes bootstrap (9 seconds with warm dependencies), core/mcp and the full MCP suite, and launches system Chromium.
+
+| Check | First new runtime | Second new runtime |
+| --- | --- | --- |
+| Creation to first terminal | 50.028 seconds | 51 seconds |
+| Prepared caches present before any installation | yes | yes |
+| core/mcp, `-count=1` | pass, 8.583 seconds | pass, 9.005 seconds |
+| MCP race suite | pass, 128.081 seconds | pass, 127.859 seconds |
+| Fresh JUnit | 704 total / 675 passed / 29 skipped / 0 failures or errors | 704 total / 675 passed / 29 skipped / 0 failures or errors |
+| Chromium launch/close | pass, 0.689 seconds | pass, 0.706 seconds |
+
+Both are new runtimes restored from the same prepared snapshot. These observations do not measure dependency installation from zero or pure VM provisioning; creation-to-terminal includes agent planning. The earlier 75-second bootstrap failed at a proxy redirect and must not be reported as a successful cold bootstrap. Normal-task tests used approved execution limited to the commands, plus `make -o install-gotestsum -o setup-mcp-tests test-mcp EXPOSE_ENV=:` to check already-prepared fixtures without installation or credential `.env` loading. Source files and global permissions were unchanged. See [the recovery ledger](mcp-apps-recovery.md) for the evidence and remaining final gates.
 
 ## Claude Code Cloud
 
