@@ -348,7 +348,37 @@ def self_check():
         assert failure["error_type"] == "RuntimeError"
         assert "sk-bf-example" not in failure["message"]
         assert SETUP_TOKEN not in failure["message"] and "<redacted>" in failure["message"]
-    print("PASS fixture CI self-check (config scope, route/name guards, baseline red/green comparator, URI seeds, report redaction)")
+    saved_health, saved_rpc = wait_health, rpc
+    saved_sleep, saved_clock = time.sleep, time.monotonic
+    try:
+        globals()["wait_health"] = lambda url: None
+        time.sleep = lambda seconds: None
+        incomplete = {"result": {"tools": [{"name": "executeToolCode"}]}}
+        complete = {"result": {"tools": [{"name": "executeToolCode"},
+                                            {"name": "mcp_apps_fixture_second-save_state"}]}}
+        for initial in ((200, incomplete), (503, complete)):
+            replies = iter((initial, (200, complete)))
+            calls = []
+            def fake_rpc(url, path, method, params, token):
+                assert (path, method, params, token) == ("/mcp", "tools/list", {}, KEYS["full"])
+                calls.append(path)
+                return next(replies)
+            globals()["rpc"] = fake_rpc
+            ready_stock("http://fixture.invalid")
+            assert len(calls) == 2, "stock readiness accepted an incomplete or failed catalog"
+        clock = iter((0, 0, 181))
+        time.monotonic = lambda: next(clock)
+        globals()["rpc"] = lambda *args: (200, incomplete)
+        try:
+            ready_stock("http://fixture.invalid")
+        except RuntimeError as error:
+            assert "stock aggregate tool catalog incomplete" in str(error)
+        else:
+            raise AssertionError("stock readiness accepted a permanently incomplete catalog")
+    finally:
+        globals()["wait_health"], globals()["rpc"] = saved_health, saved_rpc
+        time.sleep, time.monotonic = saved_sleep, saved_clock
+    print("PASS fixture CI self-check (config scope, route/name guards, baseline red/green comparator, URI seeds, report redaction, stock readiness)")
 
 
 def rpc(url, path, method, params, token):
@@ -380,6 +410,24 @@ def wait_health(url):
             time.sleep(1)
     else:
         raise RuntimeError("gateway /health did not become ready within 180 seconds")
+
+
+def ready_stock(url):
+    wait_health(url)
+    # /health can succeed before the non-Code-Mode fixture is advertised.
+    deadline = time.monotonic() + 180
+    names = set()
+    while time.monotonic() < deadline:
+        try:
+            status, body = rpc(url, "/mcp", "tools/list", {}, KEYS["full"])
+            names = {tool.get("name", "") for tool in body.get("result", {}).get("tools", [])}
+            if status == 200 and {"executeToolCode", "mcp_apps_fixture_second-save_state"} <= names:
+                print("PASS stock health and MCP tool readiness", flush=True)
+                return
+        except (OSError, urllib.error.URLError):
+            pass
+        time.sleep(1)
+    raise RuntimeError("stock aggregate tool catalog incomplete after 180 seconds: " + ", ".join(sorted(names)))
 
 
 def ready(url):
@@ -533,7 +581,7 @@ def main(args):
             port_line = subprocess.check_output(["docker", "port", container, "8080/tcp"], text=True).splitlines()[0]
             port = int(port_line.rsplit(":", 1)[1])
             base_url = f"http://127.0.0.1:{port}"
-            ready(base_url) if not baseline else wait_health(base_url)
+            ready_stock(base_url) if baseline else ready(base_url)
 
             pass_fail = 0
             runs = [("mcp-apps", 60)]
