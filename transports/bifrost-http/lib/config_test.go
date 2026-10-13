@@ -10862,6 +10862,15 @@ func TestSQLite_VKMCPConfig_Reconciliation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("First LoadConfig failed: %v", err)
 	}
+	// Reconciliation is tested independently of background catalog and credential sweeps.
+	if err := config1.ModelCatalog.Cleanup(); err != nil {
+		t.Fatalf("Failed to stop catalog worker: %v", err)
+	}
+	config1.ModelCatalog = nil
+	config1.OAuthSweepWorker.Stop()
+	config1.OAuthSweepWorker = nil
+	config1.MCPHeadersSweepWorker.Stop()
+	config1.MCPHeadersSweepWorker = nil
 
 	// Create MCP clients
 	mcpClientConfig1 := schemas.MCPClientConfig{

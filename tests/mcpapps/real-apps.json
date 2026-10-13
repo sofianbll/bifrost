@@ -3,7 +3,11 @@
   "apps": {
     "excalidraw": {
       "connection_type": "http",
-      "connection_string": "https://mcp.excalidraw.com/mcp",
+      "connection_string": "http://excalidraw:3004/mcp",
+      "repository": "https://github.com/sofianbll/excalidraw-mcp",
+      "commit": "61bb966aa2ceee485aaa3badd91807c2edc6f236",
+      "version": "0.3.2",
+      "port": 3004,
       "native_name": "excalidraw-create_view",
       "code_namespace": "code_excalidraw",
       "native_arguments": {

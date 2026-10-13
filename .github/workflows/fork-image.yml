@@ -127,6 +127,30 @@ jobs:
         id: reference-host
         if: ${{ !cancelled() && matrix.arch == 'amd64' && steps.image-probe.outcome == 'success' }}
         run: node tests/mcpapps/bootstrap-reference-host.mjs --directory "$RUNNER_TEMP/ext-apps"
+      - name: Checkout reviewed Excalidraw App
+        if: ${{ !cancelled() && matrix.arch == 'amd64' && steps.image-probe.outcome == 'success' }}
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: sofianbll/excalidraw-mcp
+          ref: 61bb966aa2ceee485aaa3badd91807c2edc6f236
+          path: .qa/excalidraw
+          persist-credentials: false
+      - name: Build and test reviewed Excalidraw App
+        if: ${{ !cancelled() && matrix.arch == 'amd64' && steps.image-probe.outcome == 'success' }}
+        working-directory: .qa/excalidraw
+        run: |
+          npm install --global pnpm@10.11.0
+          pnpm install --frozen-lockfile --ignore-scripts
+          node scripts/setup-bun.mjs
+          pnpm test
+          pnpm run build
+      - name: Verify actual Excalidraw checkpoint normalizer
+        if: ${{ !cancelled() && matrix.arch == 'amd64' && steps.image-probe.outcome == 'success' }}
+        run: >-
+          node tests/mcpapps/qualify-excalidraw-restore.mjs
+          --app-source .qa/excalidraw/src/mcp-app.tsx
+          --scene docs/qa/bifrost-2.2.6/restore-fix/saved-scene.json
+          --out "$RUNNER_TEMP/mcpapps-normalizer-reports"
       - name: Qualify real MCP Apps and their reference-host rendering
         timeout-minutes: 20
         if: ${{ !cancelled() && matrix.arch == 'amd64' && steps.image-probe.outcome == 'success' && steps.reference-host.outcome == 'success' }}
@@ -136,12 +160,14 @@ jobs:
           --report-dir "$RUNNER_TEMP/mcpapps-reports"
           --render-script tests/mcpapps/render-reference-host.mjs
           --reference-host-dir "$RUNNER_TEMP/ext-apps"
+          --excalidraw-dir "$GITHUB_WORKSPACE/.qa/excalidraw"
       - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         if: always() && matrix.arch == 'amd64'
         with:
           name: mcp-apps-qualification
           path: |
             ${{ runner.temp }}/mcpapps-reports/
+            ${{ runner.temp }}/mcpapps-normalizer-reports/
             ${{ runner.temp }}/mcpapps-fixture-reports/
           retention-days: 14
       - uses: step-security/docker-login-action@870af644803bf9f204aed474adbad2958fec048b # v4.1.0

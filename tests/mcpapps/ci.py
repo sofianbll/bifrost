@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Run real MCP Apps qualification against the built Bifrost image in CI.
 
-The gateway image stays unchanged. Three pinned npm servers run as HTTP sidecars
-on an isolated Docker network; Excalidraw uses its public MCP endpoint.
+The gateway image stays unchanged. Three pinned npm servers and the reviewed
+Excalidraw build run as HTTP sidecars on an isolated Docker network.
 """
 import argparse
 import hashlib
@@ -34,6 +34,8 @@ def load_manifest():
         app["code_native_name"] = app["code_namespace"] + "-" + app["native_name"].removeprefix(name + "-")
     for name in ("pdf", "debug", "monitor"):
         assert data["apps"][name]["version"] == "2.0.3"
+    assert data["apps"]["excalidraw"]["commit"] == "61bb966aa2ceee485aaa3badd91807c2edc6f236"
+    assert data["apps"]["excalidraw"]["connection_string"] == "http://excalidraw:3004/mcp"
     return data
 
 
@@ -302,6 +304,8 @@ def self_check():
     assert not any("token" in k.lower() or "credential" in k.lower() for k in manifest)
     fake_credentials = {}
     config = build_config(manifest, fake_credentials)
+    assert [client["connection_string"] for client in config["mcp"]["client_configs"]
+            if client["name"] in ("excalidraw", "code_excalidraw")] == ["http://excalidraw:3004/mcp"] * 2
     schema = json.loads((ROOT.parents[1] / "transports/config.schema.json").read_text())
     client_properties = schema["$defs"]["mcp_client_config"]["properties"]
     virtual_properties = schema["$defs"]["virtual_mcp_config"]["properties"]
@@ -360,6 +364,7 @@ def main():
     parser.add_argument("--render-script", type=Path, help="Optional official reference-host Playwright runner")
     parser.add_argument("--reference-host-dir", type=Path, help="Pinned ext-apps checkout for a render script that accepts --host-dir")
     parser.add_argument("--node", default="node")
+    parser.add_argument("--excalidraw-dir", type=Path, help="Reviewed, built Excalidraw checkout pinned by real-apps.json")
     parser.add_argument("--self-check", action="store_true")
     args = parser.parse_args()
     if args.self_check:
@@ -374,20 +379,29 @@ def main():
     if not args.work_dir or not args.report_dir:
         parser.error("--work-dir and --report-dir are required")
     manifest = load_manifest()
+    if not args.excalidraw_dir or not (args.excalidraw_dir / "dist/index.js").is_file():
+        parser.error("--excalidraw-dir must contain the reviewed App build")
+    app_commit = run(["git", "-C", str(args.excalidraw_dir), "rev-parse", "HEAD"]).stdout.strip()
+    if app_commit != manifest["apps"]["excalidraw"]["commit"]:
+        parser.error("Excalidraw checkout does not match the reviewed commit")
     args.work_dir.mkdir(parents=True, exist_ok=False, mode=0o700)
     args.report_dir.mkdir(parents=True, exist_ok=False, mode=0o755)
     app_dir = args.work_dir / "gateway-data"
     app_dir.mkdir(mode=0o700)
     image = "bifrost-mcpapps-servers:" + secrets.token_hex(6)
     network = "bifrost-mcpapps-" + secrets.token_hex(6)
-    names = {"pdf": "mcpapps-pdf-" + secrets.token_hex(4),
+    names = {"excalidraw": "mcpapps-excalidraw-" + secrets.token_hex(4),
+             "pdf": "mcpapps-pdf-" + secrets.token_hex(4),
              "debug": "mcpapps-debug-" + secrets.token_hex(4),
              "monitor": "mcpapps-monitor-" + secrets.token_hex(4),
              "gateway": "mcpapps-gateway-" + secrets.token_hex(4)}
     started, network_created, image_built = [], False, False
     report = {"mode": "real-app CI qualification", "image": args.image,
-              "packages": {name: entry.get("package", "public endpoint") + ("@" + entry["version"] if entry.get("version") else "")
+              "packages": {name: entry.get("package", entry.get("repository", "")) + ("@" + entry["version"] if entry.get("version") else "")
                            for name, entry in manifest["apps"].items()}, "checks": []}
+    report["excalidraw"] = {"repository": manifest["apps"]["excalidraw"]["repository"], "commit": app_commit,
+        "source_sha256": hashlib.sha256((args.excalidraw_dir / "src/mcp-app.tsx").read_bytes()).hexdigest(),
+        "html_sha256": hashlib.sha256((args.excalidraw_dir / "dist/mcp-app.html").read_bytes()).hexdigest()}
     credentials = {}
     code = 1
     try:
@@ -400,14 +414,18 @@ def main():
         package_names = [entry["package"] + "@" + entry["version"] for entry in manifest["apps"].values()
                          if entry.get("package")]
         dockerfile = "FROM " + NODE_IMAGE + "\nRUN npm install --global --omit=dev " + " ".join(package_names) + "\n"
+        shutil.copytree(args.excalidraw_dir / "dist", context / "excalidraw")
+        dockerfile += "COPY excalidraw /opt/excalidraw\n"
         (context / "Dockerfile").write_text(dockerfile)
         run(["docker", "build", "--pull", "-t", image, str(context)])
         image_built = True
-        for app, package_bin in (("pdf", "mcp-pdf-server"), ("debug", "mcp-server-debug"),
+        for app, package_bin in (("excalidraw", "node"), ("pdf", "mcp-pdf-server"), ("debug", "mcp-server-debug"),
                                  ("monitor", "mcp-system-monitor-server")):
             entry = manifest["apps"][app]
             command = ["docker", "run", "-d", "--name", names[app], "--network", network,
                        "--network-alias", app, "-e", f"PORT={entry['port']}", image, package_bin]
+            if app == "excalidraw":
+                command.append("/opt/excalidraw/index.js")
             if app == "pdf":
                 command.append("--enable-interact")
             run(command)
@@ -438,6 +456,7 @@ def main():
         qualification_manifest = {
             "base_url": base_url,
             "gateway": report["gateway"],
+            "excalidraw": report["excalidraw"],
             "apps": {name: {key: value for key, value in entry.items()
                             if key in ("native_name", "code_native_name", "native_arguments", "html_resource_required")}
                      for name, entry in manifest["apps"].items()},
