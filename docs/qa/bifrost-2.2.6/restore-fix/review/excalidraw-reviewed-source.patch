@@ -1,0 +1,23 @@
+diff --git a/src/mcp-app.tsx b/src/mcp-app.tsx
+index 908d7cb..aac1d32 100644
+--- a/src/mcp-app.tsx
++++ b/src/mcp-app.tsx
+@@ -45 +45 @@ interface ViewportRect {
+-/** Convert raw shorthand elements → Excalidraw format (labels → bound text, font fix).
++/** Convert raw shorthand elements → Excalidraw format while retaining saved elements.
+@@ -50,0 +51,4 @@ function convertRawElements(els: any[]): any[] {
++  const saved = new Map(real.filter((el: any) => typeof el.version === "number" && typeof el.id === "string")
++    .map((el: any) => [el.id, el]));
++  // Saved text already has top-left coordinates and measured dimensions; conversion recenters it again.
++  if (saved.size === real.length) return [...real, ...pseudos];
+@@ -55 +59,9 @@ function convertRawElements(els: any[]): any[] {
+-    .map((el: any) => el.type === "text" ? { ...el, fontFamily: (FONT_FAMILY as any).Excalifont ?? 1 } : el);
++    .map((el: any) => {
++      const original = saved.get(el.id);
++      if (original) {
++        const addedBindings = (el.boundElements ?? []).filter((binding: any) =>
++          !(original.boundElements ?? []).some((existing: any) => existing.id === binding.id));
++        return addedBindings.length ? { ...original, boundElements: [...(original.boundElements ?? []), ...addedBindings] } : original;
++      }
++      return el.type === "text" ? { ...el, fontFamily: (FONT_FAMILY as any).Excalifont ?? 1 } : el;
++    });

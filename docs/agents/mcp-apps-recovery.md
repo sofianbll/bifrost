@@ -94,3 +94,7 @@ Three local Claude session logs from October 1–5 were inspected for this proje
 - [ ] #14: approved release image, explicit Pulsar deployment, owner-selected dogfood period, final Codex render/edit/partial-input and existing-store 403 checks, then upstream PRs.
 
 Do not close a ticket merely because its code was ported. Record implemented, tested locally, CI-qualified and released as separate states. Production deployment and several days of dogfooding remain a separate owner gate; no tag or deployment is implied by a branch push.
+
+## Checkpoint correction reviewed for PRs — 2026-10-13
+
+The independent Standards and Spec reviews found one mixed-input regression in the first App fix: newly generated reciprocal arrow bindings were lost when saved boxes replaced converted boxes. The reviewed App commit `61bb966aa2ceee485aaa3badd91807c2edc6f236` retains those bindings while preserving saved geometry. App unit tests pass 7/7, real-library checks 10/10 and the unchanged full local roundtrip 1/1; the negative control remains rejected. [Review and sanitized evidence](../qa/bifrost-2.2.6/restore-fix/review/README.md) supersede the first App fix for publication. The fork PR is prepared against its 2.2.6 integration branch and remains draft pending corrected-App adoption/full CI/native qualification; no production action or release is implied.

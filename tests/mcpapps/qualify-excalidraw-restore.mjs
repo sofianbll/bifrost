@@ -22,6 +22,7 @@ const code = ts.transpileModule(normalizer.getText(ast), { compilerOptions: { ta
 const scene = JSON.parse(await readFile(resolve(option("--scene")), "utf8"));
 const elements = Array.isArray(scene) ? scene : scene.elements;
 assert.ok(Array.isArray(elements) && elements.some((element) => element.type === "text" && element.version > 0), "Scene must contain complete saved Excalidraw text elements");
+assert.ok(elements.filter(element => element.type === "rectangle").length >= 2, "Scene must contain two saved boxes for the bound-arrow regression");
 const out = resolve(option("--out"));
 await mkdir(out, { recursive: true });
 const module = `
@@ -52,6 +53,18 @@ const mixed = convertRawElements([raw, ...saved]);
 check("mixed shorthand and saved elements preserve saved geometry", sameElements(saved, mixed.filter(element => saved.some(original => original.id === element.id))));
 check("mixed input preserves drawing order", JSON.stringify(mixed.filter(element => element.id === raw.id || saved.some(original => original.id === element.id)).map(element => element.id)) ===
   JSON.stringify([raw.id, ...saved.map(element => element.id)]));
+const targets = saved.filter(element => element.type === "rectangle").slice(0, 2);
+const arrow = {type: "arrow", id: "new-arrow", x: 290, y: 140, width: 160, height: 0,
+  start: {id: targets[0].id}, end: {id: targets[1].id}};
+const withArrow = convertRawElements([...saved, arrow]);
+const boundArrow = withArrow.find(element => element.id === arrow.id);
+check("new arrows retain reciprocal bindings on saved boxes without moving them", targets.every(original => {
+  const target = withArrow.find(element => element.id === original.id);
+  return ["x", "y", "width", "height"].every(key => target[key] === original[key]) &&
+    original.boundElements.every(binding => target.boundElements.some(other => other.id === binding.id && other.type === binding.type)) &&
+    target.boundElements.some(binding => binding.id === arrow.id && binding.type === "arrow");
+}) && boundArrow.startBinding?.elementId === targets[0].id && boundArrow.endBinding?.elementId === targets[1].id &&
+  sameElements(withArrow, convertRawElements(withArrow)));
 const camera = {type: "cameraUpdate", x: 0, y: 0, width: 800, height: 600};
 const withCamera = convertRawElements([...saved, camera]);
 check("camera pseudo-element preserved", JSON.stringify(withCamera.at(-1)) === JSON.stringify(camera));

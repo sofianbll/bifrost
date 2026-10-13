@@ -138,3 +138,7 @@ These files contain only synthetic content and sanitized results. Credentials,
 full App HTML, gateway logs, SQLite stores and backups are excluded. Saved scene
 fields exclude files, links and unrelated metadata. All retained PNGs were
 visually inspected and contain only the QA diagram.
+
+## Reviewed fix and PR preparation
+
+The [two-axis review and final local evidence](restore-fix/review/README.md) include the resolved mixed-arrow regression, the standalone App test (7/7), the real-library checks (10/10) and a new full roundtrip (1/1). This supersedes the first local App fix for publication; historical evidence above is retained. Native Codex and full CI remain separate gates.
