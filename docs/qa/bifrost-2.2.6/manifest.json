@@ -84,7 +84,7 @@
     "screenshots": "App SVG only, visually inspected"
   },
   "artifacts": {
-    "README.md": "cf5278c9156b90907621c08218aa8a9fe568afe011806000ccbd40ffe9db0eac",
+    "README.md": "813d28ef5a6c7319981ab4ac47946526f236637b7279c45fe14267a99c768e2d",
     "baseline/excalidraw-checkpoint-after.png": "4aa70ae8c194620f5929577d989fd2a3b4e9db527d9a9a40206dd586d14fb82d",
     "baseline/excalidraw-checkpoint-before.png": "f1143e0f8fe86b3d1869d24ff68289de2665ad5d2cfaf322143abaf1ad24b4e5",
     "baseline/report.json": "14a80788fbde5df5d439fbbc43f2dbe235fc987a8e4d4ae6c8a436afd4790e26",

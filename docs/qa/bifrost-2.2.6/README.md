@@ -1,5 +1,10 @@
 # Bifrost 2.2.6 checkpoint alignment — 2026-10-13
 
+This page records the original detection campaign. The subsequent
+[root-cause diagnosis and local App fix](restore-fix/README.md) is now verified:
+the same full checkpoint test passes against the corrected Excalidraw App.
+The public App and production Bifrost remain unchanged.
+
 The deployment retrospective's points 1 and 2 are implemented: the existing
 checkpoint test checks bound-label geometry, and its sanitized evidence is
 stored here. **The control works; the restored App fails alignment.** This is a

@@ -1,0 +1,67 @@
+{
+  "inputElements": 6,
+  "boxes": [
+    "ci-seed",
+    "ci-gateway",
+    "ci-app"
+  ],
+  "result": [
+    {
+      "id": "ORHzabsYIAbQRUFj9XIAi",
+      "containerId": "ci-seed",
+      "text": "Codex",
+      "before": {
+        "x": 153.8916015625,
+        "y": 127.5,
+        "width": 52.216796875,
+        "height": 25
+      },
+      "after": {
+        "x": 127.783203125,
+        "y": 115,
+        "width": 52.216796875,
+        "height": 25
+      },
+      "dx": -26.1083984375,
+      "dy": -12.5
+    },
+    {
+      "id": "y1KHV9VThEQ6dmhwdS2ZW",
+      "containerId": "ci-gateway",
+      "text": "Bifrost",
+      "before": {
+        "x": 532.2216796875,
+        "y": 127.5,
+        "width": 55.556640625,
+        "height": 25
+      },
+      "after": {
+        "x": 504.443359375,
+        "y": 115,
+        "width": 55.556640625,
+        "height": 25
+      },
+      "dx": -27.7783203125,
+      "dy": -12.5
+    },
+    {
+      "id": "xhrcpwZu9SbjTk_pT0h-h",
+      "containerId": "ci-app",
+      "text": "Excalidraw",
+      "before": {
+        "x": 324.4677734375,
+        "y": 367.5,
+        "width": 91.064453125,
+        "height": 25
+      },
+      "after": {
+        "x": 278.935546875,
+        "y": 355,
+        "width": 91.064453125,
+        "height": 25
+      },
+      "dx": -45.5322265625,
+      "dy": -12.5
+    }
+  ]
+}

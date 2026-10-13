@@ -1,0 +1,280 @@
+{
+  "validation": "automated_reference_host",
+  "codexVerification": "not_run",
+  "testedGateway": {
+    "commit": "d3318d6be866d3e34dde424cdcb4064b90843108",
+    "version": "v2.2.6-checkpoint-qa.d3318d6be866",
+    "binary_sha256": "6305d22b64dd5ec24e7f55f54c0eea108b65ab1b4371dd54d5c4905b1a71625a"
+  },
+  "renderer": {
+    "commit": "134e52709f473646df7bab851dcf7260110e568d",
+    "sha256": "b23f94a87de751ad359fdac425d1da05affe7e6a2e16487e4a92638254854bd3"
+  },
+  "browser": {
+    "version": "155.0.4283.45",
+    "channel": "msedge"
+  },
+  "referenceHost": {
+    "repository": "https://github.com/modelcontextprotocol/ext-apps",
+    "version": "2.0.3",
+    "commit": "82221c0c8ce7661efa6771c9d461511b1650495f"
+  },
+  "runtimeSeconds": 11,
+  "results": [
+    {
+      "id": "excalidraw-checkpoint-roundtrip",
+      "app": "excalidraw",
+      "route": "direct",
+      "gatewayPath": "/mcp/excalidraw",
+      "status": "failed",
+      "validation": "automated_reference_host",
+      "camera": {
+        "type": "cameraUpdate",
+        "x": 0,
+        "y": 0,
+        "width": 800,
+        "height": 600
+      },
+      "toleranceSceneUnits": 8,
+      "checkpoints": {
+        "created": "f321f851534a446f8a",
+        "saved": "f321f851534a446f8a",
+        "read": "f321f851534a446f8a",
+        "restoredView": "57bedda076514053a7"
+      },
+      "checks": {
+        "beforeAlignment": true,
+        "deliberateDisplacementRejected": true,
+        "saveWithBoundLabelsAndPointerEdit": true,
+        "exactReadbackWithBoundLabels": true,
+        "fixedFraming": true,
+        "afterAlignment": false
+      },
+      "before": {
+        "viewport": {
+          "width": 1400,
+          "height": 1050
+        },
+        "viewBox": [
+          -50,
+          -70,
+          800,
+          600
+        ],
+        "labels": [
+          {
+            "id": "ci-seed",
+            "label": "Codex",
+            "box": {
+              "x": 68.09000069754464,
+              "y": 89.20518275669643,
+              "width": 222.49360002790178,
+              "height": 102.21705845424107
+            },
+            "text": {
+              "x": 150.37946428571428,
+              "y": 127.40571812220982,
+              "width": 59.24107142857143,
+              "height": 25.142848423549108
+            },
+            "dx": 0.6631992885044724,
+            "dy": -0.3365696498325903
+          },
+          {
+            "id": "ci-gateway",
+            "label": "Bifrost",
+            "box": {
+              "x": 448.08998325892856,
+              "y": 89.20518275669643,
+              "width": 222.49365234375,
+              "height": 102.21705845424107
+            },
+            "text": {
+              "x": 523.8973214285714,
+              "y": 127.40571812220982,
+              "width": 72.20535714285714,
+              "height": 25.142848423549108
+            },
+            "dx": 0.6631905691964448,
+            "dy": -0.3365696498325903
+          },
+          {
+            "id": "ci-app",
+            "label": "Excalidraw",
+            "box": {
+              "x": 258.09000069754467,
+              "y": 329.20518275669644,
+              "width": 222.49363490513392,
+              "height": 102.217041015625
+            },
+            "text": {
+              "x": 319.0669642857143,
+              "y": 367.4056919642857,
+              "width": 102,
+              "height": 25.142892020089285
+            },
+            "dx": 0.7301461356026522,
+            "dy": -0.3365652901785552
+          }
+        ]
+      },
+      "negativeControl": {
+        "displacementSceneUnits": {
+          "x": 24,
+          "y": -20
+        },
+        "viewport": {
+          "width": 1400,
+          "height": 1050
+        },
+        "viewBox": [
+          -50,
+          -70,
+          800,
+          600
+        ],
+        "labels": [
+          {
+            "id": "ci-seed",
+            "label": "Codex",
+            "box": {
+              "x": 68.09000069754464,
+              "y": 89.20518275669643,
+              "width": 222.49360002790178,
+              "height": 102.21705845424107
+            },
+            "text": {
+              "x": 150.37946428571428,
+              "y": 127.40571812220982,
+              "width": 59.24107142857143,
+              "height": 25.142848423549108
+            },
+            "dx": 0.6631992885044724,
+            "dy": -0.3365696498325903
+          },
+          {
+            "id": "ci-gateway",
+            "label": "Bifrost",
+            "box": {
+              "x": 448.08998325892856,
+              "y": 89.20518275669643,
+              "width": 222.49365234375,
+              "height": 102.21705845424107
+            },
+            "text": {
+              "x": 547.8973214285714,
+              "y": 107.40571812220982,
+              "width": 72.20535714285714,
+              "height": 25.142857142857142
+            },
+            "dx": 24.663190569196445,
+            "dy": -20.336565290178577
+          },
+          {
+            "id": "ci-app",
+            "label": "Excalidraw",
+            "box": {
+              "x": 258.09000069754467,
+              "y": 329.20518275669644,
+              "width": 222.49363490513392,
+              "height": 102.217041015625
+            },
+            "text": {
+              "x": 319.0669642857143,
+              "y": 367.4056919642857,
+              "width": 102,
+              "height": 25.142892020089285
+            },
+            "dx": 0.7301461356026522,
+            "dy": -0.3365652901785552
+          }
+        ]
+      },
+      "savedPayloadSha256": "0770e2222ba4cc059efae5a15ee0c4809de8c736c0ce87fe3fc12a3ad8dae9b8",
+      "readPayloadSha256": "0770e2222ba4cc059efae5a15ee0c4809de8c736c0ce87fe3fc12a3ad8dae9b8",
+      "editedElementCount": 7,
+      "callbackCalls": [
+        "save_checkpoint",
+        "read_checkpoint"
+      ],
+      "after": {
+        "viewport": {
+          "width": 1400,
+          "height": 1050
+        },
+        "viewBox": [
+          -50,
+          -70,
+          800,
+          600
+        ],
+        "labels": [
+          {
+            "id": "ci-seed",
+            "label": "Codex",
+            "box": {
+              "x": 68.09000069754464,
+              "y": 89.20518275669643,
+              "width": 222.49360002790178,
+              "height": 102.21705845424107
+            },
+            "text": {
+              "x": 124.27106584821429,
+              "y": 114.90571812220982,
+              "width": 59.24107142857143,
+              "height": 25.142848423549108
+            },
+            "dx": -25.445199148995528,
+            "dy": -12.83656964983259
+          },
+          {
+            "id": "ci-gateway",
+            "label": "Bifrost",
+            "box": {
+              "x": 448.08998325892856,
+              "y": 89.20518275669643,
+              "width": 222.49365234375,
+              "height": 102.21705845424107
+            },
+            "text": {
+              "x": 496.11900111607144,
+              "y": 114.90571812220982,
+              "width": 72.20535714285714,
+              "height": 25.142848423549108
+            },
+            "dx": -27.115129743303555,
+            "dy": -12.83656964983259
+          },
+          {
+            "id": "ci-app",
+            "label": "Excalidraw",
+            "box": {
+              "x": 258.09000069754467,
+              "y": 329.20518275669644,
+              "width": 222.49363490513392,
+              "height": 102.217041015625
+            },
+            "text": {
+              "x": 273.5347377232143,
+              "y": 354.9056919642857,
+              "width": 102,
+              "height": 25.142892020089285
+            },
+            "dx": -44.80208042689735,
+            "dy": -12.836565290178555
+          }
+        ]
+      },
+      "failures": [
+        "Bound label ci-seed is displaced: dx=-25.45, dy=-12.84 scene units"
+      ],
+      "serverInfo": {
+        "name": "bifrost",
+        "version": "v2.2.6-checkpoint-qa.d3318d6be866"
+      },
+      "appResourceSha256": "441650e7bc844a43511b906281d11589e8d24a34a83d657c1d7a56f907c21a63"
+    }
+  ],
+  "passed": 0,
+  "failed": 1
+}

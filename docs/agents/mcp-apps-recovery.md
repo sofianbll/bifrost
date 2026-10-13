@@ -29,6 +29,8 @@ The deployment retrospective's first two points are implemented in a separate wo
 
 Sanitized captures, target identity, route, checkpoints, geometry and checks are retained in [the durable QA record](../qa/bifrost-2.2.6/README.md). Automated evidence is separate from native Codex, which was not rerun because the available registrations target production. Full matrix/image CI and the native local/QA gate remain separate obligations.
 
+The follow-up diagnosis confirms the defect is in the external Excalidraw App's `convertRawElements`: complete saved text is processed by the skeleton constructor again, which subtracts alignment offsets. The official App base `157aa23ceb1976008aadc89eb05e3444060f09d6` builds byte-identical HTML to the observed public App. Local App fix `4770d1aa02fb4407f8f4a520eb4db34d2ffe3e99` preserves complete checkpoint elements. The App-function regression goes from 4/9 to 9/9; the unchanged full render/edit/save/read/restore test goes from red to green against the same Bifrost binary, with its negative control still rejected. App typechecking/builds pass. The [fix and red/green evidence](../qa/bifrost-2.2.6/restore-fix/README.md) are retained on the fork. No gateway workaround, public App change, production deployment or upstream PR is implied; adopting the corrected App and native Codex remain separate gates.
+
 ## Preserved starting point
 
 - Original checkout: `feature/mcp-apps-native` at `71174d96ae4763e1167f9acdb636df20e704bb41`, clean, one commit ahead of its remote.
