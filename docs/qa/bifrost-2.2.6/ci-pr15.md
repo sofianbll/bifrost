@@ -30,7 +30,8 @@ authentication and secret protection settings were not changed.
   The previously queued fork-only benchmark run was cancelled. This does not
   claim performance measurements on GitHub-hosted hardware.
 - Isolate the reconciliation test's setup from background catalog/credential
-  sweeps. Stop and join those workers before its database edits; leave normal
+  sweeps. Stop and join the catalog worker, then cancel and signal the credential
+  sweeps before its database edits; leave normal
   connection-pool behavior and gateway/store implementation unchanged. A first
   local attempt with one connection was rejected after its diagnostic stack
   showed an existing store transaction reading through another connection.
@@ -47,9 +48,44 @@ authentication and secret protection settings were not changed.
   remain required. New self-checks pin both Excalidraw route variants to the
   isolated sidecar.
 
-Local checks: CI/fixture/image-identity self-checks, Python syntax, whitespace
-checks and the focused SQLite race loop pass. Full image qualification and the
-stock comparator must be verified on the new CI commit; the initial comparator
-failure is not counted as a valid stock comparison. Native Codex remains a
-separate, unexecuted gate. No image tag, registry publication, merge or release
-is authorized by these changes.
+## Observed qualification
+
+At `c3e8e25610c8de82bc2e9366e1bbd979080a8991`,
+[run 38478832332](https://github.com/sofianbll/bifrost/actions/runs/38478832332)
+passed both architectures' MCP, Go race, UI build, dynamic-plugin and image
+checks. The unchanged stock comparator passed: nine named red sentinels and
+seven green invariants matched its immutable image. The earlier discovery
+timeout was not reproduced; its cause is not established.
+
+Real-App wire checks passed **80/80**, rendered checks **18/18**, and the
+actual Excalidraw normalizer **10/10**, with seven standalone App tests passing.
+All six checkpoint assertions passed, including exact save/read, constant
+framing, before/after label alignment and rejection of a deliberate +24/-20
+text displacement. [Sanitized reports, build identities, checkpoints and three
+SVG-only captures](ci-pr15/manifest.json) retain this run's evidence. Full HTML,
+private files and raw console dumps are excluded.
+
+Dependency Review passed on this commit. CodSpeed was skipped on the fork as
+intended. Workflow Lint found four unrelated harness hostnames that do not
+represent runner requests: Gemini/Azure documentation links, an MCP URL passed
+to Anthropic for server-side access, and a reserved `.example` OAuth callback.
+Their existing classification list now records those uses; no network allowlist
+is widened. The egress check passes locally (eight apt jobs and two harness jobs),
+as do all 48 version-format checks and the CI/fixture/image-identity self-checks.
+The final lint correction remains subject to CI on its own commit.
+
+## Review and validation boundary
+
+Independent `/code-review` axes, fixed at `cbe42774d2d1430e9b594201e42f6d6c30242474`:
+
+- **Standards:** no code blocker or supported design smell. One documentation
+  finding corrected above: only catalog cleanup joins its worker; credential
+  sweep stop methods cancel/signal without joining their goroutines.
+- **Spec:** no functional defect or scope expansion found. The same wording
+  finding was corrected; protocol, rendering and negative-control criteria remain
+  unchanged. Native Codex acceptance remains unexecuted.
+
+Local checks also include Python syntax, whitespace and the 30-repetition focused
+SQLite race loop. Automated reference-host validation and visual inspection of
+its saved captures are separate from native Codex, which is **not run**. No image
+tag, registry publication, merge or release is authorized by these changes.

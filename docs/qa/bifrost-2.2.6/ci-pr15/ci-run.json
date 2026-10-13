@@ -1,0 +1,705 @@
+{
+  "conclusion": "success",
+  "headSha": "c3e8e25610c8de82bc2e9366e1bbd979080a8991",
+  "jobs": [
+    {
+      "completedAt": "2026-10-13T23:01:18Z",
+      "conclusion": "success",
+      "name": "build (amd64, ubuntu-24.04)",
+      "startedAt": "2026-10-13T22:35:46Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-10-13T22:35:51Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-10-13T22:35:47Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:36:08Z",
+          "conclusion": "success",
+          "name": "Run actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd",
+          "number": 2,
+          "startedAt": "2026-10-13T22:35:51Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:36:08Z",
+          "conclusion": "success",
+          "name": "Image identity",
+          "number": 3,
+          "startedAt": "2026-10-13T22:36:08Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:36:09Z",
+          "conclusion": "success",
+          "name": "Check cloud bootstrap logic",
+          "number": 4,
+          "startedAt": "2026-10-13T22:36:08Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:36:09Z",
+          "conclusion": "success",
+          "name": "Check image version convention",
+          "number": 5,
+          "startedAt": "2026-10-13T22:36:09Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:36:15Z",
+          "conclusion": "success",
+          "name": "Run step-security/setup-buildx-action@f931205d68723ad9589fd2a7e2ece238bf9de341",
+          "number": 6,
+          "startedAt": "2026-10-13T22:36:09Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:43:01Z",
+          "conclusion": "success",
+          "name": "Build gateway and UI",
+          "number": 7,
+          "startedAt": "2026-10-13T22:36:15Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:50:20Z",
+          "conclusion": "success",
+          "name": "Run existing Go tests and compile example plugin",
+          "number": 8,
+          "startedAt": "2026-10-13T22:43:01Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:50:30Z",
+          "conclusion": "success",
+          "name": "Test the image",
+          "number": 9,
+          "startedAt": "2026-10-13T22:50:20Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:50:40Z",
+          "conclusion": "success",
+          "name": "Run actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417",
+          "number": 10,
+          "startedAt": "2026-10-13T22:50:30Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:50:45Z",
+          "conclusion": "success",
+          "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "number": 11,
+          "startedAt": "2026-10-13T22:50:40Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:54:34Z",
+          "conclusion": "success",
+          "name": "Run deterministic MCP Apps wire cases",
+          "number": 12,
+          "startedAt": "2026-10-13T22:50:45Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:58:10Z",
+          "conclusion": "success",
+          "name": "Compare MCP Apps with stock Bifrost 2.2.6",
+          "number": 13,
+          "startedAt": "2026-10-13T22:54:34Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:58:12Z",
+          "conclusion": "success",
+          "name": "Run actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f",
+          "number": 14,
+          "startedAt": "2026-10-13T22:58:10Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:58:35Z",
+          "conclusion": "success",
+          "name": "Install existing Playwright dependency and Chromium",
+          "number": 15,
+          "startedAt": "2026-10-13T22:58:12Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:59:08Z",
+          "conclusion": "success",
+          "name": "Bootstrap pinned MCP Apps reference host",
+          "number": 16,
+          "startedAt": "2026-10-13T22:58:35Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:59:09Z",
+          "conclusion": "success",
+          "name": "Checkout reviewed Excalidraw App",
+          "number": 17,
+          "startedAt": "2026-10-13T22:59:08Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:59:23Z",
+          "conclusion": "success",
+          "name": "Build and test reviewed Excalidraw App",
+          "number": 18,
+          "startedAt": "2026-10-13T22:59:09Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:59:27Z",
+          "conclusion": "success",
+          "name": "Verify actual Excalidraw checkpoint normalizer",
+          "number": 19,
+          "startedAt": "2026-10-13T22:59:23Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T23:00:55Z",
+          "conclusion": "success",
+          "name": "Qualify real MCP Apps and their reference-host rendering",
+          "number": 20,
+          "startedAt": "2026-10-13T22:59:27Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T23:00:56Z",
+          "conclusion": "success",
+          "name": "Run actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f",
+          "number": 21,
+          "startedAt": "2026-10-13T23:00:55Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T23:00:56Z",
+          "conclusion": "skipped",
+          "name": "Run step-security/docker-login-action@870af644803bf9f204aed474adbad2958fec048b",
+          "number": 22,
+          "startedAt": "2026-10-13T23:00:56Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T23:00:56Z",
+          "conclusion": "skipped",
+          "name": "Push the tested image without rebuilding",
+          "number": 23,
+          "startedAt": "2026-10-13T23:00:56Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T23:00:56Z",
+          "conclusion": "skipped",
+          "name": "Run actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f",
+          "number": 24,
+          "startedAt": "2026-10-13T23:00:56Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T23:00:57Z",
+          "conclusion": "success",
+          "name": "Post Checkout reviewed Excalidraw App",
+          "number": 42,
+          "startedAt": "2026-10-13T23:00:56Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T23:00:57Z",
+          "conclusion": "success",
+          "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "number": 43,
+          "startedAt": "2026-10-13T23:00:57Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T23:00:57Z",
+          "conclusion": "success",
+          "name": "Post Run actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417",
+          "number": 44,
+          "startedAt": "2026-10-13T23:00:57Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T23:00:59Z",
+          "conclusion": "success",
+          "name": "Post Run existing Go tests and compile example plugin",
+          "number": 45,
+          "startedAt": "2026-10-13T23:00:57Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T23:01:01Z",
+          "conclusion": "success",
+          "name": "Post Build gateway and UI",
+          "number": 46,
+          "startedAt": "2026-10-13T23:00:59Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T23:01:13Z",
+          "conclusion": "success",
+          "name": "Post Run step-security/setup-buildx-action@f931205d68723ad9589fd2a7e2ece238bf9de341",
+          "number": 47,
+          "startedAt": "2026-10-13T23:01:01Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T23:01:13Z",
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd",
+          "number": 48,
+          "startedAt": "2026-10-13T23:01:13Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T23:01:13Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 49,
+          "startedAt": "2026-10-13T23:01:13Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/sofianbll/bifrost/actions/runs/38478832332/job/115576123104"
+    },
+    {
+      "completedAt": "2026-10-13T22:40:36Z",
+      "conclusion": "success",
+      "name": "mcp-tests (ubuntu-24.04-arm)",
+      "startedAt": "2026-10-13T22:35:48Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-10-13T22:35:51Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-10-13T22:35:49Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:36:03Z",
+          "conclusion": "success",
+          "name": "Run actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd",
+          "number": 2,
+          "startedAt": "2026-10-13T22:35:51Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:36:10Z",
+          "conclusion": "success",
+          "name": "Run actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417",
+          "number": 3,
+          "startedAt": "2026-10-13T22:36:03Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:36:14Z",
+          "conclusion": "success",
+          "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "number": 4,
+          "startedAt": "2026-10-13T22:36:10Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:40:32Z",
+          "conclusion": "success",
+          "name": "Run MCP tests against the example MCP servers",
+          "number": 5,
+          "startedAt": "2026-10-13T22:36:14Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:40:33Z",
+          "conclusion": "success",
+          "name": "Run actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f",
+          "number": 6,
+          "startedAt": "2026-10-13T22:40:32Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:40:33Z",
+          "conclusion": "success",
+          "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "number": 10,
+          "startedAt": "2026-10-13T22:40:33Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:40:33Z",
+          "conclusion": "success",
+          "name": "Post Run actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417",
+          "number": 11,
+          "startedAt": "2026-10-13T22:40:33Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:40:33Z",
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd",
+          "number": 12,
+          "startedAt": "2026-10-13T22:40:33Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:40:33Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 13,
+          "startedAt": "2026-10-13T22:40:33Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/sofianbll/bifrost/actions/runs/38478832332/job/115576123479"
+    },
+    {
+      "completedAt": "2026-10-13T22:41:30Z",
+      "conclusion": "success",
+      "name": "mcp-tests (ubuntu-24.04)",
+      "startedAt": "2026-10-13T22:35:46Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-10-13T22:35:48Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-10-13T22:35:47Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:36:03Z",
+          "conclusion": "success",
+          "name": "Run actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd",
+          "number": 2,
+          "startedAt": "2026-10-13T22:35:48Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:36:13Z",
+          "conclusion": "success",
+          "name": "Run actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417",
+          "number": 3,
+          "startedAt": "2026-10-13T22:36:03Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:36:18Z",
+          "conclusion": "success",
+          "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "number": 4,
+          "startedAt": "2026-10-13T22:36:13Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:41:25Z",
+          "conclusion": "success",
+          "name": "Run MCP tests against the example MCP servers",
+          "number": 5,
+          "startedAt": "2026-10-13T22:36:18Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:41:26Z",
+          "conclusion": "success",
+          "name": "Run actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f",
+          "number": 6,
+          "startedAt": "2026-10-13T22:41:25Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:41:26Z",
+          "conclusion": "success",
+          "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "number": 10,
+          "startedAt": "2026-10-13T22:41:26Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:41:26Z",
+          "conclusion": "success",
+          "name": "Post Run actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417",
+          "number": 11,
+          "startedAt": "2026-10-13T22:41:26Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:41:26Z",
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd",
+          "number": 12,
+          "startedAt": "2026-10-13T22:41:26Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:41:27Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 13,
+          "startedAt": "2026-10-13T22:41:26Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/sofianbll/bifrost/actions/runs/38478832332/job/115576123499"
+    },
+    {
+      "completedAt": "2026-10-13T22:46:08Z",
+      "conclusion": "success",
+      "name": "build (arm64, ubuntu-24.04-arm)",
+      "startedAt": "2026-10-13T22:35:48Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-10-13T22:35:52Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-10-13T22:35:49Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:36:05Z",
+          "conclusion": "success",
+          "name": "Run actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd",
+          "number": 2,
+          "startedAt": "2026-10-13T22:35:52Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:36:05Z",
+          "conclusion": "success",
+          "name": "Image identity",
+          "number": 3,
+          "startedAt": "2026-10-13T22:36:05Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:36:05Z",
+          "conclusion": "success",
+          "name": "Check cloud bootstrap logic",
+          "number": 4,
+          "startedAt": "2026-10-13T22:36:05Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:36:05Z",
+          "conclusion": "success",
+          "name": "Check image version convention",
+          "number": 5,
+          "startedAt": "2026-10-13T22:36:05Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:36:13Z",
+          "conclusion": "success",
+          "name": "Run step-security/setup-buildx-action@f931205d68723ad9589fd2a7e2ece238bf9de341",
+          "number": 6,
+          "startedAt": "2026-10-13T22:36:05Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:40:48Z",
+          "conclusion": "success",
+          "name": "Build gateway and UI",
+          "number": 7,
+          "startedAt": "2026-10-13T22:36:13Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:45:45Z",
+          "conclusion": "success",
+          "name": "Run existing Go tests and compile example plugin",
+          "number": 8,
+          "startedAt": "2026-10-13T22:40:48Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:45:57Z",
+          "conclusion": "success",
+          "name": "Test the image",
+          "number": 9,
+          "startedAt": "2026-10-13T22:45:45Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:45:57Z",
+          "conclusion": "skipped",
+          "name": "Run actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417",
+          "number": 10,
+          "startedAt": "2026-10-13T22:45:57Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:45:57Z",
+          "conclusion": "skipped",
+          "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "number": 11,
+          "startedAt": "2026-10-13T22:45:57Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:45:57Z",
+          "conclusion": "skipped",
+          "name": "Run deterministic MCP Apps wire cases",
+          "number": 12,
+          "startedAt": "2026-10-13T22:45:57Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:45:57Z",
+          "conclusion": "skipped",
+          "name": "Compare MCP Apps with stock Bifrost 2.2.6",
+          "number": 13,
+          "startedAt": "2026-10-13T22:45:57Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:45:57Z",
+          "conclusion": "skipped",
+          "name": "Run actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f",
+          "number": 14,
+          "startedAt": "2026-10-13T22:45:57Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:45:57Z",
+          "conclusion": "skipped",
+          "name": "Install existing Playwright dependency and Chromium",
+          "number": 15,
+          "startedAt": "2026-10-13T22:45:57Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:45:57Z",
+          "conclusion": "skipped",
+          "name": "Bootstrap pinned MCP Apps reference host",
+          "number": 16,
+          "startedAt": "2026-10-13T22:45:57Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:45:57Z",
+          "conclusion": "skipped",
+          "name": "Checkout reviewed Excalidraw App",
+          "number": 17,
+          "startedAt": "2026-10-13T22:45:57Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:45:57Z",
+          "conclusion": "skipped",
+          "name": "Build and test reviewed Excalidraw App",
+          "number": 18,
+          "startedAt": "2026-10-13T22:45:57Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:45:57Z",
+          "conclusion": "skipped",
+          "name": "Verify actual Excalidraw checkpoint normalizer",
+          "number": 19,
+          "startedAt": "2026-10-13T22:45:57Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:45:57Z",
+          "conclusion": "skipped",
+          "name": "Qualify real MCP Apps and their reference-host rendering",
+          "number": 20,
+          "startedAt": "2026-10-13T22:45:57Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:45:57Z",
+          "conclusion": "skipped",
+          "name": "Run actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f",
+          "number": 21,
+          "startedAt": "2026-10-13T22:45:57Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:45:57Z",
+          "conclusion": "skipped",
+          "name": "Run step-security/docker-login-action@870af644803bf9f204aed474adbad2958fec048b",
+          "number": 22,
+          "startedAt": "2026-10-13T22:45:57Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:45:57Z",
+          "conclusion": "skipped",
+          "name": "Push the tested image without rebuilding",
+          "number": 23,
+          "startedAt": "2026-10-13T22:45:57Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:45:57Z",
+          "conclusion": "skipped",
+          "name": "Run actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f",
+          "number": 24,
+          "startedAt": "2026-10-13T22:45:57Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:45:58Z",
+          "conclusion": "success",
+          "name": "Post Run existing Go tests and compile example plugin",
+          "number": 45,
+          "startedAt": "2026-10-13T22:45:57Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:46:00Z",
+          "conclusion": "success",
+          "name": "Post Build gateway and UI",
+          "number": 46,
+          "startedAt": "2026-10-13T22:45:58Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:46:07Z",
+          "conclusion": "success",
+          "name": "Post Run step-security/setup-buildx-action@f931205d68723ad9589fd2a7e2ece238bf9de341",
+          "number": 47,
+          "startedAt": "2026-10-13T22:46:00Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:46:07Z",
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd",
+          "number": 48,
+          "startedAt": "2026-10-13T22:46:07Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-13T22:46:07Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 49,
+          "startedAt": "2026-10-13T22:46:07Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/sofianbll/bifrost/actions/runs/38478832332/job/115576123530"
+    },
+    {
+      "completedAt": "2026-10-13T23:01:18Z",
+      "conclusion": "skipped",
+      "name": "publish",
+      "startedAt": "2026-10-13T23:01:18Z",
+      "status": "completed",
+      "steps": [],
+      "url": "https://github.com/sofianbll/bifrost/actions/runs/38478832332/job/115585247572"
+    }
+  ],
+  "status": "completed",
+  "url": "https://github.com/sofianbll/bifrost/actions/runs/38478832332"
+}
