@@ -1,0 +1,73 @@
+[
+  {
+    "name": "renderer-self-check",
+    "command": [
+      "node",
+      "tests/mcpapps/render-reference-host.mjs",
+      "--self-check"
+    ],
+    "exit_code": 0,
+    "passed": true,
+    "seconds": 0.431,
+    "output": "PASS renderer self-check (routes, JSON-RPC, redaction, bounded actions, SSE cleanup, ports, bound-label alignment, deliberate displacement, clipping, missing labels, invalid bounds and fixed framing); no host was launched",
+    "error": ""
+  },
+  {
+    "name": "ci-self-check",
+    "command": [
+      "python3",
+      "tests/mcpapps/ci.py",
+      "--self-check"
+    ],
+    "exit_code": 0,
+    "passed": true,
+    "seconds": 0.232,
+    "output": "PASS manifest pins, matrix, timeout, loopback binding, MCP errors and cleanup order",
+    "error": ""
+  },
+  {
+    "name": "renderer-syntax",
+    "command": [
+      "node",
+      "--check",
+      "tests/mcpapps/render-reference-host.mjs"
+    ],
+    "exit_code": 0,
+    "passed": true,
+    "seconds": 0.049,
+    "output": "",
+    "error": ""
+  },
+  {
+    "name": "ci-syntax",
+    "command": [
+      "python3",
+      "-m",
+      "py_compile",
+      "tests/mcpapps/ci.py"
+    ],
+    "exit_code": 0,
+    "passed": true,
+    "seconds": 0.074,
+    "output": "",
+    "error": ""
+  },
+  {
+    "name": "diff-whitespace",
+    "command": [
+      "git",
+      "diff",
+      "--check"
+    ],
+    "exit_code": 0,
+    "passed": true,
+    "seconds": 0.019,
+    "output": "",
+    "error": ""
+  },
+  {
+    "name": "durable-artifact-integrity",
+    "passed": true,
+    "output": "JSON parses, local Markdown links resolve, PNGs are all 1400x1050, rendered negative control is rejected, framing/readback pass and restored alignment fails. Synthetic credential values are absent."
+  }
+]

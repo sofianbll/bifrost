@@ -1,0 +1,34 @@
+{
+  "validation": "automated_reference_host_legacy_checkpoint",
+  "testedGateway": {
+    "commit": "d3318d6be866d3e34dde424cdcb4064b90843108",
+    "version": "v2.2.6-checkpoint-qa.d3318d6be866",
+    "binary_sha256": "6305d22b64dd5ec24e7f55f54c0eea108b65ab1b4371dd54d5c4905b1a71625a"
+  },
+  "checkpoint_function_commit": "d3318d6be866d3e34dde424cdcb4064b90843108",
+  "temporary_harness_sha256": "66e04cb8ffbc68aaf928bcc71305e146cd97b05075b091c70bf8569d878218c4",
+  "harness_changes": "Only checkpoint selected, Edge selected, diagnostic writes added; checkpoint assertions unchanged.",
+  "referenceHost": {
+    "repository": "https://github.com/modelcontextprotocol/ext-apps",
+    "version": "2.0.3",
+    "commit": "82221c0c8ce7661efa6771c9d461511b1650495f"
+  },
+  "runtimeSeconds": 14,
+  "exit_code": 0,
+  "result": {
+    "id": "excalidraw-checkpoint-roundtrip",
+    "app": "excalidraw",
+    "route": "direct",
+    "status": "passed",
+    "checkpointId": "3d04c358c71c403f98",
+    "editedElementCount": 3,
+    "screenshot": "excalidraw-checkpoint-after.png",
+    "nonBlankPixels": 8280,
+    "callbackCalls": [
+      "save_checkpoint",
+      "read_checkpoint"
+    ]
+  },
+  "restored_view_id": "not_recorded_by_legacy_test",
+  "qualification": "Callback and nonblank-image assertions passed despite the visibly displaced/clipped restored label."
+}

@@ -87,6 +87,17 @@ def mapped_port(text):
     return int(text.strip().splitlines()[0].rsplit(":", 1)[1])
 
 
+def gateway_identity(image, image_info):
+    identity = {"image": image, "image_id": image_info["Id"]}
+    labels = image_info.get("Config", {}).get("Labels") or {}
+    for field, label in (("commit", "org.opencontainers.image.revision"), ("version", "org.opencontainers.image.version")):
+        if labels.get(label):
+            identity[field] = labels[label]
+    if image_info.get("RepoDigests"):
+        identity["image_digest"] = image_info["RepoDigests"][0]
+    return identity
+
+
 def qualify(base_url, credentials, manifest, report):
     checks = report["checks"]
 
@@ -272,6 +283,13 @@ def cleanup_resources(started, network_created, image_built, network, image, com
 
 
 def self_check():
+    assert gateway_identity("candidate", {"Id": "sha256:local", "Config": {"Labels": None}}) == {
+        "image": "candidate", "image_id": "sha256:local"}
+    assert gateway_identity("candidate", {"Id": "sha256:local", "Config": {"Labels": {
+        "org.opencontainers.image.revision": "tested-commit", "org.opencontainers.image.version": "v2.2.6"}},
+        "RepoDigests": ["candidate@sha256:immutable"]}) == {
+        "image": "candidate", "image_id": "sha256:local", "commit": "tested-commit",
+        "version": "v2.2.6", "image_digest": "candidate@sha256:immutable"}
     manifest = load_manifest()
     assert {name: entry["code_native_name"] for name, entry in manifest["apps"].items()} == {
         "excalidraw": "code_excalidraw-create_view", "pdf": "code_pdf-display_pdf",
@@ -373,7 +391,8 @@ def main():
     credentials = {}
     code = 1
     try:
-        run(["docker", "image", "inspect", args.image])
+        image_info = json.loads(run(["docker", "image", "inspect", args.image]).stdout)[0]
+        report["gateway"] = gateway_identity(args.image, image_info)
         run(["docker", "network", "create", network])
         network_created = True
         context = args.work_dir / "servers"
@@ -418,6 +437,7 @@ def main():
         write_private(credentials_path, credentials)
         qualification_manifest = {
             "base_url": base_url,
+            "gateway": report["gateway"],
             "apps": {name: {key: value for key, value in entry.items()
                             if key in ("native_name", "code_native_name", "native_arguments", "html_resource_required")}
                      for name, entry in manifest["apps"].items()},
