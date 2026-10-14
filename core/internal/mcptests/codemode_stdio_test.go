@@ -1249,6 +1249,27 @@ result = {"error_message": r}`,
 	}
 }
 
+func TestCodeMode_STDIO_ErrorTestServer_ToolErrorIsValue(t *testing.T) {
+	t.Parallel()
+
+	_, bifrost := setupCodeModeWithSTDIOServers(t, "error-test-server")
+	toolCall := CreateExecuteToolCodeCall("call-tool-error-value", `message = errorTestServer.return_error(error_type="validation")
+result = {"error_message": message}`)
+	result, bifrostErr := bifrost.ExecuteChatMCPTool(createTestContext(), &toolCall)
+	require.Nil(t, bifrostErr, "a tool error handled by the script should not fail executeToolCode")
+	require.NotNil(t, result)
+	require.NotNil(t, result.Content)
+	require.NotNil(t, result.Content.ContentStr)
+	returnValue, hasError, errorMsg := ParseCodeModeResponse(t, *result.Content.ContentStr)
+	assert.False(t, hasError, "nested tool errors are values, not executeToolCode failures: %s", errorMsg)
+	resultMap, ok := returnValue.(map[string]interface{})
+	require.True(t, ok)
+	assert.Contains(t, resultMap["error_message"], "Validation")
+	if result.ChatToolMessage != nil && result.ChatToolMessage.IsError != nil {
+		assert.False(t, *result.ChatToolMessage.IsError, "executeToolCode should succeed when the script handles the nested tool error")
+	}
+}
+
 func TestCodeMode_STDIO_ErrorTestServer_MalformedAndPartial(t *testing.T) {
 	t.Parallel()
 
@@ -1401,6 +1422,7 @@ func TestCodeMode_STDIO_ErrorTestServer_IntermittentAndHandling(t *testing.T) {
 	_, bifrost := setupCodeModeWithSTDIOServers(t, "error-test-server")
 	ctx := createTestContext()
 
+	// The Go fixture uses 0-100 percentages; endpoints force both outcomes.
 	tests := []struct {
 		name         string
 		code         string
@@ -1408,26 +1430,21 @@ func TestCodeMode_STDIO_ErrorTestServer_IntermittentAndHandling(t *testing.T) {
 	}{
 		{
 			name: "intermittent_fail_low_rate",
-			code: `result = errorTestServer.intermittent_fail(id="test-1", fail_rate=0.1)`,
+			code: `result = errorTestServer.intermittent_fail(id="test-1", fail_rate=0)`,
 			verifyResult: func(t *testing.T, execResult map[string]interface{}) {
 				result, ok := execResult["result"].(map[string]interface{})
 				require.True(t, ok)
-				// Either success or error
-				if result["error"] != nil {
-					assert.Contains(t, result["error"], "Intermittent")
-				} else {
-					assert.True(t, result["success"].(bool))
-				}
+				assert.Equal(t, true, result["success"])
+				assert.Equal(t, float64(0), result["fail_rate"])
 			},
 		},
 		{
 			name: "intermittent_fail_high_rate",
-			code: `result = errorTestServer.intermittent_fail(id="test-2", fail_rate=0.9)`,
+			code: `result = errorTestServer.intermittent_fail(id="test-2", fail_rate=100)`,
 			verifyResult: func(t *testing.T, execResult map[string]interface{}) {
-				result, ok := execResult["result"].(map[string]interface{})
-				require.True(t, ok)
-				// Most likely error
-				assert.NotNil(t, result)
+				result, ok := execResult["result"].(string)
+				require.True(t, ok, "tool errors should be returned as text")
+				assert.Contains(t, result, "Intermittent failure (fail_rate: 100.0%")
 			},
 		},
 		{

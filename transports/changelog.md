@@ -1,3 +1,5 @@
+[fix]: expose Code Mode script failures as MCP error results [@sofianbll](https://github.com/sofianbll)
+
 ## ✨ Features
 
 - **OSS Management API Setup Lock** - While dashboard auth is not active (no admin account, or auth disabled), every non-public `/api` call on OSS Bifrost now needs the setup token, sent as the `X-Bifrost-Setup-Token` header or as the `bifrost_setup_session` cookie the dashboard gets from `POST /api/session/setup`. A missing token returns `401`. A wrong token, or no token set on the server, returns `403`. `/health`, `/api/version`, the session login routes, `/.well-known/*` and whitelisted routes stay public. The lock lifts as soon as an enabled admin is saved (#8010)

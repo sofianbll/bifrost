@@ -19,6 +19,7 @@ import (
 type testClientManager struct {
 	clients map[string]*schemas.MCPClientState
 	tools   map[string][]schemas.ChatTool
+	conn    *client.Client
 }
 
 func (m *testClientManager) GetClientForTool(toolName string) *schemas.MCPClientState {
@@ -46,6 +47,9 @@ func (m *testClientManager) GetPluginPipeline() codemcp.PluginPipeline {
 
 func (m *testClientManager) ReleasePluginPipeline(pipeline codemcp.PluginPipeline) {}
 func (m *testClientManager) AcquireClientConn(ctx *schemas.BifrostContext, state *schemas.MCPClientState) (*client.Client, func(), error) {
+	if m.conn != nil {
+		return m.conn, func() {}, nil
+	}
 	return nil, func() {}, nil
 }
 func (m *testClientManager) ReconnectClient(id string) error { return nil }
