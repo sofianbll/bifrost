@@ -697,6 +697,7 @@ async function renderCheckpoint(browser, manifest, credentials, appId, outDir, s
     if (replayPartialInput) {
       const inner = browserState.page.frameLocator("iframe").frameLocator("iframe");
       const svg = inner.locator(".svg-wrapper svg");
+      await svg.waitFor({ state: "visible", timeout: timeoutMs });
       await waitFor(async () => (await svg.locator("text").allTextContents()).includes("Excalidraw"), timeoutMs, "Initial App input did not render");
       const notify = (method, elements) => browserState.page.frameLocator("iframe").locator("body").evaluate((body, message) => {
         const appFrame = body.querySelector("iframe");
