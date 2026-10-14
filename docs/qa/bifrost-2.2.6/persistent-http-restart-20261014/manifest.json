@@ -1,0 +1,109 @@
+{
+  "issue": "https://github.com/sofianbll/bifrost/issues/11",
+  "validation": "automated_synthetic_http_oauth",
+  "codex_verification": "not_run",
+  "production": "not_accessed",
+  "scope": "backend HTTP/OAuth; dummy embedded HTML; no published image",
+  "tested_version": "v2.2.6",
+  "stock_commit": "8b4fce4f1709d66f9208d02f50552da522535f9e",
+  "stock_release_tag": "transports/v2.2.6",
+  "fork_commit": "a6f3075a954e716ae801f03d89e02c3634136604",
+  "integration_base": "1dcbd14d5875a14dc780f00fc2edd22cfaee66a8",
+  "route": "/mcp/persistent-http",
+  "checkpoints": [
+    "before",
+    "after-restart-1",
+    "after-restart-2"
+  ],
+  "historical_incident": "not_reproduced_in_synthetic_scenario",
+  "repair_cycles_used": 2,
+  "runs": [
+    {
+      "id": 38629558244,
+      "head": "d7416ed5b3b13a2f961c9b6e60d83e8a6c56c65e",
+      "result": "failure",
+      "classification": "harness client_id defect; authorization not reached"
+    },
+    {
+      "id": 38630801599,
+      "head": "f4527a9ab72210952c03e37ba30e200c5cea5bb4",
+      "result": "success",
+      "classification": "HTTP/OAuth stock and fork pass; initial interruption pass"
+    },
+    {
+      "id": 38632070370,
+      "head": "a6f3075a954e716ae801f03d89e02c3634136604",
+      "result": "success",
+      "jobs": [
+        {
+          "id": 116085923766,
+          "variant": "fork",
+          "result": "success"
+        },
+        {
+          "id": 116085924156,
+          "variant": "stock",
+          "result": "success"
+        }
+      ],
+      "classification": "final HTTP/OAuth and both-phase cleanup red/green pass"
+    }
+  ],
+  "final_artifacts": [
+    {
+      "id": 11927920016,
+      "name": "persistent-restart-fork",
+      "archive_digest": "sha256:3c41b3596ecdc6f045d7b176f016b07ada4dc2feec7de9e5de812893e9b3fa65",
+      "expires_at": "2026-10-28T20:29:45Z"
+    },
+    {
+      "id": 11926536941,
+      "name": "persistent-restart-stock",
+      "archive_digest": "sha256:ed99e97208f2e69776a014bdab995145bba75cd79839a91410b4870e1fd7d457",
+      "expires_at": "2026-10-28T20:29:44Z"
+    }
+  ],
+  "sanitization": "Only generated status summaries; no raw process logs, stores, config or credential values",
+  "files": [
+    {
+      "path": "final/fork-interruption.json",
+      "sha256": "ccadf59712dcd62593578c2dc6407267dbf88ce0720ee636c2aad052efe3bff5"
+    },
+    {
+      "path": "final/fork.json",
+      "sha256": "63b61ca7d37e0ccd2d27c239d6205883ea1883fd61f0e6eb040628d593b33677"
+    },
+    {
+      "path": "final/stock-interruption.json",
+      "sha256": "09f62e3d8f54d4f904ccbd63aa8841d6ecab13641fe8ecfc4ddbc3b7760b2810"
+    },
+    {
+      "path": "final/stock.json",
+      "sha256": "45f3d9d69eedd309f1855e2a6dce285b633c8948497a3fd9b9687a5099e84e31"
+    },
+    {
+      "path": "first-corrected-pass/fork-interruption.json",
+      "sha256": "c9d87a4eeeb4f7db815593a18076957c3018ceaa72910a6210634d2f3e73e1f1"
+    },
+    {
+      "path": "first-corrected-pass/fork.json",
+      "sha256": "22e3e700c3b131e5e52c377c49d03ca49a929f4c39b9fafa8f4f54578b2fd29e"
+    },
+    {
+      "path": "first-corrected-pass/stock-interruption.json",
+      "sha256": "7ea079927eea86384f2d7c94c93ef212a78b00c4220cd10a8a4c622ed8318d25"
+    },
+    {
+      "path": "first-corrected-pass/stock.json",
+      "sha256": "0d752ab98d44c7b2455244920a3480e5fce0b7ee9b4130475f2145be819c9504"
+    },
+    {
+      "path": "first-harness-failure/fork.json",
+      "sha256": "5295b3413c9330e253a9a7a7ded42880a2cce3f0d27783bab88b98ff2ed9979d"
+    },
+    {
+      "path": "first-harness-failure/stock.json",
+      "sha256": "fe2d3d118d6067142df9b70453116418bf58e1b7012c073d60bc908215ba9f98"
+    }
+  ]
+}
