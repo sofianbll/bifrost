@@ -1,0 +1,504 @@
+{
+  "mode": "real-app CI qualification",
+  "image": "bifrost:candidate",
+  "packages": {
+    "excalidraw": "https://github.com/sofianbll/excalidraw-mcp@0.3.2",
+    "pdf": "@modelcontextprotocol/server-pdf@2.0.3",
+    "debug": "@modelcontextprotocol/server-debug@2.0.3",
+    "monitor": "@modelcontextprotocol/server-system-monitor@2.0.3"
+  },
+  "checks": [
+    {
+      "name": "direct/excalidraw: initialize",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "name": "direct/excalidraw: native App tool listed",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "name": "direct/excalidraw: App resource advertised",
+      "passed": true,
+      "has_resource_uri": true
+    },
+    {
+      "name": "direct/excalidraw: resource HTML",
+      "passed": true,
+      "http_status": 200,
+      "content_count": 1
+    },
+    {
+      "name": "direct/excalidraw: native tool call",
+      "passed": true,
+      "http_status": 200,
+      "content_blocks": 1,
+      "has_structured_content": true
+    },
+    {
+      "name": "direct/pdf: initialize",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "name": "direct/pdf: native App tool listed",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "name": "direct/pdf: App resource advertised",
+      "passed": true,
+      "has_resource_uri": true
+    },
+    {
+      "name": "direct/pdf: resource HTML",
+      "passed": true,
+      "http_status": 200,
+      "content_count": 1
+    },
+    {
+      "name": "direct/pdf: native tool call",
+      "passed": true,
+      "http_status": 200,
+      "content_blocks": 1,
+      "has_structured_content": true
+    },
+    {
+      "name": "direct/debug: initialize",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "name": "direct/debug: native App tool listed",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "name": "direct/debug: App resource advertised",
+      "passed": true,
+      "has_resource_uri": true
+    },
+    {
+      "name": "direct/debug: resource HTML",
+      "passed": true,
+      "http_status": 200,
+      "content_count": 1
+    },
+    {
+      "name": "direct/debug: native tool call",
+      "passed": true,
+      "http_status": 200,
+      "content_blocks": 3,
+      "has_structured_content": true
+    },
+    {
+      "name": "direct/monitor: initialize",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "name": "direct/monitor: native App tool listed",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "name": "direct/monitor: App resource advertised",
+      "passed": true,
+      "has_resource_uri": true
+    },
+    {
+      "name": "direct/monitor: resource HTML",
+      "passed": true,
+      "http_status": 200,
+      "content_count": 1
+    },
+    {
+      "name": "direct/monitor: native tool call",
+      "passed": true,
+      "http_status": 200,
+      "content_blocks": 1,
+      "has_structured_content": true
+    },
+    {
+      "name": "virtual/excalidraw: initialize",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "name": "virtual/excalidraw: native App tool listed",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "name": "virtual/excalidraw: App resource advertised",
+      "passed": true,
+      "has_resource_uri": true
+    },
+    {
+      "name": "virtual/excalidraw: resource HTML",
+      "passed": true,
+      "http_status": 200,
+      "content_count": 1
+    },
+    {
+      "name": "virtual/excalidraw: native tool call",
+      "passed": true,
+      "http_status": 200,
+      "content_blocks": 1,
+      "has_structured_content": true
+    },
+    {
+      "name": "virtual/pdf: initialize",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "name": "virtual/pdf: native App tool listed",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "name": "virtual/pdf: App resource advertised",
+      "passed": true,
+      "has_resource_uri": true
+    },
+    {
+      "name": "virtual/pdf: resource HTML",
+      "passed": true,
+      "http_status": 200,
+      "content_count": 1
+    },
+    {
+      "name": "virtual/pdf: native tool call",
+      "passed": true,
+      "http_status": 200,
+      "content_blocks": 1,
+      "has_structured_content": true
+    },
+    {
+      "name": "virtual/debug: initialize",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "name": "virtual/debug: native App tool listed",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "name": "virtual/debug: App resource advertised",
+      "passed": true,
+      "has_resource_uri": true
+    },
+    {
+      "name": "virtual/debug: resource HTML",
+      "passed": true,
+      "http_status": 200,
+      "content_count": 1
+    },
+    {
+      "name": "virtual/debug: native tool call",
+      "passed": true,
+      "http_status": 200,
+      "content_blocks": 3,
+      "has_structured_content": true
+    },
+    {
+      "name": "virtual/monitor: initialize",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "name": "virtual/monitor: native App tool listed",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "name": "virtual/monitor: App resource advertised",
+      "passed": true,
+      "has_resource_uri": true
+    },
+    {
+      "name": "virtual/monitor: resource HTML",
+      "passed": true,
+      "http_status": 200,
+      "content_count": 1
+    },
+    {
+      "name": "virtual/monitor: native tool call",
+      "passed": true,
+      "http_status": 200,
+      "content_blocks": 1,
+      "has_structured_content": true
+    },
+    {
+      "name": "aggregate/excalidraw: initialize",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "name": "aggregate/excalidraw: native App tool listed",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "name": "aggregate/excalidraw: App resource advertised",
+      "passed": true,
+      "has_resource_uri": true
+    },
+    {
+      "name": "aggregate/excalidraw: resource HTML",
+      "passed": true,
+      "http_status": 200,
+      "content_count": 1
+    },
+    {
+      "name": "aggregate/excalidraw: native tool call",
+      "passed": true,
+      "http_status": 200,
+      "content_blocks": 1,
+      "has_structured_content": true
+    },
+    {
+      "name": "aggregate/pdf: initialize",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "name": "aggregate/pdf: native App tool listed",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "name": "aggregate/pdf: App resource advertised",
+      "passed": true,
+      "has_resource_uri": true
+    },
+    {
+      "name": "aggregate/pdf: resource HTML",
+      "passed": true,
+      "http_status": 200,
+      "content_count": 1
+    },
+    {
+      "name": "aggregate/pdf: native tool call",
+      "passed": true,
+      "http_status": 200,
+      "content_blocks": 1,
+      "has_structured_content": true
+    },
+    {
+      "name": "aggregate/debug: initialize",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "name": "aggregate/debug: native App tool listed",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "name": "aggregate/debug: App resource advertised",
+      "passed": true,
+      "has_resource_uri": true
+    },
+    {
+      "name": "aggregate/debug: resource HTML",
+      "passed": true,
+      "http_status": 200,
+      "content_count": 1
+    },
+    {
+      "name": "aggregate/debug: native tool call",
+      "passed": true,
+      "http_status": 200,
+      "content_blocks": 3,
+      "has_structured_content": true
+    },
+    {
+      "name": "aggregate/monitor: initialize",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "name": "aggregate/monitor: native App tool listed",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "name": "aggregate/monitor: App resource advertised",
+      "passed": true,
+      "has_resource_uri": true
+    },
+    {
+      "name": "aggregate/monitor: resource HTML",
+      "passed": true,
+      "http_status": 200,
+      "content_count": 1
+    },
+    {
+      "name": "aggregate/monitor: native tool call",
+      "passed": true,
+      "http_status": 200,
+      "content_blocks": 1,
+      "has_structured_content": true
+    },
+    {
+      "name": "code-mode/excalidraw: initialize",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "name": "code-mode/excalidraw: native tool and executeToolCode listed",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "name": "code-mode/excalidraw: direct native call",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "name": "code-mode/excalidraw: nested App result is text",
+      "passed": true,
+      "http_status": 200,
+      "is_error": false,
+      "has_structured_content": false,
+      "has_meta": false,
+      "text_sha256": "4316895d5c2e4eba7ed5d8b3cbeab513d2203463f7cf600f48876c62f78ea67b"
+    },
+    {
+      "name": "code-mode/pdf: initialize",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "name": "code-mode/pdf: native tool and executeToolCode listed",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "name": "code-mode/pdf: direct native call",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "name": "code-mode/pdf: nested App result is text",
+      "passed": true,
+      "http_status": 200,
+      "is_error": false,
+      "has_structured_content": false,
+      "has_meta": false,
+      "text_sha256": "a41c64db92a7a0b42180fce6504abbb287223e4907d39efe0ef8cf0887ab8c05"
+    },
+    {
+      "name": "code-mode/debug: initialize",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "name": "code-mode/debug: native tool and executeToolCode listed",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "name": "code-mode/debug: direct native call",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "name": "code-mode/debug: nested App result is text",
+      "passed": true,
+      "http_status": 200,
+      "is_error": false,
+      "has_structured_content": false,
+      "has_meta": false,
+      "text_sha256": "8ef432de44def8a5c8694dc94948242412bc9144840baf3881feee3ed1a1d30a"
+    },
+    {
+      "name": "code-mode/monitor: initialize",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "name": "code-mode/monitor: native tool and executeToolCode listed",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "name": "code-mode/monitor: direct native call",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "name": "code-mode/monitor: nested App result is text",
+      "passed": true,
+      "http_status": 200,
+      "is_error": false,
+      "has_structured_content": false,
+      "has_meta": false,
+      "text_sha256": "61bf1432ba235d665bd5e2c327831f3e2d63fcb7f754f79886ab19861b1e1b9c"
+    },
+    {
+      "name": "code-mode/debug: nested tool error remains a value",
+      "passed": true,
+      "http_status": 200,
+      "is_error": false,
+      "outer_result_ok": true,
+      "script_completed": true,
+      "native_error_confirmed": true,
+      "nested_result_printed": true,
+      "text_only": true,
+      "text_length": 311,
+      "text_sha256": "b2918cd83d69b2321318d7a4b1a28090866430a908f06f3573754fcacdfc84dd"
+    },
+    {
+      "name": "code-mode/debug: script failure is an MCP error",
+      "passed": true,
+      "http_status": 200,
+      "is_error": true
+    },
+    {
+      "name": "existing Excalidraw App probe",
+      "passed": true,
+      "passed_checks": 30,
+      "total_checks": 30
+    },
+    {
+      "name": "reference-host render gate",
+      "passed": true
+    }
+  ],
+  "excalidraw": {
+    "repository": "https://github.com/sofianbll/excalidraw-mcp",
+    "commit": "4c3700f0ef25a261177fecad03284a57bf7847be",
+    "source_sha256": "79221ba19ba44f83e1e81387c7a01500708bd3544deb9b82db4994178a181a2d",
+    "html_sha256": "1a29d10ee805c360ccee49f104e19062cee70852c9e6db22b5d61a9f95a252d7"
+  },
+  "excalidraw_official": {
+    "repository": "https://github.com/excalidraw/excalidraw-mcp",
+    "commit": "157aa23ceb1976008aadc89eb05e3444060f09d6",
+    "source_sha256": "69b4f83b2fabafd957f8c7c9a0c50f165f5296eba3a1a1a39b140c151ef5e213",
+    "html_sha256": "441650e7bc844a43511b906281d11589e8d24a34a83d657c1d7a56f907c21a63"
+  },
+  "gateway": {
+    "image": "bifrost:candidate",
+    "image_id": "sha256:98efda1b30dcd8bd789e4f07c7e2ae6b92d0f42a2e8c73296720f2329877d532",
+    "commit": "1dcbd14d5875a14dc780f00fc2edd22cfaee66a8",
+    "version": "2.2.6+sofian.1dcbd14d5875"
+  },
+  "base_url": "http://127.0.0.1:32773",
+  "gateway_image_running": true,
+  "render_exit_code": 0,
+  "cleanup": {
+    "containers_removed": 6,
+    "network_removed": true,
+    "app_image_removed": true,
+    "private_files_removed": true,
+    "passed": true
+  },
+  "total": 80,
+  "passed": 80,
+  "passed_all": true
+}
