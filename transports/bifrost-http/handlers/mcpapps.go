@@ -189,7 +189,7 @@ func addMCPAppAliasesToList(requestBody, responseBody []byte, aliases map[string
 		}
 	}
 	result["tools"] = listed
-	updated, err := json.Marshal(response)
+	updated, err := providerUtils.MarshalSorted(response)
 	if err != nil {
 		return responseBody
 	}
@@ -278,7 +278,7 @@ func addMCPAppInitializeCapability(requestBody, responseBody []byte, appSafe boo
 		capabilities["extensions"] = extensions
 	}
 	extensions["io.modelcontextprotocol/ui"] = map[string]any{"mimeTypes": []string{mcpAppMIME}}
-	updated, err := json.Marshal(response)
+	updated, err := providerUtils.MarshalSorted(response)
 	if err != nil {
 		return responseBody
 	}
