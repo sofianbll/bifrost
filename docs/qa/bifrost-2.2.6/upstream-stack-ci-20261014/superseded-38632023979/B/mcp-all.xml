@@ -1,0 +1,769 @@
+<testsuites tests="704" failures="0" errors="0" time="176.827854">
+	<testsuite tests="704" failures="0" skipped="29" time="176.828000" name="github.com/maximhq/bifrost/core/internal/mcptests" timestamp="2026-10-14T20:28:50Z">
+		<properties>
+			<property name="go.version" value="go1.27.0 linux/amd64" />
+		</properties>
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_ContextClientFilter_MultipleClients" time="0.000000">
+			<skipped message="=== RUN   TestAgent_ContextClientFilter_MultipleClients&#10;    agent_context_filtering_test.go:345: Requires STDIO servers to be built&#10;--- SKIP: TestAgent_ContextClientFilter_MultipleClients (0.00s)&#10;" />
+		</testcase>
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgentHelpers_Example_MultiConnectionTypes" time="0.000000">
+			<skipped message="=== RUN   TestAgentHelpers_Example_MultiConnectionTypes&#10;    agent_test_helpers_example_test.go:67: Example test - requires STDIO servers to be built&#10;--- SKIP: TestAgentHelpers_Example_MultiConnectionTypes (0.00s)&#10;" />
+		</testcase>
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestProtocol_BasicToolExecution" time="0.000000">
+			<skipped message="=== RUN   TestProtocol_BasicToolExecution&#10;    mcp_protocol_integration_test.go:39: Skipping due to mark3labs/mcp-go &lt;-&gt; @modelcontextprotocol/sdk compatibility issue (broken pipe)&#10;--- SKIP: TestProtocol_BasicToolExecution (0.00s)&#10;" />
+		</testcase>
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestProtocol_ParallelExecution" time="0.000000">
+			<skipped message="=== RUN   TestProtocol_ParallelExecution&#10;    mcp_protocol_integration_test.go:128: Skipping due to mark3labs/mcp-go &lt;-&gt; @modelcontextprotocol/sdk compatibility issue (broken pipe)&#10;--- SKIP: TestProtocol_ParallelExecution (0.00s)&#10;" />
+		</testcase>
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestProtocol_ErrorHandling" time="0.000000">
+			<skipped message="=== RUN   TestProtocol_ErrorHandling&#10;    mcp_protocol_integration_test.go:198: Skipping due to mark3labs/mcp-go &lt;-&gt; @modelcontextprotocol/sdk compatibility issue (broken pipe)&#10;--- SKIP: TestProtocol_ErrorHandling (0.00s)&#10;" />
+		</testcase>
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestProtocol_EdgeCases" time="0.000000">
+			<skipped message="=== RUN   TestProtocol_EdgeCases&#10;    mcp_protocol_integration_test.go:291: Skipping due to mark3labs/mcp-go &lt;-&gt; @modelcontextprotocol/sdk compatibility issue (broken pipe)&#10;--- SKIP: TestProtocol_EdgeCases (0.00s)&#10;" />
+		</testcase>
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestProtocol_ToolCallIDPreservation" time="0.000000">
+			<skipped message="=== RUN   TestProtocol_ToolCallIDPreservation&#10;    mcp_protocol_integration_test.go:446: Skipping due to mark3labs/mcp-go &lt;-&gt; @modelcontextprotocol/sdk compatibility issue (broken pipe)&#10;--- SKIP: TestProtocol_ToolCallIDPreservation (0.00s)&#10;" />
+		</testcase>
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestPlugin_WithCodeMode" time="0.000000">
+			<skipped message="=== RUN   TestPlugin_WithCodeMode&#10;=== PAUSE TestPlugin_WithCodeMode&#10;=== CONT  TestPlugin_WithCodeMode&#10;    plugin_test.go:583: Code mode plugin integration requires extensive test setup&#10;--- SKIP: TestPlugin_WithCodeMode (0.00s)&#10;" />
+		</testcase>
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestIntegration_EndToEnd_ComplexTask" time="0.000000">
+			<skipped message="=== RUN   TestIntegration_EndToEnd_ComplexTask&#10;=== PAUSE TestIntegration_EndToEnd_ComplexTask&#10;=== CONT  TestIntegration_EndToEnd_ComplexTask&#10;    integration_test.go:432: Real LLM not configured&#10;--- SKIP: TestIntegration_EndToEnd_ComplexTask (0.00s)&#10;" />
+		</testcase>
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestPlugin_WithAgentMode" time="0.000000">
+			<skipped message="=== RUN   TestPlugin_WithAgentMode&#10;=== PAUSE TestPlugin_WithAgentMode&#10;=== CONT  TestPlugin_WithAgentMode&#10;    plugin_test.go:594: Agent mode plugin integration requires LLM and extensive test setup&#10;--- SKIP: TestPlugin_WithAgentMode (0.00s)&#10;" />
+		</testcase>
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestDynamicLLMMocker_BasicValidation" time="0.000000">
+			<skipped message="=== RUN   TestDynamicLLMMocker_BasicValidation&#10;=== PAUSE TestDynamicLLMMocker_BasicValidation&#10;=== CONT  TestDynamicLLMMocker_BasicValidation&#10;    dynamic_llm_mocker_example_test.go:18: Example test - demonstrates usage pattern, requires completion of mock setup&#10;--- SKIP: TestDynamicLLMMocker_BasicValidation (0.00s)&#10;" />
+		</testcase>
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestDynamicLLMMocker_HelperFunctions" time="0.000000">
+			<skipped message="=== RUN   TestDynamicLLMMocker_HelperFunctions&#10;=== PAUSE TestDynamicLLMMocker_HelperFunctions&#10;=== CONT  TestDynamicLLMMocker_HelperFunctions&#10;    dynamic_llm_mocker_example_test.go:160: Example test - demonstrates usage pattern, requires completion of mock setup&#10;--- SKIP: TestDynamicLLMMocker_HelperFunctions (0.00s)&#10;" />
+		</testcase>
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestConcurrent_CodeModeWithToolCalls" time="0.000000">
+			<skipped message="=== RUN   TestConcurrent_CodeModeWithToolCalls&#10;=== PAUSE TestConcurrent_CodeModeWithToolCalls&#10;=== CONT  TestConcurrent_CodeModeWithToolCalls&#10;    concurrency_test.go:1031: TODO: Implement code mode with tool calls test&#10;--- SKIP: TestConcurrent_CodeModeWithToolCalls (0.00s)&#10;" />
+		</testcase>
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestDynamicLLMMocker_CallCount" time="0.000000">
+			<skipped message="=== RUN   TestDynamicLLMMocker_CallCount&#10;=== PAUSE TestDynamicLLMMocker_CallCount&#10;=== CONT  TestDynamicLLMMocker_CallCount&#10;    dynamic_llm_mocker_example_test.go:206: Example test - demonstrates usage pattern, requires completion of mock setup&#10;--- SKIP: TestDynamicLLMMocker_CallCount (0.00s)&#10;" />
+		</testcase>
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestConcurrent_CodeMode" time="0.000000">
+			<skipped message="=== RUN   TestConcurrent_CodeMode&#10;=== PAUSE TestConcurrent_CodeMode&#10;=== CONT  TestConcurrent_CodeMode&#10;    concurrency_test.go:1021: TODO: Implement code mode concurrency test&#10;--- SKIP: TestConcurrent_CodeMode (0.00s)&#10;" />
+		</testcase>
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestConcurrent_AgentModeWithToolExecution" time="0.000000">
+			<skipped message="=== RUN   TestConcurrent_AgentModeWithToolExecution&#10;=== PAUSE TestConcurrent_AgentModeWithToolExecution&#10;=== CONT  TestConcurrent_AgentModeWithToolExecution&#10;    concurrency_test.go:1007: TODO: Implement agent + direct execution test&#10;--- SKIP: TestConcurrent_AgentModeWithToolExecution (0.00s)&#10;" />
+		</testcase>
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestConcurrent_MixedOperations" time="0.000000">
+			<skipped message="=== RUN   TestConcurrent_MixedOperations&#10;=== PAUSE TestConcurrent_MixedOperations&#10;=== CONT  TestConcurrent_MixedOperations&#10;    concurrency_test.go:1050: TODO: Implement mixed operations test&#10;--- SKIP: TestConcurrent_MixedOperations (0.00s)&#10;" />
+		</testcase>
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestDynamicLLMMocker_MultiTurnScenario" time="0.000000">
+			<skipped message="=== RUN   TestDynamicLLMMocker_MultiTurnScenario&#10;=== PAUSE TestDynamicLLMMocker_MultiTurnScenario&#10;=== CONT  TestDynamicLLMMocker_MultiTurnScenario&#10;    dynamic_llm_mocker_example_test.go:99: Example test - demonstrates usage pattern, requires completion of mock setup&#10;--- SKIP: TestDynamicLLMMocker_MultiTurnScenario (0.00s)&#10;" />
+		</testcase>
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestDynamicLLMMocker_ConditionalResponse" time="0.000000">
+			<skipped message="=== RUN   TestDynamicLLMMocker_ConditionalResponse&#10;=== PAUSE TestDynamicLLMMocker_ConditionalResponse&#10;=== CONT  TestDynamicLLMMocker_ConditionalResponse&#10;    dynamic_llm_mocker_example_test.go:63: Example test - demonstrates usage pattern, requires completion of mock setup&#10;--- SKIP: TestDynamicLLMMocker_ConditionalResponse (0.00s)&#10;" />
+		</testcase>
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestConcurrent_AgentMode" time="0.000000">
+			<skipped message="=== RUN   TestConcurrent_AgentMode&#10;=== PAUSE TestConcurrent_AgentMode&#10;=== CONT  TestConcurrent_AgentMode&#10;    concurrency_test.go:997: TODO: Implement agent mode concurrency test&#10;--- SKIP: TestConcurrent_AgentMode (0.00s)&#10;" />
+		</testcase>
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestIntegration_CodeModeCallingTools" time="0.000000">
+			<skipped message="=== RUN   TestIntegration_CodeModeCallingTools&#10;=== PAUSE TestIntegration_CodeModeCallingTools&#10;=== CONT  TestIntegration_CodeModeCallingTools&#10;    integration_test.go:189: TODO: Implement code mode calling tools integration test&#10;--- SKIP: TestIntegration_CodeModeCallingTools (0.00s)&#10;" />
+		</testcase>
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestIntegration_EndToEnd_WithCodeMode" time="0.000000">
+			<skipped message="=== RUN   TestIntegration_EndToEnd_WithCodeMode&#10;=== PAUSE TestIntegration_EndToEnd_WithCodeMode&#10;=== CONT  TestIntegration_EndToEnd_WithCodeMode&#10;    integration_test.go:451: Real LLM not configured&#10;--- SKIP: TestIntegration_EndToEnd_WithCodeMode (0.00s)&#10;" />
+		</testcase>
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestIntegration_CodeModeWithAgent" time="0.000000">
+			<skipped message="=== RUN   TestIntegration_CodeModeWithAgent&#10;=== PAUSE TestIntegration_CodeModeWithAgent&#10;=== CONT  TestIntegration_CodeModeWithAgent&#10;    integration_test.go:179: TODO: Implement code mode with agent integration test&#10;--- SKIP: TestIntegration_CodeModeWithAgent (0.00s)&#10;" />
+		</testcase>
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestIntegration_AgentWithPlugins" time="0.000000">
+			<skipped message="=== RUN   TestIntegration_AgentWithPlugins&#10;=== PAUSE TestIntegration_AgentWithPlugins&#10;=== CONT  TestIntegration_AgentWithPlugins&#10;    integration_test.go:154: TODO: Implement agent with plugins integration test&#10;--- SKIP: TestIntegration_AgentWithPlugins (0.00s)&#10;" />
+		</testcase>
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestIntegration_EndToEnd_SimpleTask" time="0.000000">
+			<skipped message="=== RUN   TestIntegration_EndToEnd_SimpleTask&#10;=== PAUSE TestIntegration_EndToEnd_SimpleTask&#10;=== CONT  TestIntegration_EndToEnd_SimpleTask&#10;    integration_test.go:414: Real LLM not configured&#10;--- SKIP: TestIntegration_EndToEnd_SimpleTask (0.00s)&#10;" />
+		</testcase>
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestIntegration_HealthRecoveryDuringAgent" time="0.000000">
+			<skipped message="=== RUN   TestIntegration_HealthRecoveryDuringAgent&#10;=== PAUSE TestIntegration_HealthRecoveryDuringAgent&#10;=== CONT  TestIntegration_HealthRecoveryDuringAgent&#10;    integration_test.go:324: TODO: Implement health recovery during agent test&#10;--- SKIP: TestIntegration_HealthRecoveryDuringAgent (0.00s)&#10;" />
+		</testcase>
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestIntegration_AgentWithGovernance" time="0.000000">
+			<skipped message="=== RUN   TestIntegration_AgentWithGovernance&#10;=== PAUSE TestIntegration_AgentWithGovernance&#10;=== CONT  TestIntegration_AgentWithGovernance&#10;    integration_test.go:164: TODO: Implement agent with governance test&#10;--- SKIP: TestIntegration_AgentWithGovernance (0.00s)&#10;" />
+		</testcase>
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_WithRealLLM_MultiStep" time="0.000000">
+			<skipped message="=== RUN   TestAgent_WithRealLLM_MultiStep&#10;=== PAUSE TestAgent_WithRealLLM_MultiStep&#10;=== CONT  TestAgent_WithRealLLM_MultiStep&#10;    agent_basic_test.go:697: Real LLM not configured&#10;--- SKIP: TestAgent_WithRealLLM_MultiStep (0.00s)&#10;" />
+		</testcase>
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_WithRealLLM_Simple" time="0.000000">
+			<skipped message="=== RUN   TestAgent_WithRealLLM_Simple&#10;=== PAUSE TestAgent_WithRealLLM_Simple&#10;=== CONT  TestAgent_WithRealLLM_Simple&#10;    agent_basic_test.go:640: Real LLM not configured&#10;--- SKIP: TestAgent_WithRealLLM_Simple (0.00s)&#10;" />
+		</testcase>
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestHTTP_Only_Connection" time="0.080000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestHTTP_STDIO_Mix" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestSTDIO_InitTimeout" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_Adapter_ResponsesFormat_BasicLoop" time="0.030000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecution_DivisionByZero" time="0.030000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestPerServerTimeout_OverridesGlobal" time="1.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolCallID_LongIDs/normal_length" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolCallID_LongIDs/long_id" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolCallID_LongIDs/very_long_id" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolCallID_LongIDs/extremely_long_id" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolCallID_LongIDs" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecutionInvalidArguments/invalid_json" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecutionInvalidArguments/missing_required_arguments" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecutionInvalidArguments/wrong_argument_types" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecutionInvalidArguments" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecution_ToolReturnsError/error_0" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecution_ToolReturnsError/error_1" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecution_ToolReturnsError/error_2" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecution_ToolReturnsError/error_3" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecution_ToolReturnsError" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestDirectToolExecution_ResponsesFormat" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolNameConflict_MultipleClients" time="0.040000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecutionEmptyResponse" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestFormatConversion_MixedContent" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestIntegration_FullResponsesWorkflow" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolResult_ContentEncoding/base64_like" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolResult_ContentEncoding/url_encoded" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolResult_ContentEncoding/html_entities" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolResult_ContentEncoding/json_escaped" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolResult_ContentEncoding" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecution_NonExistentTool" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestHealthCheckSTDIOServerDropAndRecoverIn20Seconds" time="6.390000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolCallID_DuplicateIDsInParallelExecution" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestExecuteToolCode_SyntaxError/syntax_error_0" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestExecuteToolCode_SyntaxError/syntax_error_1" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestExecuteToolCode_SyntaxError/syntax_error_2" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestExecuteToolCode_SyntaxError/syntax_error_3" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestExecuteToolCode_SyntaxError/syntax_error_4" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestExecuteToolCode_SyntaxError" time="0.030000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecutionLargeResponse" time="0.040000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestHealthCheckDuringToolExecution" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolsToAutoExecute_Basic" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestIntegration_PartialFailure" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestFormatConversion_ToolCalls" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolsToExecute_Wildcard/tool1" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolsToExecute_Wildcard/tool2" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolsToExecute_Wildcard" time="0.030000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestHealthCheckReconnectAfterFailure" time="5.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestIntegration_ReconnectDuringExecution" time="1.520000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecutionClientNotFound" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestHealthCheckSSEReconnect" time="2.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestIntegration_HighLoadScenario" time="0.050000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestPerServerTimeout_AllowsLongerThanGlobal" time="2.009000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecutionReturnsError" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolResult_SpecialCharactersAndUnicode/ascii_special" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolResult_SpecialCharactersAndUnicode/unicode_chars" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolResult_SpecialCharactersAndUnicode/emojis" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolResult_SpecialCharactersAndUnicode/mixed" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolResult_SpecialCharactersAndUnicode/newlines" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolResult_SpecialCharactersAndUnicode/tabs" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolResult_SpecialCharactersAndUnicode/quotes" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolResult_SpecialCharactersAndUnicode/backslashes" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolResult_SpecialCharactersAndUnicode/control_chars" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolResult_SpecialCharactersAndUnicode" time="0.050000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolNameConflict_WithFiltering" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecution_LargeErrorMessage" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestPlugin_GovernancePlugin" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestHealthCheckSSELongRunning" time="30.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestIntegration_ToolConflictResolution" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolResult_ArrayResults" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestPlugin_ContextPropagation" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestPlugin_LoggingPlugin" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestFormatConversion_ErrorWithStackTrace" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestPlugin_RequestModification" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecutionContextCancellation" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolConflict_OneClientDisconnected" time="33.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestFilteringMultipleClients_DifferentRules" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestPlugin_ResponseModification" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecution_MultipleErrorsInSequence" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecutionMultipleTools/calculator" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecutionMultipleTools/echo" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecutionMultipleTools/weather" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecutionMultipleTools" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolCallID_PreservationThroughFormatConversion/chat_to_responses" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolCallID_PreservationThroughFormatConversion/responses_to_chat" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolCallID_PreservationThroughFormatConversion" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolsToAutoExecute_NotInExecuteList" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestConnectHook_PostHookPopulatesServerInfo" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestInProcessToolExecution" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestConcurrent_RemoveClientDuringExecution" time="0.220000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestContext_ValueIsolation" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestErrorHandling_InProcess_InvalidArguments/empty_arguments" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestErrorHandling_InProcess_InvalidArguments/empty_object" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestErrorHandling_InProcess_InvalidArguments/malformed_JSON" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestErrorHandling_InProcess_InvalidArguments/missing_required_field" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestErrorHandling_InProcess_InvalidArguments/wrong_type_for_field" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestErrorHandling_InProcess_InvalidArguments/division_by_zero" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestErrorHandling_InProcess_InvalidArguments/invalid_operation" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestErrorHandling_InProcess_InvalidArguments" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecution_ErrorInBothFormats/chat_format" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecution_ErrorInBothFormats/responses_format" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecution_ErrorInBothFormats" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestConcurrent_RaceConditions" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestConnectHook_AuthorizationHidden_HeadersAuth" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestConcurrent_MultiplePlugins" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolsToExecute_Nil" time="0.030000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestMultipleConnectionTypes" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestConcurrent_ToolExecutionMixedClients" time="0.040000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestListToolsHook_FiresOnConnectAndAgain" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestHealthCheckMultipleClientsMixedStates" time="34.060000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_NestedToolCalls" time="0.040000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestContextFilteringRestrictsWildcard" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_ToolNotInExecuteList" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestHealthCheckStateTransitionsInvalidClient" time="34.040000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestConnectHook_PreHookShortCircuitError_FailsAddClient" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_CodeModeClientOnly" time="0.220000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecutionExtraFields" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestResponsesToChatConversion" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_Agent_PartialApprovalMixed" time="0.200000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestFormatConversion_ErrorMessages" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestListToolsHook_FiresOnAddClient" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestMultipleSameNameTools_ThreeClients" time="31.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestErrorHandling_STDIO_MCPErrorResponse/validation" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestErrorHandling_STDIO_MCPErrorResponse/runtime" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestErrorHandling_STDIO_MCPErrorResponse/network" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestErrorHandling_STDIO_MCPErrorResponse/timeout" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestErrorHandling_STDIO_MCPErrorResponse/permission" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestErrorHandling_STDIO_MCPErrorResponse" time="0.520000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestIntegration_MultiClientMultiTool" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestIntegration_ErrorRecovery" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestErrorHandling_InProcess_NullAndUndefinedArguments/null_value_for_message" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestErrorHandling_InProcess_NullAndUndefinedArguments/missing_message_field" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestErrorHandling_InProcess_NullAndUndefinedArguments/valid_message" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestErrorHandling_InProcess_NullAndUndefinedArguments" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestPlugin_ShortCircuit" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolConflict_ResponsesFormat/echo_tool" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolConflict_ResponsesFormat/calculator_tool" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolConflict_ResponsesFormat/weather_tool" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolConflict_ResponsesFormat" time="31.030000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestResponsesToChatConversion_NilHandling" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestDirectToolExecution_ChatFormat" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestConcurrent_MultipleHealthChecks" time="0.060000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestFormatConversion_ComplexStructures" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestSSEConnection" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestSTDIOConnectionTimeout" time="2.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_Agent_MixedCodeModeWithApproval" time="0.210000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestResponsesToChatConversion_ToolResult" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestContext_RequestIDGeneration" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestChatFormat_Basic" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestContext_DeadlineInheritance" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_NoToolsAvailable" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_ChatFormat" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolNameConflict_LocalVsExternal" time="31.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestExtraHeadersSSEToolCallReachWire" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestConcurrent_FilteringChanges" time="0.030000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestConcurrent_EditClientDuringExecution" time="0.520000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestContext_NestedToolCalls" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestConcurrent_CodeModeExecution" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestSSEConnectionReconnect" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestHTTPConnection" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_SomeToolsAvailable" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestConnectHook_OnlyFiresForConnectRequestType" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestDynamicLLMMocker_HistoryTracking" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestExtraHeadersHealthCheckListToolsReachWire" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestContext_CleanupOnCompletion" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_MultipleParallelToolCalls" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestErrorHandling_STDIO_IntermittentFailures/always_succeed" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestErrorHandling_STDIO_IntermittentFailures/always_fail" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestErrorHandling_STDIO_IntermittentFailures/fifty_percent" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestErrorHandling_STDIO_IntermittentFailures" time="0.540000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestConcurrent_MultipleToolExecutions" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestContext_ConcurrentAccess" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestConversionRoundTrip_ResponsesToChatAndBack" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestListToolsHook_PreHookShortCircuitWithSyntheticTools" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_ToolExecutionTimeout" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestExtraHeadersToolCallReachWire" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestPingHook_PreHookShortCircuitHealthy" time="0.050000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_NonAllowedToolExecution" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestConcurrent_StressTest" time="0.230000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestConnectHook_PreHookShortCircuitResponse_RegistersWithEmptyTools" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestConcurrent_DifferentTools" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestMCPGate_AllRequestTypesCarryClientName" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestConcurrent_HealthCheckDuringExecution" time="2.009000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestErrorHandling_InProcess_ToolReturnsError" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestConnectionWithHeaders" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestConcurrent_HealthCheckDuringExecution_Advanced" time="2.009000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestConversionRoundTrip_ChatToResponsesAndBack" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestConcurrent_EditClientDuringExecution_Advanced" time="0.110000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestErrorHandling_ErrorMessageFormat" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestConcurrent_CodeModeExecutionWithToolCalls" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_CallingMultipleServers" time="0.030000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestListToolsHook_PostHookFilterAppliedToClientState" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_ToolCallWithAwait" time="0.030000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestContext_ParentChildRequestIDs" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestExtraHeadersHealthCheckPingReachWire" time="0.030000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_CallingCodeModeClient" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestExtraHeadersSSEHealthCheckPingReachWire" time="0.030000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestChatToResponsesConversion" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_PreHookRenameIsAuthorized" time="0.230000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestPingHook_DoesNotFireWhenPingUnavailable" time="0.050000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ApprovedCallIgnoresAutoExecuteList" time="0.240000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestConcurrent_SameTool" time="0.030000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestConcurrent_PluginHooks" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_ToolCallWithoutAwait" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestPingHook_PreHookShortCircuitError_DoesNotPanic" time="0.520000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestConcurrent_AddClientDuringExecution" time="0.230000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_MultipleSequentialToolCalls" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestErrorHandling_ErrorWithSpecialCharacters" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_ToolReturnsError" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestChatToResponsesConversion_ToolResult" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestContext_TimeoutPropagation" time="0.300000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestErrorHandling_STDIO_TimeoutScenario" time="2.520000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_ResponsesFormat" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_Agent_CodeModeInCode_NonCodeModeDirect" time="0.200000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestSTDIOServerDoubleStart" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestResponsesFormat_Basic" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_ParallelToolExecution" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestConcurrent_ToolRegistration" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestSTDIOConnection" time="0.500000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestConcurrent_HighLoad" time="10.060000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestInProcessConnection" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestConcurrent_GetClientsWhileModifying" time="1.170000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolConflict_ComprehensiveScenarios/echo_tool" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolConflict_ComprehensiveScenarios/calculator_tool" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolConflict_ComprehensiveScenarios/weather_tool" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolConflict_ComprehensiveScenarios" time="31.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestConnectHook_FiresOnAddClient" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestConcurrent_ClientStateMutations" time="1.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestListToolsHook_InitialListToolsFailure_FailsConnect" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_MixedCodeModeClients" time="0.240000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_UnattendedCallEnforcesAutoExecuteList/echo_not_auto_executable_is_refused" time="0.190000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_UnattendedCallEnforcesAutoExecuteList/echo_auto_executable_runs" time="0.200000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_UnattendedCallEnforcesAutoExecuteList" time="0.390000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestErrorHandling_STDIO_MalformedJSON" time="0.530000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestContext_CancellationPropagation" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestChatToResponsesConversion_WithContent" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestInvalidConnectionType" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestConnectionWithMissingRequiredFields" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_ToolNotFound" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestMCPGate_NoPluginsConfigured_OpStillRuns" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestErrorHandling_MultipleConsecutiveErrors" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestFormatConversion_ExtraFields" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestExtraHeadersSSEHealthCheckListToolsReachWire" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestErrorHandling_InProcess_ToolReturnsError_ResponsesFormat" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestPingHook_FiresViaHealthMonitor" time="0.040000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestFormatConversion_Accuracy" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_StateTransition_BoundaryConditions/wildcard_all" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_StateTransition_BoundaryConditions/explicit_list" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_StateTransition_BoundaryConditions/empty_list" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_StateTransition_BoundaryConditions/no_match" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_StateTransition_BoundaryConditions" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_MultiServer_FilteringAcrossServers/allow_only_go_test_and_edge_case" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_MultiServer_FilteringAcrossServers/block_parallel_server" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_MultiServer_FilteringAcrossServers/allow_all_servers" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_MultiServer_FilteringAcrossServers" time="0.030000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_MultiServer_AllServers/call_tools_from_all_servers" time="0.060000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_MultiServer_AllServers/sequential_across_servers" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_MultiServer_AllServers" time="0.100000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ParallelTestServer_Concurrent/parallel_fast_tools" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ParallelTestServer_Concurrent/parallel_mixed_speeds" time="0.910000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ParallelTestServer_Concurrent/parallel_all_tools" time="3.410000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ParallelTestServer_Concurrent" time="4.330000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ErrorTestServer_IntermittentAndHandling/intermittent_fail_low_rate" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ErrorTestServer_IntermittentAndHandling/intermittent_fail_high_rate" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ErrorTestServer_IntermittentAndHandling/error_handling_in_code" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ErrorTestServer_IntermittentAndHandling" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ParallelTestServer_Sequential/fast_tool_1" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ParallelTestServer_Sequential/medium_tool_1" time="0.150000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ParallelTestServer_Sequential/slow_tool_1" time="0.750000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ParallelTestServer_Sequential/variable_delay" time="2.500000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ParallelTestServer_Sequential" time="3.420000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ErrorTestServer_LargePayload/memory_intensive_small" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ErrorTestServer_LargePayload/memory_intensive_medium" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ErrorTestServer_LargePayload" time="0.040000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ErrorTestServer_MalformedAndPartial/return_malformed_json" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ErrorTestServer_MalformedAndPartial/return_error" time="0.050000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ErrorTestServer_MalformedAndPartial/timeout_after_short" time="0.100000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ErrorTestServer_MalformedAndPartial/intermittent_fail_low_rate" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ErrorTestServer_MalformedAndPartial/memory_intensive_small" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ErrorTestServer_MalformedAndPartial" time="0.180000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ErrorTestServer_NetworkErrors/return_error_network" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ErrorTestServer_NetworkErrors/return_error_timeout" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ErrorTestServer_NetworkErrors/return_error_validation" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ErrorTestServer_NetworkErrors/return_error_permission" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ErrorTestServer_NetworkErrors" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_EdgeCaseServer_ExtremeSizes/extreme_sizes_small" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_EdgeCaseServer_ExtremeSizes/extreme_sizes_normal" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_EdgeCaseServer_ExtremeSizes/extreme_sizes_large" time="0.050000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_EdgeCaseServer_ExtremeSizes" time="0.080000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_EdgeCaseServer_NestedAndSpecialChars/nested_structure_default" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_EdgeCaseServer_NestedAndSpecialChars/nested_structure_deeper" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_EdgeCaseServer_NestedAndSpecialChars/special_chars_quotes" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_EdgeCaseServer_NestedAndSpecialChars/special_chars_newlines" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_EdgeCaseServer_NestedAndSpecialChars/special_chars_all" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_EdgeCaseServer_NestedAndSpecialChars" time="0.050000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ErrorTestServer_ToolErrorIsValue" time="0.030000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_EdgeCaseServer_EmptyAndNull/null_empty_string" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_EdgeCaseServer_EmptyAndNull/null_empty_object" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_EdgeCaseServer_EmptyAndNull/null_null_value" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_EdgeCaseServer_EmptyAndNull/null_all_values" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_EdgeCaseServer_EmptyAndNull" time="0.030000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_EdgeCaseServer_BinaryAndEncoding/binary_data_base64" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_EdgeCaseServer_BinaryAndEncoding/binary_data_hex" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_EdgeCaseServer_BinaryAndEncoding/binary_data_small" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_EdgeCaseServer_BinaryAndEncoding" time="0.030000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ComplexCodePatterns/for_loop_with_tool_calls" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ComplexCodePatterns/conditional_tool_calls" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ComplexCodePatterns/sequential_tool_calls_list" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ComplexCodePatterns/data_transformation" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ComplexCodePatterns" time="0.220000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_CombinedFiltering/allow_server_and_specific_tool" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_CombinedFiltering/allow_server_but_block_tool" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_CombinedFiltering/allow_all_clients_specific_tools_from_each" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_CombinedFiltering" time="0.250000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ToolFiltering/allow_only_echo" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ToolFiltering/block_calculator_allow_echo" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ToolFiltering/wildcard_for_client" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ToolFiltering/allow_multiple_specific_tools" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ToolFiltering/block_all_tools_empty_filter" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ToolFiltering" time="0.210000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_EdgeCaseServer_Unicode/unicode_emoji" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_EdgeCaseServer_Unicode/unicode_has_length" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_EdgeCaseServer_Unicode" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_MultipleServers/call_tool_from_first_server" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_MultipleServers/call_tool_from_second_server" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_MultipleServers/call_tools_from_both_servers" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_MultipleServers/calculator_from_both_servers" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_MultipleServers" time="0.250000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ServerFiltering/allow_only_test_tools_server" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ServerFiltering/block_test_tools_server" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ServerFiltering/allow_only_temperature_server" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ServerFiltering/block_temperature_server" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ServerFiltering/allow_both_servers" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ServerFiltering" time="0.250000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_SingleServerBasicExecution/simple_return" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_SingleServerBasicExecution/string_return" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_SingleServerBasicExecution/object_return" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_SingleServerBasicExecution/array_return" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_SingleServerBasicExecution" time="0.190000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestReadToolFile_LineNumberBoundaries/start_line_zero" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestReadToolFile_LineNumberBoundaries/start_line_negative" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestReadToolFile_LineNumberBoundaries/end_line_before_start" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestReadToolFile_LineNumberBoundaries/very_large_line_number" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestReadToolFile_LineNumberBoundaries" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ToolCallSingleServer/echo_tool" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ToolCallSingleServer/calculator_add" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ToolCallSingleServer/calculator_multiply" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ToolCallSingleServer/get_weather" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ToolCallSingleServer/sequential_tool_calls" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_STDIO_ToolCallSingleServer" time="0.210000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestExecuteToolCode_MalformedJSON/missing_closing_brace" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestExecuteToolCode_MalformedJSON/missing_quotes" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestExecuteToolCode_MalformedJSON/trailing_comma" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestExecuteToolCode_MalformedJSON/unescaped_newline" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestExecuteToolCode_MalformedJSON/invalid_escape" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestExecuteToolCode_MalformedJSON" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestExecuteToolCode_UnicodeInCode" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestExecuteToolCode_EmptyCodeSecurity/empty_string" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestExecuteToolCode_EmptyCodeSecurity/only_spaces" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestExecuteToolCode_EmptyCodeSecurity/only_newlines" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestExecuteToolCode_EmptyCodeSecurity/missing_field" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestExecuteToolCode_EmptyCodeSecurity" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestReadToolFile_EmptyFileName/empty_string" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestReadToolFile_EmptyFileName/only_spaces" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestReadToolFile_EmptyFileName/missing_field" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestReadToolFile_EmptyFileName/null_value" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestReadToolFile_EmptyFileName" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestListToolFiles_InputValidation" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestConcurrent_AddRemoveClients" time="31.070000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestReadToolFile_PathTraversalAttacks/basic_path_traversal_parent" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestReadToolFile_PathTraversalAttacks/path_traversal_in_server_name" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestReadToolFile_PathTraversalAttacks/double_dot_in_tool_name" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestReadToolFile_PathTraversalAttacks/encoded_path_traversal" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestReadToolFile_PathTraversalAttacks/path_with_multiple_slashes" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestReadToolFile_PathTraversalAttacks/absolute_path" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestReadToolFile_PathTraversalAttacks" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestReadToolFile_InvalidToolNames/slash_in_tool_name" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestReadToolFile_InvalidToolNames/dot_dot_in_tool_name" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestReadToolFile_InvalidToolNames/special_chars" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestReadToolFile_InvalidToolNames/null_byte" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestReadToolFile_InvalidToolNames/backslash" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestReadToolFile_InvalidToolNames" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeModeFiles_ResponsesFormat" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeModeFiles_ChatFormat" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeModeFiles_ReadInCode" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeModeFiles_ListInCode" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestReadToolFile_TypescriptDefinitions" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeModeFiles_FullWorkflow" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestReadToolFile_WithFiltering" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestReadToolFile_NotFound" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestReadToolFile_Basic" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestListToolFiles_MultipleServers" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestListToolFiles_WithFiltering" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestListToolFiles_ToolBinding" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestListToolFiles_ServerBinding" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_Filtering_MultiServer_MixedFiltering" time="0.240000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_Filtering_ClientFiltering" time="0.240000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_MultiServer_SequentialChaining" time="0.230000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_Filtering_ServerAllowed_ToolBlocked" time="0.200000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_MultiServer_ParallelExecution" time="1.390000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeModeAgent_ToolErrorInCode" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeModeAgent_ErrorInCode" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_MultiServer_BasicCalls" time="0.220000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestHTTPConnectionInvalidURL" time="34.080000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeModeAgent_Timeout_ResponsesFormat" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeModeAgent_MaxDepth_ResponsesFormat" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeModeAgent_MaxDepth_ChatFormat" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeModeAgent_MaxDepth" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeModeAgent_Timeout_ChatFormat" time="2.009000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeModeAgent_AutoExecuteFiltering" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeModeAgent_NoToolCallsInCode" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeModeAgent_FilteringInCode" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeModeAgent_MixedToolsInCode" time="0.030000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeModeAgent_AutoToolInCode" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeModeAgent_Basic" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_Agent_NonAutoToolInCode" time="0.270000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_Agent_AutoExecuteSingleTool" time="0.260000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_Agent_MultiTurn_ErrorRecovery" time="0.300000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeModeAgent_NonAutoToolInCode" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_Agent_MultiTurn_ContextFilterOverride" time="0.230000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_Agent_MultiTurn_FilteredToolInCode" time="0.260000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_Agent_MultiTurn_MixedToolsAndCode" time="0.280000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_Agent_MultiTurn_MaxDepth" time="0.240000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_Agent_MultiTurn_CodeChaining" time="0.300000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestReconnectClientAfterRemoval" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestReconnectClientInvalidID" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestConcurrentClientOperations" time="0.040000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeModeAgent_Timeout" time="4.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestGetMCPClientsEmpty" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestGetMCPClientsMultiple" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestGetMCPClients" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestEditClientChangeConnectionType" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestEditClientInvalidID" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestEditClient" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestRemoveClientDuringExecution" time="0.110000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestRemoveClientMultiple" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestEditClientInvalidConfig" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestRemoveClientInvalidID" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestRemoveClient" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAddClientDuplicate" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAnnotations_DeepCopyPreservesAnnotations" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAnnotations_PreservedAfterToolRegistration" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAnnotations_AbsentFromProviderJSON" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgentHelpers_Example_MaxDepthLimit" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgentHelpers_Example_ContextFiltering" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgentHelpers_Example_SimpleAgentTestHelper/Two_turn_agent_with_echo" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgentHelpers_Example_SimpleAgentTestHelper" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecutionWithArguments/add_operation" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecutionWithArguments/subtract_operation" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecutionWithArguments/multiply_operation" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecutionWithArguments/divide_operation" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecutionWithArguments" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolsToExecute_EmptyArray" time="0.030000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestPlugin_ChatFormat" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolCallID_PreservationThroughExecution_ChatFormat/standard_id" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolCallID_PreservationThroughExecution_ChatFormat/uuid_style" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolCallID_PreservationThroughExecution_ChatFormat/numeric_id" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolCallID_PreservationThroughExecution_ChatFormat/hyphenated_id" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolCallID_PreservationThroughExecution_ChatFormat/underscored_id" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolCallID_PreservationThroughExecution_ChatFormat" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecutionContextDeadline" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecution_MissingRequiredArguments/missing_all" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecution_MissingRequiredArguments/missing_operation" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecution_MissingRequiredArguments/missing_x" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecution_MissingRequiredArguments/missing_y" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecution_MissingRequiredArguments" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestReconnectClient" time="1.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolCallID_ConsistencyAcrossRetries" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolsToExecute_SingleTool" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestConnectionWithEnvironmentVariables" time="30.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestPlugin_PostMCPHook" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestExecuteToolCode_CodeInjectionAttempts/import_os" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestExecuteToolCode_CodeInjectionAttempts/load_module" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestExecuteToolCode_CodeInjectionAttempts/eval_usage" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestExecuteToolCode_CodeInjectionAttempts/infinite_loop" time="30.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestExecuteToolCode_CodeInjectionAttempts/prototype_pollution" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestExecuteToolCode_CodeInjectionAttempts" time="30.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolResult_ComplexNestedStructures" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestPlugin_ErrorInPostHook" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestHealthCheckMultipleClients" time="3.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestExecuteToolCode_RuntimeError/runtime_error_0" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestExecuteToolCode_RuntimeError/runtime_error_1" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestExecuteToolCode_RuntimeError/runtime_error_2" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestExecuteToolCode_RuntimeError/runtime_error_3" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestExecuteToolCode_RuntimeError/runtime_error_4" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestExecuteToolCode_RuntimeError" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecutionMalformedRequest/missing_function_name" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecutionMalformedRequest/nil_tool_call" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecutionMalformedRequest" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestFormatConversion_ContentBlocks" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolCallID_MissingOrNilIDs/nil_tool_call_id" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolCallID_MissingOrNilIDs/empty_string_id" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolCallID_MissingOrNilIDs" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolResult_MixedDataTypes" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecutionToolNotFound" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestPlugin_ErrorHandling" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestPlugin_PluginOrdering" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolCallID_PreservationWithError" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolsToExecute_ExplicitList" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecutionLatencyMeasurement" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestPlugin_ShortCircuit_CustomMessage" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_MaxDepthCustomValue" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_StateTransition_StateConsistency" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgentHelpers_Example_SimpleInProcessAgent" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_StateTransition_AllToolsFilteredOut" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_StateTransition_AlternatingAutoNonAuto" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_StateTransition_EmptyToolCallsList" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_StateTransition_LargeMixedToolBatch" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_RequestID_MixedAutoAndNonAuto" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_StateTransition_DepthCountingBasic" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_RequestID_EmptyGeneratorResult" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_RequestID_NoGeneratorFunction" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_RequestID_SequentialUpdates" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_RequestID_Propagation" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_RequestID_PreservationAcrossDepth" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_ParallelExecution_MixedOutcomes" time="5.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_ParallelExecution_LargeBatch" time="0.060000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_ParallelExecution_ResultCollectionOrder" time="0.100000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_ParallelExecution_RaceConditions" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_ParallelExecution_PartialFailures" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_ParallelExecution_ResultOrdering" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_MultiConnection_LargeParallelBatch" time="0.040000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_MultiConnection_ErrorInSTDIO" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_MultiConnection_MixedPermissions" time="0.030000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_MultiConnection_SequentialAfterParallel" time="0.030000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_MultiConnection_AllTypes" time="0.030000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_MixedPermissions_AllAutoExecute" time="0.030000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_MixedPermissions_ContextFilteringOverride" time="0.030000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_MixedPermissions_SpecificToolNames" time="0.060000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_MixedPermissions_MultipleSTDIOSamePermissions" time="0.050000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_ToolNotAllowed" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_MixedPermissions_WildcardAutoExecute" time="0.030000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_MixedPermissions_AllBlocked" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_MixedPermissions_PartialExecution" time="0.030000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_MixedPermissions_ThreeClients" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_MaxDepthZero" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_MaxDepthAndTimeout" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_IterationTracking" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_ErrorInMiddleOfLoop" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_LLMError" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_ErrorPropagation" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_Timeout_ChatFormat" time="0.800000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_TimeoutDuringExecution" time="1.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_Timeout_ResponsesFormat" time="0.800000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_Timeout" time="1.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_MaxDepth_CodeMode_ChatFormat" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_MaxDepth_CodeMode_ResponsesFormat" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_MaxDepthReached_ResponsesFormat" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_MaxDepth_CodeMode" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_ContextToolFilter_EmptyList" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_MaxDepthEnforcement" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_Filtering_ResponsesFormat" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_MaxDepthReached_ChatFormat" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_ToolConflictInAgentMode" time="0.700000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolNameConflict_Resolution" time="31.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_ComplexFiltering_ContextOverride" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_Filtering_ChatFormat" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_ComplexFiltering_Scenario3" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_ComplexFiltering_Scenario2" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_ToolNotInAutoExecuteList" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_FilteringWithMultipleClients" time="0.700000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_ToolAllowedAndAutoExecute" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_ErrorHandling_ErrorMessagePreservation" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_ErrorHandling_MultipleErrorsInSequence" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_ComplexFiltering_Scenario1" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_ToolAllowedNotAutoExecute" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_ErrorHandling_RecoveryAndContinuation" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_ErrorHandling_PartialBatchFailure" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_ErrorHandling_ErrorInToolArguments/invalid_json" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_ErrorHandling_ErrorInToolArguments/wrong_types" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_ErrorHandling_ErrorInToolArguments/missing_required" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_ErrorHandling_ErrorInToolArguments/extra_fields" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_ErrorHandling_ErrorInToolArguments/empty_object" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_ErrorHandling_ErrorInToolArguments/null_values" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_ErrorHandling_ErrorInToolArguments" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_ErrorHandling_MalformedResponse/invalid_json" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_ErrorHandling_MalformedResponse/unclosed_brace" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_ErrorHandling_MalformedResponse/wrong_type" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_ErrorHandling_MalformedResponse/null_response" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_ErrorHandling_MalformedResponse/empty_string" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_ErrorHandling_MalformedResponse" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_ContextToolFilter_ParallelMixed" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_ErrorHandling_AllToolsFail" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolConflict_BothClientsDisconnected" time="33.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestHealthCheckStateTransitions" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecutionMultipleClients" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolCallID_UniqueIDsInBatch" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolCallID_SpecialCharactersInID/with_dots" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolCallID_SpecialCharactersInID/with_colons" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolCallID_SpecialCharactersInID/with_slashes" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolCallID_SpecialCharactersInID/with_spaces" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolCallID_SpecialCharactersInID/with_unicode" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolCallID_SpecialCharactersInID/with_emoji" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolCallID_SpecialCharactersInID/mixed_special" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolCallID_SpecialCharactersInID" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestCodeMode_CallingMCPTool" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestPlugin_ResponsesFormat" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestFormatConversion_ToolResults" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecutionTimeout" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecutionParallel" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_ErrorHandling_TimeoutInLoop" time="5.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolResult_MultiPartContent" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolResult_EmptyAndNullContent/empty_string" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolResult_EmptyAndNullContent/empty_object" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolResult_EmptyAndNullContent/null" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolResult_EmptyAndNullContent/empty_array" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolResult_EmptyAndNullContent/whitespace_only" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolResult_EmptyAndNullContent" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecution_WrongArgumentTypes/x_as_string" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecution_WrongArgumentTypes/y_as_string" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecution_WrongArgumentTypes/operation_as_number" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecution_WrongArgumentTypes/x_as_array" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecution_WrongArgumentTypes/y_as_object" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecution_WrongArgumentTypes" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolResult_BothFormats_ComplexStructure/chat_format" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolResult_BothFormats_ComplexStructure/responses_format" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolResult_BothFormats_ComplexStructure" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestPerServerTimeout_FallsBackToGlobal" time="0.510000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_NoToolCalls" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_ContextToolFilter_WildcardOverride" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_ContextClientFilter_Whitelist" time="0.200000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_ContextNarrowing_AutoExecute" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_ContextToolFilter_BlockedToolError" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_ContextToolFilter_Whitelist" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_OnlyNonAutoTools" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_OnlyAutoTools" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_MixedAutoAndNonAutoTools" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_MultipleIterations" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecutionPreservesCallID" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestIntegration_FullChatWorkflow" time="0.520000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestMultipleSameNameTools_DifferentImplementations" time="31.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolCallID_PreservationThroughExecution_ResponsesFormat/responses_standard" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolCallID_PreservationThroughExecution_ResponsesFormat/responses_uuid" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolCallID_PreservationThroughExecution_ResponsesFormat/responses_numeric" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolCallID_PreservationThroughExecution_ResponsesFormat" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestPlugin_MultiplePlugins" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecution_ToolNotInExecuteList" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolResult_LargePayload/small_1kb" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolResult_LargePayload/medium_100kb" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolResult_LargePayload/large_1mb" time="0.150000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolResult_LargePayload/very_large_5mb" time="0.720000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolResult_LargePayload" time="0.900000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolsToAutoExecute_Wildcard" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestFilteringChangesAfterClientEdit" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestPlugin_PreMCPHook" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestPlugin_PreMCPHookShortCircuitsBeforeToolResolution" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecutionStructuredResponse" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestPlugin_CustomTestPlugin" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_Adapter_ResponsesFormat_ErrorHandling" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_SingleIteration" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_BasicLoop_ResponsesFormat" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_BasicLoop" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_Adapter_ChatAndResponsesParity" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_BasicLoop_ChatFormat" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecution_Timeout" time="5.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_Adapter_ResponsesFormat_MultipleToolCalls" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_Adapter_ResponsesFormat_DeepChain" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_Adapter_ResponsesFormat_STDIO" time="0.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_Adapter_ResponsesFormat_MixedPermissions" time="0.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_Adapter_ResponsesFormat_EmptyToolResult" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_AllAutoExecuteScenarios/in_execute_not_auto" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_AllAutoExecuteScenarios/in_auto_not_execute" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_AllAutoExecuteScenarios/wildcard_execute_no_auto" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_AllAutoExecuteScenarios/wildcard_both" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_AllAutoExecuteScenarios/wildcard_execute_specific_auto" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_AllAutoExecuteScenarios/in_both_lists" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestAgent_AllAutoExecuteScenarios" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecution_TimeoutChatAndResponses/chat_format" time="3.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecution_TimeoutChatAndResponses/responses_format" time="3.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolExecution_TimeoutChatAndResponses" time="6.010000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolConflict_ChatFormat/echo_tool" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolConflict_ChatFormat/calculator_tool" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolConflict_ChatFormat/weather_tool" time="0.000000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestToolConflict_ChatFormat" time="31.020000" />
+		<testcase classname="github.com/maximhq/bifrost/core/internal/mcptests" name="TestHealthCheckConcurrentFailures" time="36.030000" />
+	</testsuite>
+</testsuites>

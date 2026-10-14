@@ -1,0 +1,427 @@
+{
+  "qualification_run": "https://github.com/sofianbll/bifrost/actions/runs/38637028433",
+  "status": "completed_success",
+  "wrapper_commit": "9a5c3e80963d8b33f8604dcf4670acb457de3aec",
+  "harness_commit": "1dcbd14d5875a14dc780f00fc2edd22cfaee66a8",
+  "architecture": "amd64",
+  "codex_verification": "not_run",
+  "production_touched": false,
+  "publication": "local_only; export_authorization_pending",
+  "candidates": {
+    "A": {
+      "candidate_commit": "f136c93fcf78f3db3df59974ae49cfc392412f51",
+      "candidate_tree": "ac30312581eff320d90ff9428c3d2488f4e92f8a",
+      "version": "2.2.6+qualification.f136c93fcf78",
+      "image_id": "sha256:973803f704d4641bebb7f418ad682158cb891f766ee2fc9a741a41d51645b8ae",
+      "outcomes": {
+        "mcp": "success",
+        "persistence": "success",
+        "build": "success",
+        "package": "success",
+        "image": "success",
+        "wire": "skipped",
+        "apps": "skipped"
+      },
+      "mcp": {
+        "tests": 704,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 29
+      }
+    },
+    "B": {
+      "candidate_commit": "adb80e661560174025ff9f9c23b918cb377e14b9",
+      "candidate_tree": "cc72fe8017fd8649323a601a972c42576a0938c1",
+      "version": "2.2.6+qualification.adb80e661560",
+      "image_id": "sha256:34dcbc6726e66284d47d47180a4f55f7f684609bf3d510ba63f0f3a2b9c010b3",
+      "outcomes": {
+        "mcp": "success",
+        "persistence": "success",
+        "build": "success",
+        "package": "success",
+        "image": "success",
+        "wire": "skipped",
+        "apps": "skipped"
+      },
+      "mcp": {
+        "tests": 704,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 29
+      }
+    },
+    "C": {
+      "candidate_commit": "a369739b6c5c6cd0921bce4fa8e0b9a6ae6b6034",
+      "candidate_tree": "6822150a7219b540e2c9e1e76d52f7e426fc714d",
+      "version": "2.2.6+qualification.a369739b6c5c",
+      "image_id": "sha256:c6cfd9120839b04605aa31009c9dd7af4506994c24183bb44edcf7c2480f592d",
+      "outcomes": {
+        "mcp": "success",
+        "persistence": "success",
+        "build": "success",
+        "package": "success",
+        "image": "success",
+        "wire": "success",
+        "apps": "success"
+      },
+      "mcp": {
+        "tests": 704,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 29
+      }
+    }
+  },
+  "checkpoint_legs": {
+    "corrected-direct": {
+      "gatewayPath": "/mcp",
+      "status": "passed",
+      "validation": "automated_reference_host",
+      "checkpoints": {
+        "created": "516f7334526e41b982",
+        "saved": "516f7334526e41b982",
+        "read": "516f7334526e41b982",
+        "restoredView": "ae94e458281a48bdb7"
+      },
+      "checks": {
+        "progressiveInput": true,
+        "beforeAlignment": true,
+        "deliberateDisplacementRejected": true,
+        "saveWithBoundLabelsAndPointerEdit": true,
+        "exactReadbackWithBoundLabels": true,
+        "fixedFraming": true,
+        "afterAlignment": true
+      },
+      "camera": {
+        "type": "cameraUpdate",
+        "x": 0,
+        "y": 0,
+        "width": 800,
+        "height": 600
+      },
+      "after_offsets_scene_units": [
+        {
+          "label": "Codex",
+          "dx": 0.6631992885044724,
+          "dy": -0.3365696498325903
+        },
+        {
+          "label": "Bifrost",
+          "dx": 0.6631905691964448,
+          "dy": -0.3365696498325903
+        },
+        {
+          "label": "Excalidraw",
+          "dx": 0.6631818498883746,
+          "dy": -0.3365652901785552
+        }
+      ],
+      "pngs": [
+        "green-38637028433/C/apps/excalidraw-comparison/corrected-direct/excalidraw-checkpoint-after.png",
+        "green-38637028433/C/apps/excalidraw-comparison/corrected-direct/excalidraw-checkpoint-before.png",
+        "green-38637028433/C/apps/excalidraw-comparison/corrected-direct/excalidraw-checkpoint-offset.png",
+        "green-38637028433/C/apps/excalidraw-comparison/corrected-direct/excalidraw-progressive-1.png",
+        "green-38637028433/C/apps/excalidraw-comparison/corrected-direct/excalidraw-progressive-2.png"
+      ]
+    },
+    "corrected-gateway": {
+      "gatewayPath": "/mcp/excalidraw",
+      "status": "passed",
+      "validation": "automated_reference_host",
+      "checkpoints": {
+        "created": "69c1e9e5770e4ffd83",
+        "saved": "69c1e9e5770e4ffd83",
+        "read": "69c1e9e5770e4ffd83",
+        "restoredView": "e4dba46154e8481c9a"
+      },
+      "checks": {
+        "progressiveInput": true,
+        "beforeAlignment": true,
+        "deliberateDisplacementRejected": true,
+        "saveWithBoundLabelsAndPointerEdit": true,
+        "exactReadbackWithBoundLabels": true,
+        "fixedFraming": true,
+        "afterAlignment": true
+      },
+      "camera": {
+        "type": "cameraUpdate",
+        "x": 0,
+        "y": 0,
+        "width": 800,
+        "height": 600
+      },
+      "after_offsets_scene_units": [
+        {
+          "label": "Codex",
+          "dx": 0.6631992885044724,
+          "dy": -0.3365696498325903
+        },
+        {
+          "label": "Bifrost",
+          "dx": 0.6631905691964448,
+          "dy": -0.3365696498325903
+        },
+        {
+          "label": "Excalidraw",
+          "dx": 0.6631818498883746,
+          "dy": -0.3365652901785552
+        }
+      ],
+      "pngs": [
+        "green-38637028433/C/apps/excalidraw-comparison/corrected-gateway/excalidraw-checkpoint-after.png",
+        "green-38637028433/C/apps/excalidraw-comparison/corrected-gateway/excalidraw-checkpoint-before.png",
+        "green-38637028433/C/apps/excalidraw-comparison/corrected-gateway/excalidraw-checkpoint-offset.png",
+        "green-38637028433/C/apps/excalidraw-comparison/corrected-gateway/excalidraw-progressive-1.png",
+        "green-38637028433/C/apps/excalidraw-comparison/corrected-gateway/excalidraw-progressive-2.png"
+      ]
+    },
+    "official-direct": {
+      "gatewayPath": "/mcp",
+      "status": "failed",
+      "validation": "automated_reference_host",
+      "checkpoints": {
+        "created": "4abc461cf82349c6b2",
+        "saved": "4abc461cf82349c6b2",
+        "read": "4abc461cf82349c6b2",
+        "restoredView": "6bb9166f35844bd681"
+      },
+      "checks": {
+        "progressiveInput": true,
+        "beforeAlignment": true,
+        "deliberateDisplacementRejected": true,
+        "saveWithBoundLabelsAndPointerEdit": true,
+        "exactReadbackWithBoundLabels": true,
+        "fixedFraming": true,
+        "afterAlignment": false
+      },
+      "camera": {
+        "type": "cameraUpdate",
+        "x": 0,
+        "y": 0,
+        "width": 800,
+        "height": 600
+      },
+      "after_offsets_scene_units": [
+        {
+          "label": "Codex",
+          "dx": -29.336800711495528,
+          "dy": -12.83656964983259
+        },
+        {
+          "label": "Bifrost",
+          "dx": -35.836809430803555,
+          "dy": -12.83656964983259
+        },
+        {
+          "label": "Excalidraw",
+          "dx": -49.836818150111625,
+          "dy": -12.836565290178555
+        }
+      ],
+      "pngs": [
+        "green-38637028433/C/apps/excalidraw-comparison/official-direct/excalidraw-checkpoint-after.png",
+        "green-38637028433/C/apps/excalidraw-comparison/official-direct/excalidraw-checkpoint-before.png",
+        "green-38637028433/C/apps/excalidraw-comparison/official-direct/excalidraw-checkpoint-offset.png",
+        "green-38637028433/C/apps/excalidraw-comparison/official-direct/excalidraw-progressive-1.png",
+        "green-38637028433/C/apps/excalidraw-comparison/official-direct/excalidraw-progressive-2.png"
+      ]
+    },
+    "official-gateway": {
+      "gatewayPath": "/mcp/excalidraw-official",
+      "status": "failed",
+      "validation": "automated_reference_host",
+      "checkpoints": {
+        "created": "2c6ba909aee7480189",
+        "saved": "2c6ba909aee7480189",
+        "read": "2c6ba909aee7480189",
+        "restoredView": "32fa8d0f69da485bb5"
+      },
+      "checks": {
+        "progressiveInput": true,
+        "beforeAlignment": true,
+        "deliberateDisplacementRejected": true,
+        "saveWithBoundLabelsAndPointerEdit": true,
+        "exactReadbackWithBoundLabels": true,
+        "fixedFraming": true,
+        "afterAlignment": false
+      },
+      "camera": {
+        "type": "cameraUpdate",
+        "x": 0,
+        "y": 0,
+        "width": 800,
+        "height": 600
+      },
+      "after_offsets_scene_units": [
+        {
+          "label": "Codex",
+          "dx": -29.336800711495528,
+          "dy": -12.83656964983259
+        },
+        {
+          "label": "Bifrost",
+          "dx": -35.836809430803555,
+          "dy": -12.83656964983259
+        },
+        {
+          "label": "Excalidraw",
+          "dx": -49.836818150111625,
+          "dy": -12.836565290178555
+        }
+      ],
+      "pngs": [
+        "green-38637028433/C/apps/excalidraw-comparison/official-gateway/excalidraw-checkpoint-after.png",
+        "green-38637028433/C/apps/excalidraw-comparison/official-gateway/excalidraw-checkpoint-before.png",
+        "green-38637028433/C/apps/excalidraw-comparison/official-gateway/excalidraw-checkpoint-offset.png",
+        "green-38637028433/C/apps/excalidraw-comparison/official-gateway/excalidraw-progressive-1.png",
+        "green-38637028433/C/apps/excalidraw-comparison/official-gateway/excalidraw-progressive-2.png"
+      ]
+    }
+  },
+  "c_gates": {
+    "real_apps": {
+      "passed": 80,
+      "total": 80
+    },
+    "reference_host": {
+      "passed": 22,
+      "failed": 0
+    },
+    "normalizer": {
+      "passed": 10,
+      "failed": 0
+    },
+    "initialization": {
+      "immediate": true,
+      "delayed": true
+    },
+    "stock_image": "maximhq/bifrost@sha256:fde9a1dc6c04c847c31ad93c89703fcc62a13c53ac0be824fe30171f5fbc620c",
+    "stock_expected_red_sentinels": 9,
+    "stock_green_invariants": 7,
+    "wire": {
+      "cases": 39,
+      "assertions": 149,
+      "failed_assertions": 0,
+      "failed_assertion_objects": 0,
+      "source": [
+        "green-38637028433/C/wire/mcp-apps-newman-report.json",
+        "green-38637028433/C/wire/codemode-errors-newman-report.json"
+      ]
+    }
+  },
+  "fork_workflow_ledger": {
+    "run": "https://github.com/sofianbll/bifrost/actions/runs/38637028474",
+    "attempt_1": "failure; amd64 stock catalog only four Code Mode tools after 180 seconds; before stock Newman",
+    "attempt_1_artifact_id": 11930240423,
+    "attempt_1_private_logs": "/private/tmp/bifrost-38637028474-attempt1-fixture/",
+    "attempt_2": "root is rerunning only failed jobs at the same wrapper SHA; not observed in this qualification report",
+    "distinction": "Separate inherited fork workflow; no evidence that corrected App behavior caused its stock catalog failure."
+  },
+  "file_sha256": {
+    "green-38637028433/A/Dockerfile.candidate": "ea0e57038435a7745dccfb091fe7ac52568ae6defc8a5fcc8980f7e379cb039d",
+    "green-38637028433/A/mcp-all.xml": "29363affd34080de75d54e7197f6f9db94cf83a4a3517cde397f7d16c299cea6",
+    "green-38637028433/A/provenance.json": "11987ce7f7677ff5caff556bcd9316ecf041dae074ead1159df6cde769c2b25e",
+    "green-38637028433/B/Dockerfile.candidate": "ea0e57038435a7745dccfb091fe7ac52568ae6defc8a5fcc8980f7e379cb039d",
+    "green-38637028433/B/mcp-all.xml": "235efd6250d55dceb12449fac3af8a65d61f9aefd504bd8e462e6c2ee8afa9ea",
+    "green-38637028433/B/provenance.json": "7dffb9fd173d8a892bb7802484a8bcd4ab97d840add2d3103fd29c3eda0cb242",
+    "green-38637028433/C/Dockerfile.candidate": "ea0e57038435a7745dccfb091fe7ac52568ae6defc8a5fcc8980f7e379cb039d",
+    "green-38637028433/C/apps/debug-aggregate.png": "ffa3f3e1e42046ed27a36627de7b6957a8c7476ed4cd3d3cc075902f98713b69",
+    "green-38637028433/C/apps/debug-direct-codemode.png": "07824885f5ddcdb075b6f60d51aaa7496407d07ef70d4b67cf6d0bdca87f9e74",
+    "green-38637028433/C/apps/debug-direct.png": "385c103e9222df3a8797ee868950f8c5ea260698b5c495fb46628c222c342813",
+    "green-38637028433/C/apps/debug-virtual.png": "8c209cf2066dda989f010562bdbfd8ce8c22eaf35a9b25e8bba7c94ebcadbf44",
+    "green-38637028433/C/apps/excalidraw-aggregate.png": "a74c1a0a3c2e8d7e276f50e34b17bb9b9c677b403bcfdd39370e241941332ee1",
+    "green-38637028433/C/apps/excalidraw-comparison/corrected-direct/excalidraw-checkpoint-after.png": "2f9de097830461628f18e7eaf826390ede52e6c3307e3823599283069d7bfe19",
+    "green-38637028433/C/apps/excalidraw-comparison/corrected-direct/excalidraw-checkpoint-before.png": "8b3a956e0002821c60f2407444a452a046e2c0ca6d2bafd1ca7b3cf858dc577f",
+    "green-38637028433/C/apps/excalidraw-comparison/corrected-direct/excalidraw-checkpoint-offset.png": "e35509e1e21b848b4444d3c36d8c89d5895223733e1560de7f760844b168e979",
+    "green-38637028433/C/apps/excalidraw-comparison/corrected-direct/excalidraw-checkpoint-report.json": "deb67e87a38bd823580cf7d51c704060163d533e56e212bfd01c866ff074d80b",
+    "green-38637028433/C/apps/excalidraw-comparison/corrected-direct/excalidraw-checkpoint-scene.json": "74887eefb38c7d1fe395ce2afbad52c647c638de453184fdf199d70e3f2c2f46",
+    "green-38637028433/C/apps/excalidraw-comparison/corrected-direct/excalidraw-progressive-1.png": "937e4817f5cc236cae2985c97c2a73b3e298785cba9ed168c8c26b26080b27ac",
+    "green-38637028433/C/apps/excalidraw-comparison/corrected-direct/excalidraw-progressive-2.png": "717493dce50f4ba6f15b606fa5e6718717b2bc78ab3cb2db0bb067d40c9c0240",
+    "green-38637028433/C/apps/excalidraw-comparison/corrected-gateway/excalidraw-checkpoint-after.png": "c9a40cfb56e18439357db006eca2b575e87a2742d727150fb8c1d6c920bbfe45",
+    "green-38637028433/C/apps/excalidraw-comparison/corrected-gateway/excalidraw-checkpoint-before.png": "8b3a956e0002821c60f2407444a452a046e2c0ca6d2bafd1ca7b3cf858dc577f",
+    "green-38637028433/C/apps/excalidraw-comparison/corrected-gateway/excalidraw-checkpoint-offset.png": "e35509e1e21b848b4444d3c36d8c89d5895223733e1560de7f760844b168e979",
+    "green-38637028433/C/apps/excalidraw-comparison/corrected-gateway/excalidraw-checkpoint-report.json": "5a4460fcdc72745d0960175df69ac879084a9c52c562a2b8b8b08f39e670938c",
+    "green-38637028433/C/apps/excalidraw-comparison/corrected-gateway/excalidraw-checkpoint-scene.json": "385b6badea871dfe62b95066d6cbc0030930e53deb42cb40e5fbc19d92a39248",
+    "green-38637028433/C/apps/excalidraw-comparison/corrected-gateway/excalidraw-progressive-1.png": "0efd6f472779fd2591dd0bdd5a7974cb27b90f1243c1a3313e66e796fefc60f9",
+    "green-38637028433/C/apps/excalidraw-comparison/corrected-gateway/excalidraw-progressive-2.png": "790cde6028e457720ae091eaec26c748a7fb3038e5d20dadeafdeba92b4f6fe1",
+    "green-38637028433/C/apps/excalidraw-comparison/official-direct/excalidraw-checkpoint-after.png": "a34dbf31c9d81213b540b3ad6913859692b1e25e7c957576705ead82feba03c3",
+    "green-38637028433/C/apps/excalidraw-comparison/official-direct/excalidraw-checkpoint-before.png": "8b3a956e0002821c60f2407444a452a046e2c0ca6d2bafd1ca7b3cf858dc577f",
+    "green-38637028433/C/apps/excalidraw-comparison/official-direct/excalidraw-checkpoint-offset.png": "e35509e1e21b848b4444d3c36d8c89d5895223733e1560de7f760844b168e979",
+    "green-38637028433/C/apps/excalidraw-comparison/official-direct/excalidraw-checkpoint-report.json": "10fc332edf3f19351f5cc224098e2ed0236495902db2987bdef56e432fd226e1",
+    "green-38637028433/C/apps/excalidraw-comparison/official-direct/excalidraw-checkpoint-scene.json": "b862c5b672f75a2c5a76836ad298b7d460197e350c8715e2c7cabd9dd59419da",
+    "green-38637028433/C/apps/excalidraw-comparison/official-direct/excalidraw-progressive-1.png": "65fb84cc4a09cdc6b703c089627dd779b0a66ffa0b4631c9007985f82f8bf269",
+    "green-38637028433/C/apps/excalidraw-comparison/official-direct/excalidraw-progressive-2.png": "7ec1db883be4d55eeec373f29d53d6cc630daab655ba1fe79d6bc8cb70cf50a7",
+    "green-38637028433/C/apps/excalidraw-comparison/official-gateway/excalidraw-checkpoint-after.png": "a97ebd59bd06b65ef49d87519a73208c091f90615ec83a9e83e7f18cc93e05d4",
+    "green-38637028433/C/apps/excalidraw-comparison/official-gateway/excalidraw-checkpoint-before.png": "8b3a956e0002821c60f2407444a452a046e2c0ca6d2bafd1ca7b3cf858dc577f",
+    "green-38637028433/C/apps/excalidraw-comparison/official-gateway/excalidraw-checkpoint-offset.png": "e35509e1e21b848b4444d3c36d8c89d5895223733e1560de7f760844b168e979",
+    "green-38637028433/C/apps/excalidraw-comparison/official-gateway/excalidraw-checkpoint-report.json": "199f9b9afa656ffd1acab30f22bb636361eaf033a45a2da08e65bc26b3338223",
+    "green-38637028433/C/apps/excalidraw-comparison/official-gateway/excalidraw-checkpoint-scene.json": "c13e69a0cf59fe14f0eeaeb3dc99ed2cfbff9f4732209d6d1ce156647031275d",
+    "green-38637028433/C/apps/excalidraw-comparison/official-gateway/excalidraw-progressive-1.png": "e5aa416890fb59679961db8caab120e5276f010a14ce43a68a5848f7377f1395",
+    "green-38637028433/C/apps/excalidraw-comparison/official-gateway/excalidraw-progressive-2.png": "2539496301daaacc43224f23b5c4e8e48c6024313369d591e199957502673bdb",
+    "green-38637028433/C/apps/excalidraw-comparison/report.json": "32a1ded35b0dc982afe31b0886e97af34bc7bb89bdb5a57438305b59f9f8b2b4",
+    "green-38637028433/C/apps/excalidraw-direct-codemode.png": "d75af4a702db752821f61d7eeca66464d589e144d63e077bf385e7c2ec3a875e",
+    "green-38637028433/C/apps/excalidraw-direct.png": "7ce288b28c52d46bd03392a098342fc13c8c391bbc706b8399977bd7373f359d",
+    "green-38637028433/C/apps/excalidraw-virtual.png": "e00a3a945659f8d1a1dc3624091b0963cd73634cd4d9a74375618445fb49822e",
+    "green-38637028433/C/apps/four-connections.png": "cfd760639ef841dc85ffdd2212f2b6b64fedb73e975325227e81a57eca8047ec",
+    "green-38637028433/C/apps/mcp-apps-qualification.json": "9eb5fd4ca5535e8ea150aad725dba488ed3a22ec20958fe6a0bb58a10e341c91",
+    "green-38637028433/C/apps/monitor-aggregate.png": "0395b86c3f5c613e27c727e67b89d127e749be5320e3943214869ea8161b9339",
+    "green-38637028433/C/apps/monitor-direct-codemode.png": "1b79dfe3583bc6612e5740d54949fd18ffaeda44ecea6ae77aa7b4e5242b1116",
+    "green-38637028433/C/apps/monitor-direct.png": "5a6af763d38389a9efa3986d86496e8ab3baea6deaa27000c33b5b197d7ded54",
+    "green-38637028433/C/apps/monitor-virtual.png": "68266aa65e0e4a7df0b1c9d0629dd198608b7f31f9876a6edc2d45576ef2e502",
+    "green-38637028433/C/apps/pdf-aggregate.png": "6a9ec383385d79c55f7cda664899bde4a062b4fd3c47f710264a192d122ca29a",
+    "green-38637028433/C/apps/pdf-direct-codemode.png": "90069d745801d4c284d7fefd6728246036bae9b75b2e9296611646073142f8aa",
+    "green-38637028433/C/apps/pdf-direct.png": "c85ac7b5082ee1ccc040883ef4b8b27e82a48c01be3e805b2c4eda0b3db88d9a",
+    "green-38637028433/C/apps/pdf-virtual.png": "6a9ec383385d79c55f7cda664899bde4a062b4fd3c47f710264a192d122ca29a",
+    "green-38637028433/C/apps/render-report.json": "4885a59f6ff76988b051c3fe7b59d243e98e4356b9507e450ac2e284911bae7a",
+    "green-38637028433/C/initialization/delayed/report.json": "9ef6a2beca95eade484cfcc9028bdcdf6b9a492a849ceecdc9bc4e549d86f641",
+    "green-38637028433/C/initialization/delayed/view.png": "42a2ed8f71a2ca3bdf98b42578718a365001f9b734f2c78af8c52210abdfb1d6",
+    "green-38637028433/C/initialization/immediate/report.json": "83e22240ea68d50b99a2ea307604fe8197c52c6058bbcabd7dd8ad6ceb601e96",
+    "green-38637028433/C/initialization/immediate/view.png": "a4d16c5a8bb22779e54abf66410f880faa404d3efce61872d1e20e6683f7e591",
+    "green-38637028433/C/mcp-all.xml": "52b64487c5ef3d23a2bf709d096af1c3bce2242d625e275f036b7bb8829c47e8",
+    "green-38637028433/C/normalizer/after.png": "9b110b5d0eb84b6eed31d01f266b0c069bf0812a636195800f9f1bf4546a8530",
+    "green-38637028433/C/normalizer/before.png": "0f6676a5b09a0a0fa978acbd07588f1dba9b554d21d80ac9cb487c02dc005330",
+    "green-38637028433/C/normalizer/report.json": "1fe808cf3d4371f74ccc829ed50928b684bd9df26f38fc27c5453052e471ffce",
+    "green-38637028433/C/provenance.json": "17a862cf08a22f18173db63c8ea1dcba4606491d7b5ded613958f42206d80586",
+    "green-38637028433/C/wire/codemode-errors-comparison.json": "c1eb5494056218adb058ffe08f0468463dc9576f0898edd84fb25bf3a4299c13",
+    "green-38637028433/C/wire/codemode-errors-newman-report.json": "fbca10f12c55c89a6e882d89f1b9ac3c38e590ed5b1ddee2de95b0b190e5551d",
+    "green-38637028433/C/wire/mcp-apps-comparison.json": "d43ffe36027c515c2b9f4c4719d5102bfbac2910832ffdf82b4824eace911759",
+    "green-38637028433/C/wire/mcp-apps-newman-report.json": "b52b6aa97ed057059d1cef7ba97b8546ded302e3fe1698c69fc1d71a23da27c9",
+    "green-38637028433/C/wire/stock-codemode-errors-newman-report.json": "f587b443443069d9527db3da2a59bf390aa8e467c1d5310b2c787586ab4d41c8",
+    "green-38637028433/C/wire/stock-mcp-apps-newman-report.json": "c6fb283c61cdeef029969ef5218f9bf330ea565e5b1617ca6cfdc3f3ba2beb5e",
+    "green-38637028433/artifact-metadata.json": "13acce6bf1f36b21298240946795d907211fba58252d1eb70f787a2426c88191",
+    "green-38637028433/file-hashes.json": "13d78a19ba657bb9b63c55c703428d68fc5fce61313c2b8d9355090457649f6c",
+    "initial-candidate-progress-before-repin.json": "72b16917dd5f338b9afcdc40d2cb05eec1a1b4af751e078196ad3c635e6632a6",
+    "initial-workflow-validation.json": "a4b1240745aeb4bd885f1a724bdb967eccebfdf34990dfb909abc9e2c32aa780",
+    "superseded-38632023979/A/Dockerfile.candidate": "ea0e57038435a7745dccfb091fe7ac52568ae6defc8a5fcc8980f7e379cb039d",
+    "superseded-38632023979/A/mcp-all.xml": "c6c6ccb537702b0c878b65cc1d88ec554c2c4c0b7bf8d040c43e44e3f17a5ed0",
+    "superseded-38632023979/A/provenance.json": "30087cc83f5124747c6c70d226234d0df5d28ab811ae4cf203b48f40ab794fec",
+    "superseded-38632023979/B/Dockerfile.candidate": "ea0e57038435a7745dccfb091fe7ac52568ae6defc8a5fcc8980f7e379cb039d",
+    "superseded-38632023979/B/mcp-all.xml": "79b7ac4b068c138880f8c1ea552a564d5fb5e95c3532d3cfa88dd25968c3a01e",
+    "superseded-38632023979/B/provenance.json": "23dd8c2ccdc9c43c6e33d913097349a9b9c72169f724c94c3a5d8922c2fa220c",
+    "superseded-38632023979/C/Dockerfile.candidate": "ea0e57038435a7745dccfb091fe7ac52568ae6defc8a5fcc8980f7e379cb039d",
+    "superseded-38632023979/C/mcp-all.xml": "3c821a573b041c86bb46db640469b964db96e5c65075bdfb8c6d295805f883fe",
+    "superseded-38632023979/C/provenance.json": "2943c1032c23a875de9046ded821cf1c362bdf7675a5ef8354b2ee24b3861a5c",
+    "version-failure-38633020732/A/Dockerfile.candidate": "ea0e57038435a7745dccfb091fe7ac52568ae6defc8a5fcc8980f7e379cb039d",
+    "version-failure-38633020732/A/mcp-all.xml": "7dcea7e7a146842a0142805f3ecf3f94e69e30f938e1fea25ed54eb95b0c3752",
+    "version-failure-38633020732/A/provenance.json": "67bc8469c209de658833a41108fb905625d798bb3b712962daa9b4d87a7dab10",
+    "version-failure-38633020732/A/startup-panic.txt": "f6d59e212c4ae73ef5a1f0d3fdd462f991ebe8656d7023c00feb269c8c834ab7",
+    "version-failure-38633020732/B/Dockerfile.candidate": "ea0e57038435a7745dccfb091fe7ac52568ae6defc8a5fcc8980f7e379cb039d",
+    "version-failure-38633020732/B/mcp-all.xml": "fab4047b3793952dbfe023e2a871e536e93e5fd905973556624f341aa345a192",
+    "version-failure-38633020732/B/provenance.json": "c2980a4e58326b7d651dd7a373cc47d52a771382a02e3cd2f06b20d00a0b0614",
+    "version-failure-38633020732/C/Dockerfile.candidate": "ea0e57038435a7745dccfb091fe7ac52568ae6defc8a5fcc8980f7e379cb039d",
+    "version-failure-38633020732/C/mcp-all.xml": "6acb7d2ac8a48dda2d47ac2fd1e025fcf41e0e1a8d21d2db192886d3e4ec01e0",
+    "version-failure-38633020732/C/provenance.json": "9b1e0e744773cc3bb6c1c4e9e850491aead4a2e69d7ab2e14c2c1de98bee4afb",
+    "version-failure-38633020732/C/startup-panic.txt": "97e19d10e54b70d7c3f5eff14308cc6f1a45580b40ecacfc4435dee832bcb372"
+  },
+  "local_validation": {
+    "json_parsed": 34,
+    "junit_parsed": 9,
+    "credential_pattern_hits": 0,
+    "artifact_file_hashes_verified": 67,
+    "manifest_file_hashes_verified": 94,
+    "unmodified_pngs": 41,
+    "embedded_console_and_host_logs_omitted": true,
+    "junit_stdout_stderr_omitted": true,
+    "native_codex_verification": "not_run"
+  }
+}

@@ -1,0 +1,20 @@
+[
+  {
+    "digest": "sha256:5965457feeb86fab01f44f636ca7da868190f4f2cfd8659ac4bf1335609ddcc4",
+    "expired": false,
+    "id": 11929373504,
+    "name": "clean-stack-A-amd64"
+  },
+  {
+    "digest": "sha256:9c7a711a208ef99035f2ca9a160cbcaeb0e29ed637f88e137ac0a8493ab86e6d",
+    "expired": false,
+    "id": 11929179583,
+    "name": "clean-stack-C-amd64"
+  },
+  {
+    "digest": "sha256:9ff77a3b6d45a65070de3363c85ea5c6bfa4a4d6714d8f6f596fd8be848a982c",
+    "expired": false,
+    "id": 11929009031,
+    "name": "clean-stack-B-amd64"
+  }
+]
