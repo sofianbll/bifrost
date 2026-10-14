@@ -53,6 +53,7 @@ jobs:
       - name: Initialize disposable report directory
         run: echo "QUALIFICATION_DIR=$RUNNER_TEMP/qualification" >> "$GITHUB_ENV"
       - name: Verify provenance and adapt only the excluded fork UI unit check
+        id: provenance
         run: |
           python3 - <<'PYPROVENANCE'
           import hashlib, json, os, subprocess
@@ -86,13 +87,17 @@ jobs:
               'wrapper_commit': os.environ['GITHUB_SHA'], 'harness_commit': os.environ['HARNESS_COMMIT'],
               'candidate_commit': os.environ['CANDIDATE_COMMIT'], 'candidate_tree': git(candidate, 'rev-parse', 'HEAD^{tree}'),
               'candidate_base': '8b4fce4f1709d66f9208d02f50552da522535f9e',
-              'version': '2.2.6+qualification.' + os.environ['CANDIDATE_COMMIT'],
+              'version': '2.2.6+qualification.' + os.environ['CANDIDATE_COMMIT'][:12],
               'dockerfile_source_sha256': digest(harness / 'transports/Dockerfile.local'),
               'dockerfile_adapted_sha256': digest(output / 'Dockerfile.candidate'),
               'build_adaptation': 'Only omit absent fork compareVersions unit test; preserve candidate UI/Go build and local modules.',
               'fixture_source': {'commit': os.environ['HARNESS_COMMIT'], 'sha256': {p: digest(harness / p) for p in fixtures}},
               'codex_verification': 'not_run', 'production': 'not_touched'}
+          # The stock startup banner reserves 59 characters for the displayed version.
+          assert len('v' + manifest['version']) <= 59
           (output / 'provenance.json').write_text(json.dumps(manifest, indent=2) + '\n')
+          with Path(os.environ['GITHUB_OUTPUT']).open('a') as stream:
+              stream.write('version=' + manifest['version'] + '\n')
           PYPROVENANCE
       - uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
         with:
@@ -132,11 +137,11 @@ jobs:
           tags: bifrost:candidate
           build-args: |
             DYNAMIC=1
-            VERSION=2.2.6+qualification.${{ matrix.commit }}
+            VERSION=${{ steps.provenance.outputs.version }}
           labels: |
             org.opencontainers.image.source=https://github.com/sofianbll/bifrost
             org.opencontainers.image.revision=${{ matrix.commit }}
-            org.opencontainers.image.version=2.2.6+qualification.${{ matrix.commit }}
+            org.opencontainers.image.version=${{ steps.provenance.outputs.version }}
           cache-from: type=gha,scope=upstream-226-${{ matrix.layer }}
           cache-to: type=gha,mode=max,scope=upstream-226-${{ matrix.layer }}
       - name: Run candidate Go package race tests and compile its plugin and UI probe
@@ -150,7 +155,7 @@ jobs:
           outputs: type=local,dest=${{ runner.temp }}/plugin
           build-args: |
             DYNAMIC=1
-            VERSION=2.2.6+qualification.${{ matrix.commit }}
+            VERSION=${{ steps.provenance.outputs.version }}
           cache-from: type=gha,scope=upstream-226-${{ matrix.layer }}
       - name: Test candidate image, plugin and exact built UI
         id: image-probe
