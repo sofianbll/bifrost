@@ -75,9 +75,16 @@ jobs:
           set -euo pipefail
           source_dir="$GITHUB_WORKSPACE"
           if [[ "$VARIANT" == stock ]]; then source_dir="$GITHUB_WORKSPACE/stock-source"; fi
+          git fetch --depth=1 https://github.com/sofianbll/bifrost.git \
+            d7416ed5b3b13a2f961c9b6e60d83e8a6c56c65e f4527a9ab72210952c03e37ba30e200c5cea5bb4
+          git show d7416ed5b3b13a2f961c9b6e60d83e8a6c56c65e:.github/workflows/scripts/test-persistent-mcp-restart.py \
+            > "$RUNNER_TEMP/legacy-persistent-probe.py"
+          git show f4527a9ab72210952c03e37ba30e200c5cea5bb4:.github/workflows/scripts/test-persistent-mcp-restart.py \
+            > "$RUNNER_TEMP/legacy-cleanup-probe.py"
           python3 .github/workflows/scripts/test-persistent-mcp-restart.test.py \
             "$RUNNER_TEMP/bifrost-restart" "$VARIANT" "$(git -C "$source_dir" rev-parse HEAD)" \
-            "$RUNNER_TEMP/persistent-restart/$VARIANT-interruption.json"
+            "$RUNNER_TEMP/persistent-restart/$VARIANT-interruption.json" \
+            "$RUNNER_TEMP/legacy-persistent-probe.py" "$RUNNER_TEMP/legacy-cleanup-probe.py"
       - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         if: always()
         with:

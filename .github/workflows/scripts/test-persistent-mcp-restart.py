@@ -193,13 +193,17 @@ def gateway(binary, directory, port):
                 raise AssertionError("gateway health timeout")
             yield
         finally:
-            if process.poll() is None:
-                process.terminate()
-                try:
+            try:
+                if process.poll() is None:
+                    process.terminate()
                     process.wait(timeout=5)
-                except subprocess.TimeoutExpired:
+            except subprocess.TimeoutExpired:
+                pass
+            finally:
+                # A first signal may interrupt normal wait; still kill and reap the child before propagating it.
+                if process.poll() is None:
                     process.kill()
-                    process.wait(timeout=5)
+                process.wait(timeout=5)
 
 
 def client_row(base, admin, client_id):
