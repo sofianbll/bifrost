@@ -36,7 +36,6 @@ jobs:
       CANDIDATE_COMMIT: ${{ matrix.commit }}
       CANDIDATE_LAYER: ${{ matrix.layer }}
       HARNESS_COMMIT: 1dcbd14d5875a14dc780f00fc2edd22cfaee66a8
-      QUALIFICATION_DIR: ${{ runner.temp }}/qualification
     steps:
       - name: Checkout pinned fork harness
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -51,6 +50,8 @@ jobs:
           path: candidate
           fetch-depth: 0
           persist-credentials: false
+      - name: Initialize disposable report directory
+        run: echo "QUALIFICATION_DIR=$RUNNER_TEMP/qualification" >> "$GITHUB_ENV"
       - name: Verify provenance and adapt only the excluded fork UI unit check
         run: |
           python3 - <<'PYPROVENANCE'
