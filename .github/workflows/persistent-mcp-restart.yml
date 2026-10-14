@@ -5,11 +5,11 @@ on:
     branches: ['codex/persistent-403-226']
     paths:
       - '.github/workflows/persistent-mcp-restart.yml'
-      - '.github/workflows/scripts/test-persistent-mcp-restart.py'
+      - '.github/workflows/scripts/test-persistent-mcp-restart*.py'
   pull_request:
     paths:
       - '.github/workflows/persistent-mcp-restart.yml'
-      - '.github/workflows/scripts/test-persistent-mcp-restart.py'
+      - '.github/workflows/scripts/test-persistent-mcp-restart*.py'
   workflow_dispatch:
 
 permissions:
@@ -67,6 +67,17 @@ jobs:
             --binary "$RUNNER_TEMP/bifrost-restart" --variant "$VARIANT" \
             --commit "$(git -C "$source_dir" rev-parse HEAD)" \
             --output "$RUNNER_TEMP/persistent-restart/$VARIANT.json"
+      - name: Verify real interruption cleanup
+        if: always()
+        env:
+          VARIANT: ${{ matrix.variant }}
+        run: |
+          set -euo pipefail
+          source_dir="$GITHUB_WORKSPACE"
+          if [[ "$VARIANT" == stock ]]; then source_dir="$GITHUB_WORKSPACE/stock-source"; fi
+          python3 .github/workflows/scripts/test-persistent-mcp-restart.test.py \
+            "$RUNNER_TEMP/bifrost-restart" "$VARIANT" "$(git -C "$source_dir" rev-parse HEAD)" \
+            "$RUNNER_TEMP/persistent-restart/$VARIANT-interruption.json"
       - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         if: always()
         with:
