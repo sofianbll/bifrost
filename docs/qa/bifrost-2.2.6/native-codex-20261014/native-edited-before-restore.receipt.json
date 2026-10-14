@@ -1,0 +1,23 @@
+{
+  "source": "user-provided Codex screenshot after actual editor change",
+  "source_sha256": "ff1cd21c218aa8f00ea3983c1dd86f73ebf84232db06641650a78adc766eff5f",
+  "source_size": [
+    1712,
+    1068
+  ],
+  "crop_xyxy": [
+    875,
+    48,
+    1712,
+    1068
+  ],
+  "redaction": "Only the App pane retained; conversation and account controls excluded. No drawing pixels modified.",
+  "output": "native-edited-before-restore.png",
+  "output_sha256": "f47f189e55f40ab39416485554fd4fffae4e81ff654a5f4e52addc669a292db7",
+  "output_size": [
+    837,
+    1020
+  ],
+  "zoom": "100% displayed",
+  "observation": "Added rectangle visible above the three original labeled boxes. All three labels remain visually centered; original boxes occupy the same screenshot positions."
+}

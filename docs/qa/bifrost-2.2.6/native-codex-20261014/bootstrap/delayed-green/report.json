@@ -1,0 +1,24 @@
+{
+  "validation": "isolated_actual_App_initialization_replay",
+  "timing": "delayed",
+  "passed": true,
+  "host": {
+    "events": [
+      "ui/initialize",
+      "ui/notifications/initialized",
+      "input/result sent",
+      "ui/notifications/size-changed",
+      "tools/call"
+    ],
+    "calls": [
+      "read_checkpoint"
+    ]
+  },
+  "dom": {
+    "text": "Open in Excalidraw\nEdit\nCodex\nBifrost\nExcalidraw",
+    "svg": 1,
+    "early": null,
+    "core": null
+  },
+  "errors": []
+}

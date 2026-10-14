@@ -1,0 +1,24 @@
+{
+  "validation": "native_restore_tool_and_checkpoint_data",
+  "source_checkpoint": "a4de9e1013d44a30b3",
+  "restored_checkpoint": "2186fe8d0f52415193",
+  "route": "/mcp/excalidraw",
+  "model_tool": "mcp__bifrost_pr15_native_qa__excalidraw_create_view",
+  "request": [
+    {
+      "type": "restoreCheckpoint",
+      "id": "a4de9e1013d44a30b3"
+    },
+    {
+      "type": "cameraUpdate",
+      "x": 0,
+      "y": 0,
+      "width": 800,
+      "height": 600
+    }
+  ],
+  "saved_elements_preserved_exactly": true,
+  "full_saved_element_count": 7,
+  "native_restored_visual": "pending",
+  "constant_native_framing": "pending; fullscreen editor uses scrollToContent on mount, so request camera alone does not prove matching fullscreen framing"
+}

@@ -1,0 +1,843 @@
+{
+  "console": [
+    {
+      "type": "log",
+      "text": "[HOST] Connecting to server: http://127.0.0.1:50351/mcp"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    },
+    {
+      "type": "log",
+      "text": "[HOST] Connected via Streamable HTTP transport"
+    },
+    {
+      "type": "log",
+      "text": "[HOST] Server tools: [excalidraw-create_view, excalidraw-export_to_excalidraw, excalidraw-read_checkpoint, excalidraw-read_me, excalidraw-save_checkpoint, create_view, export_to_excalidraw, read_checkpoint, read_me, save_checkpoint]"
+    },
+    {
+      "type": "log",
+      "text": "[HOST] Server resources: []"
+    },
+    {
+      "type": "log",
+      "text": "[HOST] Calling tool excalidraw-create_view with input {elements: [{\"type\":\"cameraUpdate\",\"x\":0,\"y\":0,\"width\":800,\"h…w\",\"fontSize\":20},\"fillStyle\":\"solid\",\"seed\":42}]}"
+    },
+    {
+      "type": "log",
+      "text": "[HOST] Reading UI resource: ui://bifrost/ZXhjYWxpZHJhdw/dWk6Ly9leGNhbGlkcmF3L21jcC1hcHAuaHRtbA"
+    },
+    {
+      "type": "log",
+      "text": "[HOST] Resource content keys: [uri, mimeType, _meta, text]"
+    },
+    {
+      "type": "log",
+      "text": "[HOST] Resource content._meta: {ui: Object}"
+    },
+    {
+      "type": "log",
+      "text": "[HOST] Resource listing._meta: undefined"
+    },
+    {
+      "type": "log",
+      "text": "[HOST] Loading sandbox proxy... (CSP: {\"resourceDomains\":[\"https://esm.sh\"],\"connectDomains\":[\"https://esm.sh\"]})"
+    },
+    {
+      "type": "log",
+      "text": "[HOST] Sandbox proxy loaded"
+    },
+    {
+      "type": "log",
+      "text": "[HOST] Sending UI resource HTML to MCP App (CSP: {\"resourceDomains\":[\"https://esm.sh\"],\"connectDomains\":[\"https://esm.sh\"]}) (Permissions: {\"clipboardWrite\":{}})"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {jsonrpc: 2.0, method: ui/notifications/sandbox-resource-ready, params: Object}"
+    },
+    {
+      "type": "log",
+      "text": "[HOST] Waiting for MCP App to initialize..."
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "log",
+      "text": "[Sandbox] Setting allow attribute: clipboard-write"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {method: ui/initialize, params: Object, jsonrpc: 2.0, id: 0}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, id: 0, method: ui/initialize, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {result: Object, jsonrpc: 2.0, id: 0}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, id: 0, result: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {method: ui/notifications/initialized, jsonrpc: 2.0}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {method: ui/notifications/size-changed, params: Object, jsonrpc: 2.0}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/initialized}"
+    },
+    {
+      "type": "log",
+      "text": "[HOST] MCP App initialized"
+    },
+    {
+      "type": "log",
+      "text": "[HOST] Sending tool call input to MCP App: {elements: [{\"type\":\"cameraUpdate\",\"x\":0,\"y\":0,\"width\":800,\"h…w\",\"fontSize\":20},\"fillStyle\":\"solid\",\"seed\":42}]}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {jsonrpc: 2.0, method: ui/notifications/tool-input, params: Object}"
+    },
+    {
+      "type": "log",
+      "text": "[HOST] Sending tool call result to MCP App: {content: Array(1), structuredContent: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {jsonrpc: 2.0, method: ui/notifications/tool-result, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {method: ui/notifications/size-changed, params: Object, jsonrpc: 2.0}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/size-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {method: ui/notifications/size-changed, params: Object, jsonrpc: 2.0}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/tool-input, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/tool-result, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/size-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/size-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {method: notifications/message, params: Object, jsonrpc: 2.0}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {method: ui/request-display-mode, params: Object, jsonrpc: 2.0, id: 1}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: notifications/message, params: Object}"
+    },
+    {
+      "type": "log",
+      "text": "[HOST] Log message from MCP App: {level: info, logger: FS, data: toggle: inline→fullscreen}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, id: 1, method: ui/request-display-mode, params: Object}"
+    },
+    {
+      "type": "log",
+      "text": "[HOST] Display mode request from MCP App: {mode: fullscreen}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {result: Object, jsonrpc: 2.0, id: 1}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {method: notifications/message, params: Object, jsonrpc: 2.0}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, id: 1, result: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {method: notifications/message, params: Object, jsonrpc: 2.0}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: notifications/message, params: Object}"
+    },
+    {
+      "type": "log",
+      "text": "[HOST] Log message from MCP App: {level: info, logger: FS, data: hostContextChanged: displayMode=fullscreen}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: notifications/message, params: Object}"
+    },
+    {
+      "type": "log",
+      "text": "[HOST] Log message from MCP App: {level: info, logger: FS, data: requestDisplayMode result: fullscreen}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {method: ui/notifications/size-changed, params: Object, jsonrpc: 2.0}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/size-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {method: notifications/message, params: Object, jsonrpc: 2.0}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: notifications/message, params: Object}"
+    },
+    {
+      "type": "log",
+      "text": "[HOST] Log message from MCP App: {level: info, logger: FS, data: excalidrawAPI set}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {method: tools/call, params: Object, jsonrpc: 2.0, id: 2}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {method: ui/update-model-context, params: Object, jsonrpc: 2.0, id: 3}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, id: 2, method: tools/call, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, id: 3, method: ui/update-model-context, params: Object}"
+    },
+    {
+      "type": "log",
+      "text": "[HOST] Model context update from MCP App: {content: Array(1)}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {result: Object, jsonrpc: 2.0, id: 3}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, id: 3, result: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {result: Object, jsonrpc: 2.0, id: 2}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, id: 2, result: Object}"
+    },
+    {
+      "type": "log",
+      "text": "[HOST] Connecting to server: http://127.0.0.1:50351/mcp"
+    },
+    {
+      "type": "log",
+      "text": "[HOST] Connected via Streamable HTTP transport"
+    },
+    {
+      "type": "log",
+      "text": "[HOST] Server tools: [excalidraw-create_view, excalidraw-export_to_excalidraw, excalidraw-read_checkpoint, excalidraw-read_me, excalidraw-save_checkpoint, create_view, export_to_excalidraw, read_checkpoint, read_me, save_checkpoint]"
+    },
+    {
+      "type": "log",
+      "text": "[HOST] Server resources: []"
+    },
+    {
+      "type": "log",
+      "text": "[HOST] Calling tool excalidraw-create_view with input {elements: [{\"type\":\"restoreCheckpoint\",\"id\":\"c400b57141a74fc…eraUpdate\",\"x\":0,\"y\":0,\"width\":800,\"height\":600}]}"
+    },
+    {
+      "type": "log",
+      "text": "[HOST] Reading UI resource: ui://bifrost/ZXhjYWxpZHJhdw/dWk6Ly9leGNhbGlkcmF3L21jcC1hcHAuaHRtbA"
+    },
+    {
+      "type": "log",
+      "text": "[HOST] Resource content keys: [uri, mimeType, _meta, text]"
+    },
+    {
+      "type": "log",
+      "text": "[HOST] Resource content._meta: {ui: Object}"
+    },
+    {
+      "type": "log",
+      "text": "[HOST] Resource listing._meta: undefined"
+    },
+    {
+      "type": "log",
+      "text": "[HOST] Loading sandbox proxy... (CSP: {\"resourceDomains\":[\"https://esm.sh\"],\"connectDomains\":[\"https://esm.sh\"]})"
+    },
+    {
+      "type": "log",
+      "text": "[HOST] Sandbox proxy loaded"
+    },
+    {
+      "type": "log",
+      "text": "[HOST] Sending UI resource HTML to MCP App (CSP: {\"resourceDomains\":[\"https://esm.sh\"],\"connectDomains\":[\"https://esm.sh\"]}) (Permissions: {\"clipboardWrite\":{}})"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {jsonrpc: 2.0, method: ui/notifications/sandbox-resource-ready, params: Object}"
+    },
+    {
+      "type": "log",
+      "text": "[HOST] Waiting for MCP App to initialize..."
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "log",
+      "text": "[Sandbox] Setting allow attribute: clipboard-write"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {method: ui/initialize, params: Object, jsonrpc: 2.0, id: 0}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, id: 0, method: ui/initialize, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {result: Object, jsonrpc: 2.0, id: 0}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, id: 0, result: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {method: ui/notifications/initialized, jsonrpc: 2.0}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/initialized}"
+    },
+    {
+      "type": "log",
+      "text": "[HOST] MCP App initialized"
+    },
+    {
+      "type": "log",
+      "text": "[HOST] Sending tool call input to MCP App: {elements: [{\"type\":\"restoreCheckpoint\",\"id\":\"c400b57141a74fc…eraUpdate\",\"x\":0,\"y\":0,\"width\":800,\"height\":600}]}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {jsonrpc: 2.0, method: ui/notifications/tool-input, params: Object}"
+    },
+    {
+      "type": "log",
+      "text": "[HOST] Sending tool call result to MCP App: {content: Array(1), structuredContent: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {jsonrpc: 2.0, method: ui/notifications/tool-result, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/tool-input, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/tool-result, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {method: tools/call, params: Object, jsonrpc: 2.0, id: 1}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, id: 1, method: tools/call, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {method: ui/notifications/size-changed, params: Object, jsonrpc: 2.0}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/size-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, method: ui/notifications/host-context-changed, params: Object}"
+    },
+    {
+      "type": "debug",
+      "text": "Sending message {result: Object, jsonrpc: 2.0, id: 1}"
+    },
+    {
+      "type": "debug",
+      "text": "Parsed message {jsonrpc: 2.0, id: 1, result: Object}"
+    }
+  ],
+  "host": "Host server:    http://localhost:50352\nSandbox server: http://localhost:8081\n\nPress Ctrl+C to stop\n\n",
+  "calls": [
+    {
+      "rpcMethod": [
+        "initialize"
+      ],
+      "toolCalls": [],
+      "results": []
+    },
+    {
+      "rpcMethod": [
+        "notifications/initialized"
+      ],
+      "toolCalls": [],
+      "results": []
+    },
+    {
+      "rpcMethod": [],
+      "toolCalls": [],
+      "results": []
+    },
+    {
+      "rpcMethod": [
+        "tools/list"
+      ],
+      "toolCalls": [],
+      "results": []
+    },
+    {
+      "rpcMethod": [
+        "resources/list"
+      ],
+      "toolCalls": [],
+      "results": []
+    },
+    {
+      "rpcMethod": [
+        "tools/call"
+      ],
+      "toolCalls": [
+        "excalidraw-create_view"
+      ],
+      "results": [
+        {
+          "name": "excalidraw-create_view",
+          "isError": false
+        }
+      ]
+    },
+    {
+      "rpcMethod": [
+        "resources/read"
+      ],
+      "toolCalls": [],
+      "results": []
+    },
+    {
+      "rpcMethod": [
+        "tools/call"
+      ],
+      "toolCalls": [
+        "save_checkpoint"
+      ],
+      "results": [
+        {
+          "name": "save_checkpoint",
+          "isError": false
+        }
+      ]
+    },
+    {
+      "rpcMethod": [
+        "initialize"
+      ],
+      "toolCalls": [],
+      "results": []
+    },
+    {
+      "rpcMethod": [
+        "notifications/initialized"
+      ],
+      "toolCalls": [],
+      "results": []
+    },
+    {
+      "rpcMethod": [],
+      "toolCalls": [],
+      "results": []
+    },
+    {
+      "rpcMethod": [
+        "tools/list"
+      ],
+      "toolCalls": [],
+      "results": []
+    },
+    {
+      "rpcMethod": [
+        "resources/list"
+      ],
+      "toolCalls": [],
+      "results": []
+    },
+    {
+      "rpcMethod": [
+        "tools/call"
+      ],
+      "toolCalls": [
+        "excalidraw-create_view"
+      ],
+      "results": [
+        {
+          "name": "excalidraw-create_view",
+          "isError": false
+        }
+      ]
+    },
+    {
+      "rpcMethod": [
+        "resources/read"
+      ],
+      "toolCalls": [],
+      "results": []
+    },
+    {
+      "rpcMethod": [
+        "tools/call"
+      ],
+      "toolCalls": [
+        "read_checkpoint"
+      ],
+      "results": [
+        {
+          "name": "read_checkpoint",
+          "isError": false
+        }
+      ]
+    }
+  ]
+}

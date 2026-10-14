@@ -34,6 +34,8 @@ concurrency:
 jobs:
   benchmarks:
     name: Benchmarks (${{ matrix.name }})
+    # Only upstream has the managed CodSpeed runner; forks keep their hosted test jobs.
+    if: github.repository == 'maximhq/bifrost'
     # CodSpeed's managed bare-metal runner for walltime benchmarks.
     # https://codspeed.io/docs/benchmarks/go
     # The org's Default runner group must "Allow public repositories", or the

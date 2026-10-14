@@ -1,0 +1,16 @@
+{
+  "validation": "native_checkpoint_read_via_local_gateway",
+  "observed_at": "2026-10-14T09:09:26.383335+00:00",
+  "route": "/mcp/excalidraw",
+  "checkpoint_id": "a4de9e1013d44a30b3",
+  "http_status": 200,
+  "element_count": 4,
+  "text_count": 0,
+  "named_boxes": [
+    "native-pr15-codex",
+    "native-pr15-bifrost",
+    "native-pr15-excalidraw"
+  ],
+  "user_edit_saved": false,
+  "state": "Initial shorthand scene remains; no full edited elements persisted yet. No App save failure established without an actual edit."
+}

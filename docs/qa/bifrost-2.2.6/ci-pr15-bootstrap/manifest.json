@@ -1,0 +1,77 @@
+{
+  "observed_at": "2026-10-14T10:51:21.561851+00:00",
+  "validation": "automated_ci; not native Codex acceptance",
+  "ci_run": "https://github.com/sofianbll/bifrost/actions/runs/38549247160",
+  "tested_gateway": {
+    "image": "bifrost:candidate",
+    "image_id": "sha256:d8c2e7471c38d19fe9e6d7ae86a7223f29352aa7d0716620b64ca06d09867547",
+    "commit": "f54038b339a0d63b66dfa85158a585938c328bbd",
+    "version": "2.2.6+sofian.f54038b339a0"
+  },
+  "tested_excalidraw": {
+    "repository": "https://github.com/sofianbll/excalidraw-mcp",
+    "commit": "4c3700f0ef25a261177fecad03284a57bf7847be",
+    "source_sha256": "79221ba19ba44f83e1e81387c7a01500708bd3544deb9b82db4994178a181a2d",
+    "html_sha256": "1a29d10ee805c360ccee49f104e19062cee70852c9e6db22b5d61a9f95a252d7"
+  },
+  "reference_host": {
+    "repository": "https://github.com/modelcontextprotocol/ext-apps",
+    "version": "2.0.3",
+    "commit": "82221c0c8ce7661efa6771c9d461511b1650495f"
+  },
+  "browser": {
+    "version": "143.0.7499.4",
+    "channel": "chromium"
+  },
+  "route": "/mcp/excalidraw",
+  "checkpoints": {
+    "created": "b1c7923bf5df47c69c",
+    "saved": "b1c7923bf5df47c69c",
+    "read": "b1c7923bf5df47c69c",
+    "restoredView": "f0baa69c8f0c4c7594"
+  },
+  "camera": {
+    "type": "cameraUpdate",
+    "x": 0,
+    "y": 0,
+    "width": 800,
+    "height": 600
+  },
+  "viewport": {
+    "width": 1400,
+    "height": 1050
+  },
+  "checks": {
+    "wire": "80/80",
+    "render": "18/18",
+    "actual_library_normalizer": "10/10",
+    "built_App_initialization": "immediate and delayed passed",
+    "negative_control": "rendered +24/-20 displacement rejected",
+    "native_codex": "passed separately; see ../native-codex-20261014/final/README.md"
+  },
+  "scope": "PR CI and isolated local native QA only; image publication, merge, release and production untouched",
+  "hygiene": {
+    "raw_console_logs_and_full_html_excluded": true,
+    "synthetic_scene_only": true,
+    "captures": "App pane only; all captures visually inspected; initialization captures were taken during draw animation and are not alignment measurements"
+  },
+  "artifacts": {
+    "README.md": "8f57b969206cbae5b719cc3ae1aa744bc77a403bd463d4682644e7d766e33771",
+    "ci-run.json": "3160c18fd22b6257087cfedcb0362172d836fd6c30d7ddbb18ec7e7187b4ed26",
+    "codemode-errors-comparison.json": "c1eb5494056218adb058ffe08f0468463dc9576f0898edd84fb25bf3a4299c13",
+    "excalidraw-checkpoint-after.png": "cdfaa69f5c7e3fa57b85fac5f72ff4d630b5cb42178548dc0f9894ef53d8da00",
+    "excalidraw-checkpoint-before.png": "99dc36236ccd43f3f3992a1430f328bd93052cc2a797edfa7815d1e985800a79",
+    "excalidraw-checkpoint-offset.png": "e35509e1e21b848b4444d3c36d8c89d5895223733e1560de7f760844b168e979",
+    "excalidraw-checkpoint-report.json": "5ceda532a5189757fb5250cdbf5dcb278e15fb57ba941ba9004964c526e1fdb9",
+    "excalidraw-checkpoint-scene.json": "7dc19fb53559ce2349dc63ca93d9894ea9ec1a6c4415e2cab638fb0c8358b965",
+    "initialization-delayed-report.json": "f28e3c8290d449dad21320016397aa0783c8e0da5036abf0a9f40ea13bf43882",
+    "initialization-delayed.png": "37be382ed179111a115a9de769f82eacafbc5f25779a649024be9ec7de895c30",
+    "initialization-immediate-report.json": "19dec0d7d97c3ecb710bff4ec409425c425ab23b26d03ce606f12e578e84ee05",
+    "initialization-immediate.png": "f03b6dfc7a8897f5fbbae1352dbca4b47fb7c3c462d496a8e2d45f8e70a00153",
+    "mcp-apps-comparison.json": "d43ffe36027c515c2b9f4c4719d5102bfbac2910832ffdf82b4824eace911759",
+    "normalizer-report.json": "1fe808cf3d4371f74ccc829ed50928b684bd9df26f38fc27c5453052e471ffce",
+    "pr-checks.json": "d0b881159304bb99c40c2aaaf4e4bb997632436f6f03cc5b74566f55aaa3215f",
+    "render-summary.json": "0043868c07fddd14fe5696af1586543ae0b3c53863347f5473ad9a1aca951bb6",
+    "wire-report.json": "618696a48f3d7421eb6ed3df54b2de2644c036318db62652e55eb43699a5f9f4"
+  }
+}

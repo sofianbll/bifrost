@@ -1,0 +1,27 @@
+{
+  "validation": "isolated_actual_App_initialization_replay",
+  "appHtmlSha256": "1a29d10ee805c360ccee49f104e19062cee70852c9e6db22b5d61a9f95a252d7",
+  "browserVersion": "155.0.4283.45",
+  "timing": "immediate",
+  "passed": true,
+  "host": {
+    "events": [
+      "ui/initialize",
+      "input/result sent",
+      "ui/notifications/initialized",
+      "ui/notifications/size-changed",
+      "ui/notifications/size-changed",
+      "tools/call",
+      "ui/notifications/size-changed"
+    ],
+    "calls": [
+      "read_checkpoint"
+    ]
+  },
+  "labels": [
+    "Codex",
+    "Bifrost",
+    "Excalidraw"
+  ],
+  "errors": []
+}

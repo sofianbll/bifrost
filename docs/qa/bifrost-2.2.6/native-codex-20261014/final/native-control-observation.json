@@ -1,0 +1,34 @@
+{
+  "checkpoint": "b3c6eb56c5244b9782",
+  "validation": "native direct same saved scene; chronological control after restored capture",
+  "observed_at": "2026-10-14T10:57:48.846Z",
+  "canvases": [
+    {
+      "height": 2029,
+      "rect": {
+        "height": 922.7272338867188,
+        "width": 766.3565063476562,
+        "x": 0,
+        "y": 0
+      },
+      "width": 1685
+    },
+    {
+      "height": 2029,
+      "rect": {
+        "height": 922.7272338867188,
+        "width": 766.3565063476562,
+        "x": 0,
+        "y": 0
+      },
+      "width": 1685
+    }
+  ],
+  "scriptCharacters": 426883,
+  "viewport": {
+    "height": 922,
+    "width": 766
+  },
+  "scriptSha256": "d1d925fbf17c09605cde2cb635b092dcfbe5559f3aaf3f36ee353d4641fa433c",
+  "screenshot": "direct-native-control.jpg"
+}

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Run real MCP Apps qualification against the built Bifrost image in CI.
 
-The gateway image stays unchanged. Three pinned npm servers run as HTTP sidecars
-on an isolated Docker network; Excalidraw uses its public MCP endpoint.
+The gateway image stays unchanged. Three pinned npm servers and two pinned
+Excalidraw builds run as HTTP sidecars on an isolated Docker network.
 """
 import argparse
 import hashlib
@@ -34,6 +34,10 @@ def load_manifest():
         app["code_native_name"] = app["code_namespace"] + "-" + app["native_name"].removeprefix(name + "-")
     for name in ("pdf", "debug", "monitor"):
         assert data["apps"][name]["version"] == "2.0.3"
+    assert data["apps"]["excalidraw"]["commit"] == "4c3700f0ef25a261177fecad03284a57bf7847be"
+    assert data["apps"]["excalidraw"]["connection_string"] == "http://excalidraw:3004/mcp"
+    assert data["excalidraw_official"]["commit"] == "157aa23ceb1976008aadc89eb05e3444060f09d6"
+    assert data["excalidraw_official"]["repository"] == "https://github.com/excalidraw/excalidraw-mcp"
     return data
 
 
@@ -85,6 +89,17 @@ def gateway_command(image, name, network, app_dir):
 
 def mapped_port(text):
     return int(text.strip().splitlines()[0].rsplit(":", 1)[1])
+
+
+def gateway_identity(image, image_info):
+    identity = {"image": image, "image_id": image_info["Id"]}
+    labels = image_info.get("Config", {}).get("Labels") or {}
+    for field, label in (("commit", "org.opencontainers.image.revision"), ("version", "org.opencontainers.image.version")):
+        if labels.get(label):
+            identity[field] = labels[label]
+    if image_info.get("RepoDigests"):
+        identity["image_digest"] = image_info["RepoDigests"][0]
+    return identity
 
 
 def qualify(base_url, credentials, manifest, report):
@@ -204,7 +219,13 @@ def build_config(manifest, credentials):
                         "tools_to_execute": ["*"], "needs_session_stickiness": True,
                         "is_code_mode_client": True,
                         **({"tool_execution_timeout": manifest["pdf_tool_execution_timeout"]} if app == "pdf" else {})})
+    official = manifest["excalidraw_official"]
+    clients.append({"client_id": "ci-excalidraw-official", "name": "excalidraw_official",
+                    "endpoint_slug": "excalidraw-official", "connection_type": "http",
+                    "connection_string": official["connection_string"], "auth_type": "none",
+                    "allow_by_default": False, "tools_to_execute": ["*"], "needs_session_stickiness": True})
     direct_grants = [{"mcp_client_name": app, "tools_to_execute": ["*"]} for app in manifest["apps"]]
+    direct_grants.append({"mcp_client_name": "excalidraw_official", "tools_to_execute": ["*"]})
     code_grants = [{"mcp_client_name": entry["code_namespace"], "tools_to_execute": ["*"]}
                    for entry in manifest["apps"].values()]
     virtual_tools = [{"mcp_client_name": app, "tool_names": ["*"]} for app in manifest["apps"]]
@@ -272,6 +293,13 @@ def cleanup_resources(started, network_created, image_built, network, image, com
 
 
 def self_check():
+    assert gateway_identity("candidate", {"Id": "sha256:local", "Config": {"Labels": None}}) == {
+        "image": "candidate", "image_id": "sha256:local"}
+    assert gateway_identity("candidate", {"Id": "sha256:local", "Config": {"Labels": {
+        "org.opencontainers.image.revision": "tested-commit", "org.opencontainers.image.version": "v2.2.6"}},
+        "RepoDigests": ["candidate@sha256:immutable"]}) == {
+        "image": "candidate", "image_id": "sha256:local", "commit": "tested-commit",
+        "version": "v2.2.6", "image_digest": "candidate@sha256:immutable"}
     manifest = load_manifest()
     assert {name: entry["code_native_name"] for name, entry in manifest["apps"].items()} == {
         "excalidraw": "code_excalidraw-create_view", "pdf": "code_pdf-display_pdf",
@@ -284,6 +312,8 @@ def self_check():
     assert not any("token" in k.lower() or "credential" in k.lower() for k in manifest)
     fake_credentials = {}
     config = build_config(manifest, fake_credentials)
+    assert [client["connection_string"] for client in config["mcp"]["client_configs"]
+            if client["name"] in ("excalidraw", "code_excalidraw")] == ["http://excalidraw:3004/mcp"] * 2
     schema = json.loads((ROOT.parents[1] / "transports/config.schema.json").read_text())
     client_properties = schema["$defs"]["mcp_client_config"]["properties"]
     virtual_properties = schema["$defs"]["virtual_mcp_config"]["properties"]
@@ -297,7 +327,11 @@ def self_check():
     assert (ROOT / "smoke.py").is_file()
     assert set(fake_credentials["_smoke_keys"]) == {"full", "limited", "denied", "invalid"}
     assert all(value not in json.dumps(manifest) for value in fake_credentials["secrets"])
-    assert len(config["mcp"]["client_configs"]) == 8 and len(config["mcp"]["virtual_mcps"][0]["tools"]) == 4
+    assert len(config["mcp"]["client_configs"]) == 9 and len(config["mcp"]["virtual_mcps"][0]["tools"]) == 4
+    official_client = next(client for client in config["mcp"]["client_configs"] if client["name"] == "excalidraw_official")
+    assert official_client["connection_string"] == "http://excalidraw-official:3004/mcp"
+    assert official_client["endpoint_slug"] == "excalidraw-official"
+    assert any(grant["mcp_client_name"] == "excalidraw_official" for grant in config["governance"]["virtual_keys"][0]["mcp_configs"])
     assert len(config["governance"]["virtual_keys"]) == 5
     assert all(key["value"].startswith("sk-bf-") for key in config["governance"]["virtual_keys"])
     limited = next(key for key in config["governance"]["virtual_keys"] if key["name"] == "limited")
@@ -342,11 +376,15 @@ def main():
     parser.add_argument("--render-script", type=Path, help="Optional official reference-host Playwright runner")
     parser.add_argument("--reference-host-dir", type=Path, help="Pinned ext-apps checkout for a render script that accepts --host-dir")
     parser.add_argument("--node", default="node")
+    parser.add_argument("--excalidraw-dir", type=Path, help="Reviewed, built Excalidraw checkout pinned by real-apps.json")
+    parser.add_argument("--excalidraw-official-dir", type=Path, help="Pristine official App build pinned by real-apps.json")
     parser.add_argument("--self-check", action="store_true")
     args = parser.parse_args()
     if args.self_check:
         self_check()
         return 0
+    if os.environ.get("GITHUB_ACTIONS") != "true":
+        parser.error("Real-App qualification is restricted to GitHub Actions; use --self-check for script checks")
     if args.reference_host_dir and not args.reference_host_dir.is_dir():
         parser.error("--reference-host-dir must be an existing directory")
     if args.reference_host_dir and not args.render_script:
@@ -356,24 +394,46 @@ def main():
     if not args.work_dir or not args.report_dir:
         parser.error("--work-dir and --report-dir are required")
     manifest = load_manifest()
+    if not args.excalidraw_dir or not (args.excalidraw_dir / "dist/index.js").is_file():
+        parser.error("--excalidraw-dir must contain the reviewed App build")
+    app_commit = run(["git", "-C", str(args.excalidraw_dir), "rev-parse", "HEAD"]).stdout.strip()
+    if app_commit != manifest["apps"]["excalidraw"]["commit"]:
+        parser.error("Excalidraw checkout does not match the reviewed commit")
+    if not args.excalidraw_official_dir or not (args.excalidraw_official_dir / "dist/index.js").is_file():
+        parser.error("--excalidraw-official-dir must contain the pristine official App build")
+    official_commit = run(["git", "-C", str(args.excalidraw_official_dir), "rev-parse", "HEAD"]).stdout.strip()
+    if official_commit != manifest["excalidraw_official"]["commit"]:
+        parser.error("Official Excalidraw checkout does not match the pinned commit")
+    for checkout in (args.excalidraw_dir, args.excalidraw_official_dir):
+        if run(["git", "-C", str(checkout), "status", "--porcelain", "--untracked-files=no"]).stdout.strip():
+            parser.error("Excalidraw source checkout has tracked modifications")
     args.work_dir.mkdir(parents=True, exist_ok=False, mode=0o700)
     args.report_dir.mkdir(parents=True, exist_ok=False, mode=0o755)
     app_dir = args.work_dir / "gateway-data"
     app_dir.mkdir(mode=0o700)
     image = "bifrost-mcpapps-servers:" + secrets.token_hex(6)
     network = "bifrost-mcpapps-" + secrets.token_hex(6)
-    names = {"pdf": "mcpapps-pdf-" + secrets.token_hex(4),
+    names = {"excalidraw": "mcpapps-excalidraw-" + secrets.token_hex(4),
+             "pdf": "mcpapps-pdf-" + secrets.token_hex(4),
              "debug": "mcpapps-debug-" + secrets.token_hex(4),
              "monitor": "mcpapps-monitor-" + secrets.token_hex(4),
              "gateway": "mcpapps-gateway-" + secrets.token_hex(4)}
+    names["excalidraw_official"] = "mcpapps-excalidraw-official-" + secrets.token_hex(4)
     started, network_created, image_built = [], False, False
     report = {"mode": "real-app CI qualification", "image": args.image,
-              "packages": {name: entry.get("package", "public endpoint") + ("@" + entry["version"] if entry.get("version") else "")
+              "packages": {name: entry.get("package", entry.get("repository", "")) + ("@" + entry["version"] if entry.get("version") else "")
                            for name, entry in manifest["apps"].items()}, "checks": []}
+    report["excalidraw"] = {"repository": manifest["apps"]["excalidraw"]["repository"], "commit": app_commit,
+        "source_sha256": hashlib.sha256((args.excalidraw_dir / "src/mcp-app.tsx").read_bytes()).hexdigest(),
+        "html_sha256": hashlib.sha256((args.excalidraw_dir / "dist/mcp-app.html").read_bytes()).hexdigest()}
+    report["excalidraw_official"] = {"repository": manifest["excalidraw_official"]["repository"], "commit": official_commit,
+        "source_sha256": hashlib.sha256((args.excalidraw_official_dir / "src/mcp-app.tsx").read_bytes()).hexdigest(),
+        "html_sha256": hashlib.sha256((args.excalidraw_official_dir / "dist/mcp-app.html").read_bytes()).hexdigest()}
     credentials = {}
     code = 1
     try:
-        run(["docker", "image", "inspect", args.image])
+        image_info = json.loads(run(["docker", "image", "inspect", args.image]).stdout)[0]
+        report["gateway"] = gateway_identity(args.image, image_info)
         run(["docker", "network", "create", network])
         network_created = True
         context = args.work_dir / "servers"
@@ -381,18 +441,32 @@ def main():
         package_names = [entry["package"] + "@" + entry["version"] for entry in manifest["apps"].values()
                          if entry.get("package")]
         dockerfile = "FROM " + NODE_IMAGE + "\nRUN npm install --global --omit=dev " + " ".join(package_names) + "\n"
+        shutil.copytree(args.excalidraw_dir / "dist", context / "excalidraw")
+        shutil.copytree(args.excalidraw_official_dir / "dist", context / "excalidraw-official")
+        dockerfile += "COPY excalidraw /opt/excalidraw\nCOPY excalidraw-official /opt/excalidraw-official\n"
         (context / "Dockerfile").write_text(dockerfile)
         run(["docker", "build", "--pull", "-t", image, str(context)])
         image_built = True
-        for app, package_bin in (("pdf", "mcp-pdf-server"), ("debug", "mcp-server-debug"),
+        source_urls = {}
+        for app, package_bin in (("excalidraw", "node"), ("excalidraw_official", "node"), ("pdf", "mcp-pdf-server"), ("debug", "mcp-server-debug"),
                                  ("monitor", "mcp-system-monitor-server")):
-            entry = manifest["apps"][app]
+            entry = manifest["excalidraw_official"] if app == "excalidraw_official" else manifest["apps"][app]
+            port = entry.get("port", 3004)
+            alias = "excalidraw-official" if app == "excalidraw_official" else app
             command = ["docker", "run", "-d", "--name", names[app], "--network", network,
-                       "--network-alias", app, "-e", f"PORT={entry['port']}", image, package_bin]
+                       "--network-alias", alias, "-e", f"PORT={port}"]
+            if app in ("excalidraw", "excalidraw_official"):
+                command.extend(["-p", f"127.0.0.1::{port}"])
+            command.extend([image, package_bin])
+            if app in ("excalidraw", "excalidraw_official"):
+                command.append(f"/opt/{alias}/index.js")
             if app == "pdf":
                 command.append("--enable-interact")
             run(command)
             started.append(names[app])
+            if app in ("excalidraw", "excalidraw_official"):
+                source_port = mapped_port(run(["docker", "port", names[app], f"{port}/tcp"]).stdout)
+                source_urls[app] = f"http://127.0.0.1:{source_port}"
         config = build_config(manifest, credentials)
         write_private(app_dir / "config.json", config)
         # Match the runner UID so its private data remains removable after the gateway exits.
@@ -418,11 +492,21 @@ def main():
         write_private(credentials_path, credentials)
         qualification_manifest = {
             "base_url": base_url,
+            "gateway": report["gateway"],
+            "excalidraw": report["excalidraw"],
             "apps": {name: {key: value for key, value in entry.items()
                             if key in ("native_name", "code_native_name", "native_arguments", "html_resource_required")}
                      for name, entry in manifest["apps"].items()},
             "routes": manifest["routes"],
             "credentials_file": str(credentials_path),
+            "excalidraw_comparison": [
+                {"version": version, "identity": report[app], "source_url": source_urls[app],
+                 "gateway_path": path, "gateway_tool": tool}
+                for version, app, path, tool in (
+                    ("official", "excalidraw_official", manifest["excalidraw_official"]["route"], manifest["excalidraw_official"]["native_name"]),
+                    ("corrected", "excalidraw", manifest["routes"]["direct"]["excalidraw"], manifest["apps"]["excalidraw"]["native_name"]),
+                )
+            ],
         }
         qualification_path = args.work_dir / "qualification-manifest.json"
         write_private(qualification_path, qualification_manifest)

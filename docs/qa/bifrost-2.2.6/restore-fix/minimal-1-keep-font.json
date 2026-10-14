@@ -1,0 +1,29 @@
+{
+  "inputElements": 2,
+  "boxes": [
+    "ci-gateway"
+  ],
+  "result": [
+    {
+      "id": "y1KHV9VThEQ6dmhwdS2ZW",
+      "containerId": "ci-gateway",
+      "text": "Bifrost",
+      "before": {
+        "x": 532.2216796875,
+        "y": 127.5,
+        "width": 55.556640625,
+        "height": 25,
+        "fontFamily": 5
+      },
+      "after": {
+        "x": 504.443359375,
+        "y": 115,
+        "width": 55.556640625,
+        "height": 25,
+        "fontFamily": 5
+      },
+      "dx": -27.7783203125,
+      "dy": -12.5
+    }
+  ]
+}

@@ -1,0 +1,101 @@
+{
+  "observed_at": "2026-10-13T19:37:28.776971+00:00",
+  "scope": "isolated local Bifrost; public Excalidraw test endpoint; no Bifrost production access",
+  "tested_gateway": {
+    "commit": "d3318d6be866d3e34dde424cdcb4064b90843108",
+    "version": "v2.2.6-checkpoint-qa.d3318d6be866",
+    "binary_sha256": "6305d22b64dd5ec24e7f55f54c0eea108b65ab1b4371dd54d5c4905b1a71625a",
+    "compiler": "go1.27.2",
+    "platform": "darwin/arm64",
+    "vcs_modified": false,
+    "management_ui": "disposable_embed_placeholder_not_tested"
+  },
+  "renderer": {
+    "commit": "d3318d6be866d3e34dde424cdcb4064b90843108",
+    "sha256": "b23f94a87de751ad359fdac425d1da05affe7e6a2e16487e4a92638254854bd3"
+  },
+  "reference_host": {
+    "repository": "https://github.com/modelcontextprotocol/ext-apps",
+    "version": "2.0.3",
+    "commit": "82221c0c8ce7661efa6771c9d461511b1650495f"
+  },
+  "browser": {
+    "version": "155.0.4283.45",
+    "channel": "msedge",
+    "playwright": "1.57.0"
+  },
+  "route": "/mcp/excalidraw",
+  "validation": {
+    "automated": "completed_roundtrip_alignment_failed",
+    "renderer_exit_code": 1,
+    "negative_control": "deliberate_rendered_text_shift_rejected",
+    "native_codex": "not_run",
+    "script_self_checks": "passed"
+  },
+  "checkpoints": {
+    "created": "c400b57141a74fcda0",
+    "saved": "c400b57141a74fcda0",
+    "read": "c400b57141a74fcda0",
+    "restoredView": "cf44d1b953044d839a"
+  },
+  "saved_payload_sha256": "cd31dcf81d3731b3d523b8ed17291b542a3087e9ce4fa757ffa50c795f443079",
+  "read_payload_sha256": "cd31dcf81d3731b3d523b8ed17291b542a3087e9ce4fa757ffa50c795f443079",
+  "app_resource_sha256": "441650e7bc844a43511b906281d11589e8d24a34a83d657c1d7a56f907c21a63",
+  "working_state": {
+    "implementation_branch": "codex/checkpoint-label-alignment-226",
+    "base_commit": "d3318d6be866d3e34dde424cdcb4064b90843108",
+    "original_branch": "feature/mcp-apps-native",
+    "original_commit": "71174d96ae4763e1167f9acdb636df20e704bb41",
+    "original_untracked": "preserved"
+  },
+  "attempts": [
+    {
+      "phase": "initial enhanced control",
+      "result": "nested_frame_initialization_race",
+      "repairs": 1,
+      "fix": "wait_for_visible_svg"
+    },
+    {
+      "phase": "enhanced control and evidence export",
+      "result": "completed_roundtrip_alignment_failed"
+    },
+    {
+      "phase": "PNG capture verification",
+      "result": "fixed document crop produces complete equal-size captures",
+      "repairs": 2,
+      "fixes": [
+        "fixed integer pixel crop",
+        "full-document capture with scroll offset"
+      ]
+    },
+    {
+      "phase": "final",
+      "result": "completed_roundtrip_alignment_failed",
+      "seconds": 12,
+      "png_dimensions": [
+        1400,
+        1050
+      ]
+    }
+  ],
+  "hygiene": {
+    "secret_values_excluded": true,
+    "full_html_databases_private_logs_excluded": true,
+    "screenshots": "App SVG only, visually inspected"
+  },
+  "artifacts": {
+    "README.md": "1333265cda20c1ffdbe1fd1b8db7c7339d9ecb9252e76f44ff7cf05a68be7abf",
+    "baseline/excalidraw-checkpoint-after.png": "4aa70ae8c194620f5929577d989fd2a3b4e9db527d9a9a40206dd586d14fb82d",
+    "baseline/excalidraw-checkpoint-before.png": "f1143e0f8fe86b3d1869d24ff68289de2665ad5d2cfaf322143abaf1ad24b4e5",
+    "baseline/report.json": "14a80788fbde5df5d439fbbc43f2dbe235fc987a8e4d4ae6c8a436afd4790e26",
+    "excalidraw-checkpoint-after.png": "b3126a6be104aef29640061f9cc6226ef02d93b22b548f73ae7dbb33aa33d3ce",
+    "excalidraw-checkpoint-before.png": "89e08a91338c9c0b9a60b1b2e3ddbd4314728890490b97862a9afa017338c2c9",
+    "excalidraw-checkpoint-offset.png": "0f6b8c72d8f37975cfb43c6334d4075bdab74a475c3cbeaa1166e10f617d17e9",
+    "excalidraw-checkpoint-report.json": "21e5375868cf9738d6c1e2daadc5c7356179f96dcdc416ee1d503431f2357918",
+    "excalidraw-checkpoint-scene.json": "5dde55f55bd40a0f8d160d6fb974042fe55e0713934666d2697ced0fdc0ae4e8",
+    "excalidraw-checkpoint.console.json": "87028f9e1650c8b7854e24a694fb9347b4f2e1401d13a8f2ed9dde30335fce26",
+    "native-codex.json": "6a0e3a9241f97367ecd8b26f0a145712e3889830d94b8e40f1fd9b64dc6e59a1",
+    "render-report.json": "129afc1ee3fe682b1280f1a617d7af7f17f8ac643f355d6bfb3d97782db533ad",
+    "self-checks.json": "06b4daccc6d8c4d236e8de4337a03d8308b0c5f473284fab02f91c665bb56f70"
+  }
+}

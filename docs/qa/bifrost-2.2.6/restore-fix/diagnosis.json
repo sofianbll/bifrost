@@ -1,0 +1,145 @@
+{
+  "validation": "local root-cause diagnosis and App fix",
+  "bifrost_source": "d3318d6be866d3e34dde424cdcb4064b90843108",
+  "bifrost_binary_sha256": "6305d22b64dd5ec24e7f55f54c0eea108b65ab1b4371dd54d5c4905b1a71625a",
+  "app_repository": "https://github.com/excalidraw/excalidraw-mcp",
+  "app_base_commit": "157aa23ceb1976008aadc89eb05e3444060f09d6",
+  "app_fix_local_commit": "4770d1aa02fb4407f8f4a520eb4db34d2ffe3e99",
+  "app_source_sha256": "9fac2c3c95f66badfcc362f0cc4d45ba0363cb17d723f29a2757ae38a37d36ee",
+  "app_patch_sha256": "a34ed99e7f627b340bf18c9b4f14a2a618774b2dd1ef2ae3e122b06716fd2fd0",
+  "app_base_html_sha256": "441650e7bc844a43511b906281d11589e8d24a34a83d657c1d7a56f907c21a63",
+  "app_fixed_html_sha256": "390ad96632060f0d61a40b173797e13ca0a8ab4c52a4d885cb6bfee2bca13e2c",
+  "public_html_matches_local_baseline": true,
+  "normalizer_tests": {
+    "before": {
+      "passed": 4,
+      "failed": 5
+    },
+    "after": {
+      "passed": 9,
+      "failed": 0
+    }
+  },
+  "roundtrip": {
+    "route": "/mcp/excalidraw",
+    "before": {
+      "beforeAlignment": true,
+      "deliberateDisplacementRejected": true,
+      "saveWithBoundLabelsAndPointerEdit": true,
+      "exactReadbackWithBoundLabels": true,
+      "fixedFraming": true,
+      "afterAlignment": false
+    },
+    "after": {
+      "beforeAlignment": true,
+      "deliberateDisplacementRejected": true,
+      "saveWithBoundLabelsAndPointerEdit": true,
+      "exactReadbackWithBoundLabels": true,
+      "fixedFraming": true,
+      "afterAlignment": true
+    },
+    "before_checkpoints": {
+      "created": "f321f851534a446f8a",
+      "saved": "f321f851534a446f8a",
+      "read": "f321f851534a446f8a",
+      "restoredView": "57bedda076514053a7"
+    },
+    "after_checkpoints": {
+      "created": "50cccfd80726401e84",
+      "saved": "50cccfd80726401e84",
+      "read": "50cccfd80726401e84",
+      "restoredView": "2843083f50e04485a0"
+    },
+    "negative_control_rejected": true
+  },
+  "root_cause": "convertRawElements sends already complete saved text back through the skeleton converter. newTextElement subtracts alignment offsets again and remeasures it. Full checkpoint elements must retain their stored geometry and font.",
+  "scope": {
+    "bifrost_gateway_code_changed": false,
+    "native_codex_verified": false,
+    "full_app_matrix_run": false,
+    "outbound_issue_or_pr_posted": false,
+    "bifrost_production_accessed": false,
+    "bifrost_production_deployed": false,
+    "public_app_service_modified": false,
+    "public_app_usage": "Only own synthetic QA checkpoints; no public service deployment or configuration change."
+  },
+  "qualification_limits": [
+    "The public App remains unpatched.",
+    "The App source and build passed locally; no full four-App CI run.",
+    "Native Codex is not exercised because available registrations target production."
+  ],
+  "builds": {
+    "official_base_typecheck_and_build": "passed",
+    "fixed_typecheck_and_build": "passed",
+    "backend_bundle_source_changed": false
+  },
+  "checks": [
+    {
+      "name": "normalizer-runner-syntax",
+      "passed": true,
+      "output": ""
+    },
+    {
+      "name": "renderer-self-check",
+      "passed": true,
+      "output": "PASS renderer self-check (routes, JSON-RPC, redaction, bounded actions, SSE cleanup, ports, bound-label alignment, deliberate displacement, clipping, missing labels, invalid bounds and fixed framing); no host was launched"
+    },
+    {
+      "name": "ci-self-check",
+      "passed": true,
+      "output": "PASS manifest pins, matrix, timeout, loopback binding, MCP errors and cleanup order"
+    },
+    {
+      "name": "diff-whitespace",
+      "passed": true,
+      "output": ""
+    },
+    {
+      "name": "retained-patch-replay",
+      "passed": true,
+      "source_sha256": "9fac2c3c95f66badfcc362f0cc4d45ba0363cb17d723f29a2757ae38a37d36ee"
+    },
+    {
+      "name": "JSON-links-PNG-and-credentials",
+      "passed": true,
+      "output": "All local links resolve; full-MCP crops all 1400x1050; no synthetic key values retained."
+    },
+    {
+      "name": "canonical-patch-context",
+      "passed": true,
+      "output": "Redundant outer context removed; standard git apply reproduces the identical tested App source."
+    }
+  ],
+  "evidence_sha256": {
+    "README.md": "f4e629eb42765958e5bef2ef74183c623fa58d02b911d8b3df8e43f380798ecc",
+    "excalidraw-restore.patch": "a34ed99e7f627b340bf18c9b4f14a2a618774b2dd1ef2ae3e122b06716fd2fd0",
+    "local-patched-roundtrip/excalidraw-checkpoint-after.png": "b7ddc8a0aa86df8009c92567c987c83ca9afd333d6e26c6c304da3b4e3ec29d8",
+    "local-patched-roundtrip/excalidraw-checkpoint-before.png": "89e08a91338c9c0b9a60b1b2e3ddbd4314728890490b97862a9afa017338c2c9",
+    "local-patched-roundtrip/excalidraw-checkpoint-offset.png": "0f6b8c72d8f37975cfb43c6334d4075bdab74a475c3cbeaa1166e10f617d17e9",
+    "local-patched-roundtrip/excalidraw-checkpoint-report.json": "16d8ae47601cdaab71b23e125fec6221aa42b08634316440cf1f5ad0641a6c6e",
+    "local-patched-roundtrip/excalidraw-checkpoint-scene.json": "099558ccb9a89b797a3f0620dbd11aeb58b76bd391808cd8760ed9340393594d",
+    "local-patched-roundtrip/excalidraw-checkpoint.console.json": "d2e8981b0445a3d9ae2e3e19578f4911342e8b46e56a8e49536458c3b1d4abd2",
+    "local-patched-roundtrip/render-report.json": "5dc6866539398eefcf627434991ce453f03e5da080e945d085bf0cf0deb4a7cd",
+    "local-unpatched-roundtrip/excalidraw-checkpoint-after.png": "446874cfdcbd5221d8b25e4fd3ff20e5ceeb889e5951e7f90cc527f193316610",
+    "local-unpatched-roundtrip/excalidraw-checkpoint-before.png": "89e08a91338c9c0b9a60b1b2e3ddbd4314728890490b97862a9afa017338c2c9",
+    "local-unpatched-roundtrip/excalidraw-checkpoint-offset.png": "0f6b8c72d8f37975cfb43c6334d4075bdab74a475c3cbeaa1166e10f617d17e9",
+    "local-unpatched-roundtrip/excalidraw-checkpoint-report.json": "96cae4dea744b013bedc816a97eb20ee67198bff492932e31e0e9129de97d06f",
+    "local-unpatched-roundtrip/excalidraw-checkpoint-scene.json": "009280557c8f28cd6ccb51ef40d5cdad9b9ce4fb5427fd36fd7093f7ea646129",
+    "local-unpatched-roundtrip/excalidraw-checkpoint.console.json": "0ecf0ecd7150a907fe43c92803b7256507806541e16af7d02195c1f9309815c5",
+    "local-unpatched-roundtrip/render-report.json": "bd7a76572ffdac20c81afb02ee1c2955fa5800ea22e474612736d865359e95dc",
+    "minimal-1-keep-font.json": "4b722d56a12601f643469203485c245c956871642b733563c15256d09e313632",
+    "minimal-1.json": "66b001eaa68c5117f00c0d6ce4987e098ae5a76145242c4b662a81d9d9dc4d79",
+    "minimal-2.json": "75604605956ad4f88b5a7708be301c486878990bd6c3bd7b3981931077744535",
+    "minimal-3-edit.json": "03cebd8562a6daa7b50e60fad2ac8decc831e2cd07ea6d08c1beb8ff9e513b5c",
+    "minimal-3.json": "1f6ad3f526a745589b3464f760763bfbbf03d5a955a8ccb2cada9465dc3c984a",
+    "saved-scene.json": "8620e1acee66a3fe02c4ad1f1faff5e83f479f4be3f75cbc1e30982a2149322c",
+    "source-green/after.png": "9fa1fd8f810a6b0f5386ffd706af9a7f4f6910cc8ba4a23630d61961d08a984a",
+    "source-green/before.png": "9fa1fd8f810a6b0f5386ffd706af9a7f4f6910cc8ba4a23630d61961d08a984a",
+    "source-green/report.json": "7b6bc4e54772c3764d11c11332439787f578eea19ae36628b0b820e3ed3c13d4",
+    "source-red-final/after.png": "17884d5ecf30dadb7791ed1e3e30d654c97c0b5716263fb0b5bb8c5f08c8133f",
+    "source-red-final/before.png": "9fa1fd8f810a6b0f5386ffd706af9a7f4f6910cc8ba4a23630d61961d08a984a",
+    "source-red-final/report.json": "437247ff644b14581a1b69a239684099dc3cefe6073187ed5cbb20334e7d8b21"
+  },
+  "visual_inspection": "All ten retained final-run PNGs inspected; corrected labels remain centered, negative control remains displaced.",
+  "normalizer_runner_sha256": "25e8c0ee23074470c8bcf0bbb82d88c1cab4b1db4db982489c5e4af4723be02f"
+}

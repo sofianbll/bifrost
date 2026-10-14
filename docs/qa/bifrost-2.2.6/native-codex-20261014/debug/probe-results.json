@@ -1,0 +1,79 @@
+{
+  "scope": "Diagnose native MCP Apps observation; not a label-alignment validation.",
+  "command": "await probeNativeTitle() in cua_repl",
+  "native_target": "Bifrost Pr15 Native Qa MCP Excalidraw create view",
+  "baseline": [
+    {
+      "status": "red",
+      "elapsed_ms": 2017,
+      "input": "document.title plus bodyPresent",
+      "error": "CDP operation exceeded its deadline before command dispatch"
+    },
+    {
+      "status": "red",
+      "elapsed_ms": 2022,
+      "input": "document.title only",
+      "error": "CDP operation exceeded its deadline before command dispatch"
+    },
+    {
+      "status": "red",
+      "elapsed_ms": 2015,
+      "input": "document.title only",
+      "error": "CDP operation exceeded its deadline before command dispatch"
+    }
+  ],
+  "hypotheses": [
+    {
+      "name": "stale tab reference",
+      "prediction": "Fresh inventory and tab binding make the title read succeed.",
+      "result": {
+        "status": "red",
+        "elapsed_ms": 2027,
+        "error": "CDP operation exceeded its deadline before command dispatch"
+      },
+      "verdict": "not_supported"
+    },
+    {
+      "name": "MCP Apps automation path differs from in-app browser",
+      "prediction": "The same document.title read succeeds in the in-app browser.",
+      "local_control": "Loopback health page blocked by browser client; no hostname workaround attempted.",
+      "public_control": {
+        "url": "https://learn.chatgpt.com/docs/extend/mcp?surface=cli",
+        "status": "green",
+        "elapsed_ms": 31,
+        "title": "Model Context Protocol | ChatGPT Learn"
+      },
+      "verdict": "supported_at_boundary"
+    },
+    {
+      "name": "two-second preparation timeout insufficient",
+      "prediction": "Eight seconds make the native read succeed.",
+      "result": {
+        "status": "red",
+        "requested_timeout_ms": 8000,
+        "elapsed_ms": 3086,
+        "error": "CDP operation exceeded its deadline before command dispatch"
+      },
+      "verdict": "not_supported"
+    },
+    {
+      "name": "only JavaScript evaluation unavailable",
+      "prediction": "Snapshot and locator reads provide another observation path.",
+      "result": "Combined documented snapshot/locator call timed out at 10 seconds and reset the runtime; no partial result retained.",
+      "verdict": "no_usable_alternative_observed"
+    }
+  ],
+  "conclusion": {
+    "confirmed": "Native title evaluation cannot dispatch; in-app-browser evaluation succeeds. The failure precedes evaluation of the drawing or label coordinates.",
+    "inference": "The fault is localized to the native MCP Apps automation path. Its exact internal cause is not established.",
+    "not_proven": [
+      "Excalidraw render defect",
+      "Bifrost gateway defect",
+      "native label alignment pass"
+    ],
+    "repair_seam": "No supported implementation seam for the native automation backend in this repository; browser-use internals were not inspected or bypassed.",
+    "application_code_changed": false,
+    "production_access": false,
+    "native_gate": "incomplete; PR remains draft"
+  }
+}

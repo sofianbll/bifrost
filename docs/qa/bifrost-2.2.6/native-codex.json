@@ -1,0 +1,12 @@
+{
+  "validation": "native_codex_mcp_app",
+  "status": "not_run",
+  "observed_at": "2026-10-13",
+  "reason": "Available Bifrost registrations target production; this task excludes production access.",
+  "available_routes_not_invoked": ["/mcp", "/mcp/excalidraw"],
+  "local_or_qa_registration": "not_available_in_this_session",
+  "checkpoint_ids": "not_observed_for_a_new_native_run",
+  "captures": [],
+  "automated_evidence": "render-report.json",
+  "required_gate": "Use an authorized local or QA registration, then observe the synthetic bound-label scene before and after fresh-view restoration at the same camera. Record target identity, route, checkpoint IDs and App-only captures."
+}

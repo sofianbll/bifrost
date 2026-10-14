@@ -1,0 +1,13 @@
+# Final native Codex verification — passed
+
+The user opened restored checkpoint `1a94a805c1a44209bf` in the Codex side panel and confirmed four rectangles and three centered texts. The actual loaded inline module digest is `d1d925fbf17c09605cde2cb635b092dcfbe5559f3aaf3f36ee353d4641fa433c`, matching the built App at Excalidraw commit `4c3700f0ef25a261177fecad03284a57bf7847be`. Its gateway-served HTML digest is `1a29d10ee805c360ccee49f104e19062cee70852c9e6db22b5d61a9f95a252d7`. No debug marker remains.
+
+[Restored native capture](restored-native.jpg) and [direct native control](direct-native-control.jpg) contain only the App pane, including its 100% zoom control. Both are 766×923 pixels. The [pixel comparison](native-pixel-comparison.json) shows exact equality of visible pixels and identical text/box bounds. Ink bounding-box centers differ from box-fill centers by at most 1px horizontally and 2px vertically, below the 8px acceptance tolerance. This measurement uses captured pixels, independently of checkpoint geometry.
+
+The direct control checkpoint is `b3c6eb56c5244b9782`: it contains the same seven saved elements without using restoreCheckpoint. This control was captured **after** the restored view. It establishes equal native framing for direct rendering versus restoration of the same saved scene; it is not presented as the original pre-edit screenshot. The full editor recentered at mount, so the older differently-sized user capture was not used for a fixed-frame pixel comparison.
+
+The original scene `a4de9e1013d44a30b3` was created in Codex, edited by the user, saved through the App, and read back through `/mcp/excalidraw`. [Checkpoint comparison](checkpoint-data-check.json) preserves all seven elements exactly, including the user rectangle and three reciprocal text bindings. Final restore uses the same camera `(0,0,800,600)`.
+
+The configured test registration is `bifrost-pr15-native-fixed-qa`; the native callable namespace retained its earlier `mcp__bifrost_pr15_native_qa` name. Loaded module identity was verified directly in each opened native panel, rather than inferred from the connection name. The gateway remains the isolated loopback binary at commit `3f65a71cd0419c473ef116ba2fa57f72cebaa06a`; gateway production sources are unchanged in the subsequent test/docs commit `f54038b339a0d63b66dfa85158a585938c328bbd`.
+
+The intentional +24/-20 text displacement was rejected in the separate [automated CI qualification](../../ci-pr15-bootstrap/manifest.json). It was not injected into native Codex. No production endpoint, merge, release or public App deployment was performed.

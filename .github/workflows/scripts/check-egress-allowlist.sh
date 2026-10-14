@@ -159,6 +159,8 @@ NOT_DIALLED_HOSTS = {
     "anthropic.com": "doc link in a folder description",
     "www.anthropic.com": "doc link in a folder description",
     "platform.claude.com": "doc link in a folder description",
+    "ai.google.dev": "Gemini documentation links in folder descriptions",
+    "learn.microsoft.com": "Azure documentation links in test-script comments",
     "developers.openai.com": "doc link in a folder description",
     "docs.aws.amazon.com": "doc link in a folder description",
     "docs.x.ai": "doc link in a folder description",
@@ -166,6 +168,8 @@ NOT_DIALLED_HOSTS = {
     # Identifiers that merely look like endpoints.
     "s3.amazonaws.com": "XML namespace URI in a ListBucketResult document; namespaces are names, not fetches",
     "www.googleapis.com": "the cloud-platform OAuth SCOPE string; the token exchange itself goes to oauth2.googleapis.com",
+    "mcp.deepwiki.com": "Anthropic mcp_servers URL; the provider connects server-side, not the runner",
+    "harness.example": "reserved .example OAuth callback identifier in local auth tests, not a fetched URL",
 }
 
 HOST_RE = re.compile(r"https?://([A-Za-z0-9._-]+\.[A-Za-z]{2,})")

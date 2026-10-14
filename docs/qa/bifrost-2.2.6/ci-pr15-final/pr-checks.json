@@ -1,0 +1,89 @@
+{
+  "baseRefName": "codex/mcp-apps-fork-226",
+  "headRefOid": "3f65a71cd0419c473ef116ba2fa57f72cebaa06a",
+  "isDraft": true,
+  "mergeable": "MERGEABLE",
+  "statusCheckRollup": [
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-13T23:12:09Z",
+      "conclusion": "SKIPPED",
+      "detailsUrl": "https://github.com/sofianbll/bifrost/actions/runs/38482764840/job/115589061323",
+      "name": "Benchmarks (${{ matrix.name }})",
+      "startedAt": "2026-10-13T23:12:09Z",
+      "status": "COMPLETED",
+      "workflowName": "CodSpeed Benchmarks"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-13T23:12:42Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/sofianbll/bifrost/actions/runs/38482764947/job/115589059352",
+      "name": "dependency-review",
+      "startedAt": "2026-10-13T23:12:11Z",
+      "status": "COMPLETED",
+      "workflowName": "Dependency Review"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-13T23:34:06Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/sofianbll/bifrost/actions/runs/38482759889/job/115589043193",
+      "name": "build (amd64, ubuntu-24.04)",
+      "startedAt": "2026-10-13T23:12:08Z",
+      "status": "COMPLETED",
+      "workflowName": "Fork Docker image"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-13T23:12:37Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/sofianbll/bifrost/actions/runs/38482764938/job/115589059278",
+      "name": "Egress allowlist covers apt + provider-harness hosts",
+      "startedAt": "2026-10-13T23:12:11Z",
+      "status": "COMPLETED",
+      "workflowName": "Workflow Lint"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-13T23:21:27Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/sofianbll/bifrost/actions/runs/38482759889/job/115589043071",
+      "name": "build (arm64, ubuntu-24.04-arm)",
+      "startedAt": "2026-10-13T23:12:10Z",
+      "status": "COMPLETED",
+      "workflowName": "Fork Docker image"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-13T23:17:32Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/sofianbll/bifrost/actions/runs/38482759889/job/115589043117",
+      "name": "mcp-tests (ubuntu-24.04)",
+      "startedAt": "2026-10-13T23:12:08Z",
+      "status": "COMPLETED",
+      "workflowName": "Fork Docker image"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-13T23:17:14Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/sofianbll/bifrost/actions/runs/38482759889/job/115589042680",
+      "name": "mcp-tests (ubuntu-24.04-arm)",
+      "startedAt": "2026-10-13T23:12:10Z",
+      "status": "COMPLETED",
+      "workflowName": "Fork Docker image"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-13T23:34:06Z",
+      "conclusion": "SKIPPED",
+      "detailsUrl": "https://github.com/sofianbll/bifrost/actions/runs/38482759889/job/115596502635",
+      "name": "publish",
+      "startedAt": "2026-10-13T23:34:07Z",
+      "status": "COMPLETED",
+      "workflowName": "Fork Docker image"
+    }
+  ],
+  "url": "https://github.com/sofianbll/bifrost/pull/15"
+}

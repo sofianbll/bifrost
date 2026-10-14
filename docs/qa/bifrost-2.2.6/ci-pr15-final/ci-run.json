@@ -1,0 +1,48 @@
+{
+  "conclusion": "success",
+  "headSha": "3f65a71cd0419c473ef116ba2fa57f72cebaa06a",
+  "jobs": [
+    {
+      "completedAt": "2026-10-13T23:17:14Z",
+      "conclusion": "success",
+      "name": "mcp-tests (ubuntu-24.04-arm)",
+      "startedAt": "2026-10-13T23:12:10Z",
+      "status": "completed",
+      "url": "https://github.com/sofianbll/bifrost/actions/runs/38482759889/job/115589042680"
+    },
+    {
+      "completedAt": "2026-10-13T23:21:27Z",
+      "conclusion": "success",
+      "name": "build (arm64, ubuntu-24.04-arm)",
+      "startedAt": "2026-10-13T23:12:10Z",
+      "status": "completed",
+      "url": "https://github.com/sofianbll/bifrost/actions/runs/38482759889/job/115589043071"
+    },
+    {
+      "completedAt": "2026-10-13T23:17:32Z",
+      "conclusion": "success",
+      "name": "mcp-tests (ubuntu-24.04)",
+      "startedAt": "2026-10-13T23:12:08Z",
+      "status": "completed",
+      "url": "https://github.com/sofianbll/bifrost/actions/runs/38482759889/job/115589043117"
+    },
+    {
+      "completedAt": "2026-10-13T23:34:06Z",
+      "conclusion": "success",
+      "name": "build (amd64, ubuntu-24.04)",
+      "startedAt": "2026-10-13T23:12:08Z",
+      "status": "completed",
+      "url": "https://github.com/sofianbll/bifrost/actions/runs/38482759889/job/115589043193"
+    },
+    {
+      "completedAt": "2026-10-13T23:34:06Z",
+      "conclusion": "skipped",
+      "name": "publish",
+      "startedAt": "2026-10-13T23:34:07Z",
+      "status": "completed",
+      "url": "https://github.com/sofianbll/bifrost/actions/runs/38482759889/job/115596502635"
+    }
+  ],
+  "status": "completed",
+  "url": "https://github.com/sofianbll/bifrost/actions/runs/38482759889"
+}

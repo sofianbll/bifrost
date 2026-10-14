@@ -1,0 +1,78 @@
+{
+  "validation": "isolated_excalidraw_app_normalizer",
+  "appRepository": "https://github.com/excalidraw/excalidraw-mcp",
+  "appCommit": "157aa23ceb1976008aadc89eb05e3444060f09d6",
+  "appSourceSha256": "69b4f83b2fabafd957f8c7c9a0c50f165f5296eba3a1a1a39b140c151ef5e213",
+  "normalizerSha256": "3ebdfc0ba836d5dcdf4bdf142690c23179fd70416ae0b3106639f14d7b42cf89",
+  "dependency": "@excalidraw/excalidraw@0.18.0",
+  "browserVersion": "155.0.4283.45",
+  "checks": [
+    {
+      "name": "complete checkpoint geometry, order and metadata preserved",
+      "passed": false
+    },
+    {
+      "name": "one bound text restores unchanged",
+      "passed": false
+    },
+    {
+      "name": "normalization is idempotent across repeated restores",
+      "passed": false
+    },
+    {
+      "name": "saved font choice preserved",
+      "passed": false
+    },
+    {
+      "name": "shorthand still creates a centered bound label",
+      "passed": true
+    },
+    {
+      "name": "mixed shorthand and saved elements preserve saved geometry",
+      "passed": false
+    },
+    {
+      "name": "mixed input preserves drawing order",
+      "passed": true
+    },
+    {
+      "name": "camera pseudo-element preserved",
+      "passed": true
+    },
+    {
+      "name": "deliberate displacement rejected by preservation check",
+      "passed": true
+    }
+  ],
+  "deltas": [
+    {
+      "text": "Codex",
+      "width": 52.216796875,
+      "height": 25,
+      "beforeFont": 5,
+      "afterFont": 5,
+      "dx": -29.619979858398438,
+      "dy": -12.5
+    },
+    {
+      "text": "Bifrost",
+      "width": 55.556640625,
+      "height": 25,
+      "beforeFont": 5,
+      "afterFont": 5,
+      "dx": -36.09996795654297,
+      "dy": -12.5
+    },
+    {
+      "text": "Excalidraw",
+      "width": 91.064453125,
+      "height": 25,
+      "beforeFont": 5,
+      "afterFont": 5,
+      "dx": -50.929954528808594,
+      "dy": -12.5
+    }
+  ],
+  "passed": 4,
+  "failed": 5
+}

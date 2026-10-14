@@ -1,0 +1,29 @@
+{
+  "stock_red_sentinels": [
+    "MCP Apps fixture direct initialize negotiates UI",
+    "MCP Apps fixture direct tools list preserves App metadata",
+    "MCP Apps fixture direct resources read returns HTML and CSP",
+    "MCP Apps fixture Virtual MCP full discovery",
+    "MCP Apps fixture aggregate discovery and namespaced UI URIs",
+    "MCP Apps fixture aggregate reads second source resource",
+    "MCP Apps fixture aggregate namespaced callback routes first",
+    "MCP Apps fixture limited direct resource remains readable"
+  ],
+  "stock_green_invariants": [
+    "MCP Apps fixture direct initialize omits UI without negotiation",
+    "MCP Apps fixture denied aggregate initialize",
+    "MCP Apps fixture denied aggregate tools list is empty",
+    "MCP Apps fixture Code Mode nested App call returns text only",
+    "MCP Apps fixture Code Mode nested tool error remains script value",
+    "MCP Apps fixture aggregate namespaced callback routes second"
+  ],
+  "stock_failed_assertions": 28,
+  "stock_image": "maximhq/bifrost@sha256:fde9a1dc6c04c847c31ad93c89703fcc62a13c53ac0be824fe30171f5fbc620c",
+  "stock_release_tag": "v2.2.6-amd64",
+  "seeded_contract_uris": {
+    "mcpAppsDirectUri": "ui://bifrost/bWNwX2FwcHNfZml4dHVyZQ/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw",
+    "mcpAppsVirtualUri": "ui://bifrost/bWNwX2FwcHNfZml4dHVyZQ/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw",
+    "mcpAppsAggUri1": "ui://bifrost/bWNwX2FwcHNfZml4dHVyZQ/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw",
+    "mcpAppsAggUri2": "ui://bifrost/bWNwX2FwcHNfZml4dHVyZV9zZWNvbmQ/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw"
+  }
+}

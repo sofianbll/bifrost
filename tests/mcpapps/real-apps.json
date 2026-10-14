@@ -3,7 +3,11 @@
   "apps": {
     "excalidraw": {
       "connection_type": "http",
-      "connection_string": "https://mcp.excalidraw.com/mcp",
+      "connection_string": "http://excalidraw:3004/mcp",
+      "repository": "https://github.com/sofianbll/excalidraw-mcp",
+      "commit": "4c3700f0ef25a261177fecad03284a57bf7847be",
+      "version": "0.3.2",
+      "port": 3004,
       "native_name": "excalidraw-create_view",
       "code_namespace": "code_excalidraw",
       "native_arguments": {
@@ -65,5 +69,13 @@
     "aggregate": "/mcp"
   },
   "pdf_tool_execution_timeout": "60s",
-  "pdf_long_poll_seconds": 30
+  "pdf_long_poll_seconds": 30,
+  "excalidraw_official": {
+    "repository": "https://github.com/excalidraw/excalidraw-mcp",
+    "commit": "157aa23ceb1976008aadc89eb05e3444060f09d6",
+    "version": "0.3.2",
+    "connection_string": "http://excalidraw-official:3004/mcp",
+    "native_name": "excalidraw_official-create_view",
+    "route": "/mcp/excalidraw-official"
+  }
 }

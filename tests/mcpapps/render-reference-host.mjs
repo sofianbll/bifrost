@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 import { createRequire } from "node:module";
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
+import { spawn, execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { createServer, request as httpRequest } from "node:http";
 import { request as httpsRequest } from "node:https";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
@@ -14,6 +15,104 @@ const HOST_VERSION = "2.0.3";
 const HOST_COMMIT = "82221c0c8ce7661efa6771c9d461511b1650495f";
 const FORM_ACTION_TIMEOUT_MS = 10000;
 const require = createRequire(new URL("../e2e/package.json", import.meta.url));
+const CHECKPOINT_CAMERA = { type: "cameraUpdate", x: 0, y: 0, width: 800, height: 600 };
+const CHECKPOINT_BOXES = [
+  { type: "rectangle", id: "ci-seed", x: 70, y: 90, width: 220, height: 100, backgroundColor: "#a5d8ff", label: { text: "Codex", fontSize: 20 } },
+  { type: "rectangle", id: "ci-gateway", x: 450, y: 90, width: 220, height: 100, backgroundColor: "#b2f2bb", label: { text: "Bifrost", fontSize: 20 } },
+  { type: "rectangle", id: "ci-app", x: 260, y: 330, width: 220, height: 100, backgroundColor: "#ffd8a8", label: { text: "Excalidraw", fontSize: 20 } },
+].map((box) => ({ ...box, fillStyle: "solid", seed: 42 }));
+const ALIGNMENT_TOLERANCE = 8; // SVG scene units; allows font bearings and hand-drawn borders.
+
+function assertLabelAlignment(measurement) {
+  assert.equal(measurement.labels.length, CHECKPOINT_BOXES.length, "Missing rendered bound labels");
+  for (const expected of CHECKPOINT_BOXES) {
+    const label = measurement.labels.find((item) => item.id === expected.id);
+    assert.ok(label, `Missing rendered bound label ${expected.id}`);
+    const { box, text } = label;
+    assert.ok([box, text].every((rect) => [rect.x, rect.y, rect.width, rect.height].every(Number.isFinite) && rect.width > 0 && rect.height > 0), `Invalid bounds for ${expected.id}`);
+    assert.ok(Math.abs(label.dx) <= ALIGNMENT_TOLERANCE && Math.abs(label.dy) <= ALIGNMENT_TOLERANCE,
+      `Bound label ${expected.id} is displaced: dx=${label.dx.toFixed(2)}, dy=${label.dy.toFixed(2)} scene units`);
+    assert.ok(text.x >= box.x - ALIGNMENT_TOLERANCE && text.y >= box.y - ALIGNMENT_TOLERANCE &&
+      text.x + text.width <= box.x + box.width + ALIGNMENT_TOLERANCE &&
+      text.y + text.height <= box.y + box.height + ALIGNMENT_TOLERANCE, `Bound label ${expected.id} extends outside its box`);
+  }
+}
+
+function assertCheckpointFraming(before, after) {
+  for (const value of [before, after]) {
+    assert.equal(value.viewBox[2], CHECKPOINT_CAMERA.width, "Checkpoint camera width changed");
+    assert.equal(value.viewBox[3], CHECKPOINT_CAMERA.height, "Checkpoint camera height changed");
+  }
+  for (const key of ["width", "height"]) assert.equal(before.viewport[key], after.viewport[key], `SVG viewport ${key} changed`);
+  for (const first of before.labels) {
+    const second = after.labels.find((label) => label.id === first.id);
+    assert.ok(second, `Restored box ${first.id} is missing`);
+    for (const key of ["x", "y", "width", "height"]) {
+      assert.ok(Math.abs(first.box[key] - second.box[key]) <= 2, `Rendered box ${first.id} ${key} changed at fixed camera`);
+    }
+  }
+}
+
+function assertComparisonOutcome(evidence, version) {
+  assert.ok(["official", "corrected"].includes(version), "Unknown comparison version");
+  assert.ok(!evidence.error, "Comparison must complete; setup or callback errors are not expected failures");
+  const expected = {
+    progressiveInput: true, beforeAlignment: true, deliberateDisplacementRejected: true,
+    saveWithBoundLabelsAndPointerEdit: true, exactReadbackWithBoundLabels: true,
+    fixedFraming: true, afterAlignment: version === "corrected",
+  };
+  assert.deepEqual(evidence.checks, expected, `Unexpected ${version} checkpoint outcome`);
+  assert.equal(evidence.status, version === "corrected" ? "passed" : "failed");
+  assert.equal(evidence.editedElementCount, 7, "Pointer edit must preserve the six bound-label elements");
+  if (version === "official") {
+    assert.equal(evidence.after.labels.length, 3);
+    assert.ok(evidence.after.labels.every((label) => label.dx < -ALIGNMENT_TOLERANCE && label.dy < -ALIGNMENT_TOLERANCE),
+      "Official negative control must reproduce the left/up displacement of all three restored labels");
+  }
+}
+
+function assertEquivalentMeasurements(direct, gateway) {
+  assertCheckpointFraming(direct, gateway);
+  for (const label of direct.labels) {
+    const other = gateway.labels.find((item) => item.id === label.id);
+    for (const key of ["x", "y", "width", "height"]) {
+      assert.ok(Math.abs(label.text[key] - other.text[key]) <= 2, `Direct/gateway text ${label.id} ${key} differs`);
+    }
+  }
+}
+
+async function measureBoundLabels(svg) {
+  return svg.evaluate((element, boxes) => {
+    const viewport = element.getBoundingClientRect();
+    const viewBox = element.getAttribute("viewBox").split(/\s+/).map(Number);
+    const scale = viewport.width / viewBox[2];
+    const rect = (node) => {
+      const bounds = node.getBoundingClientRect();
+      return { x: (bounds.x - viewport.x) / scale, y: (bounds.y - viewport.y) / scale,
+        width: bounds.width / scale, height: bounds.height / scale };
+    };
+    const labels = boxes.map((expected) => {
+      // Unique fixture fills identify actual rendered containers without relying on saved text coordinates.
+      const shape = element.querySelector(`path[fill="${expected.backgroundColor}"]`)?.closest("g");
+      const textGroup = [...element.querySelectorAll("text")].find((text) => text.textContent === expected.label.text)?.parentElement;
+      if (!shape || !textGroup) throw new Error(`Missing rendered box/text ${expected.id}`);
+      const box = rect(shape), text = rect(textGroup);
+      return { id: expected.id, label: expected.label.text, box, text,
+        dx: text.x + text.width / 2 - box.x - box.width / 2,
+        dy: text.y + text.height / 2 - box.y - box.height / 2 };
+    });
+    return { viewport: { width: viewport.width, height: viewport.height }, viewBox, labels };
+  }, CHECKPOINT_BOXES);
+}
+
+function assertBoundCheckpoint(elements) {
+  assert.ok(Array.isArray(elements), "Checkpoint elements are not an array");
+  for (const expected of CHECKPOINT_BOXES) {
+    const box = elements.find((element) => element.id === expected.id);
+    const text = elements.find((element) => element.type === "text" && element.containerId === expected.id && element.text === expected.label.text);
+    assert.ok(box && text && box.boundElements?.some((bound) => bound.type === "text" && bound.id === text.id), `Checkpoint lost bound label ${expected.id}`);
+  }
+}
 
 function option(name, fallback) {
   const index = process.argv.indexOf(name);
@@ -122,13 +221,49 @@ async function selfCheck() {
   assert.equal(successfulToolResult({ hasResult: true, rpcError: false, isError: true }), false);
   assert.equal(actionTimeout(120000), FORM_ACTION_TIMEOUT_MS);
   assert.equal(actionTimeout(5000), 5000);
+  const aligned = { viewport: { width: 800, height: 600 }, viewBox: [0, 0, 800, 600], labels: CHECKPOINT_BOXES.map((box) => ({
+    id: box.id, box: { x: box.x, y: box.y, width: box.width, height: box.height },
+    text: { x: box.x + 70, y: box.y + 40, width: 80, height: 20 }, dx: 0, dy: 0,
+  })) };
+  assertLabelAlignment(aligned);
+  assertCheckpointFraming(aligned, aligned);
+  const displaced = structuredClone(aligned);
+  displaced.labels[1].text.x += 24;
+  displaced.labels[1].dx = 24;
+  assert.throws(() => assertLabelAlignment(displaced), /ci-gateway is displaced/);
+  const clipped = structuredClone(aligned);
+  clipped.labels[0].text.width = 1000;
+  assert.throws(() => assertLabelAlignment(clipped), /outside its box/);
+  assert.throws(() => assertLabelAlignment({ labels: [] }), /Missing rendered bound labels/);
+  const invalid = structuredClone(aligned);
+  invalid.labels[0].box.width = NaN;
+  assert.throws(() => assertLabelAlignment(invalid), /Invalid bounds/);
+  const reframed = structuredClone(aligned);
+  reframed.labels[0].box.x += 3;
+  assert.throws(() => assertCheckpointFraming(aligned, reframed), /fixed camera/);
+  assertEquivalentMeasurements(aligned, aligned);
+  assert.throws(() => assertEquivalentMeasurements(aligned, displaced), /Direct\/gateway text/);
+  const comparison = { status: "passed", editedElementCount: 7, checks: {
+    progressiveInput: true, beforeAlignment: true, deliberateDisplacementRejected: true, saveWithBoundLabelsAndPointerEdit: true,
+    exactReadbackWithBoundLabels: true, fixedFraming: true, afterAlignment: true,
+  }, after: aligned };
+  assertComparisonOutcome(comparison, "corrected");
+  assert.throws(() => assertComparisonOutcome(comparison, "official"), /Unexpected official/);
+  const knownFailure = { ...comparison, status: "failed", checks: { ...comparison.checks, afterAlignment: false },
+    after: { ...aligned, labels: aligned.labels.map((label) => ({ ...label, dx: -25, dy: -12 })) } };
+  assertComparisonOutcome(knownFailure, "official");
+  for (const key of Object.keys(knownFailure.checks).filter((key) => key !== "afterAlignment")) {
+    assert.throws(() => assertComparisonOutcome({ ...knownFailure, checks: { ...knownFailure.checks, [key]: false } }, "official"), /Unexpected official/);
+  }
+  assert.throws(() => assertComparisonOutcome({ ...knownFailure, error: "blank App" }, "official"), /must complete/);
+  assert.throws(() => assertComparisonOutcome({ ...knownFailure, after: aligned }, "official"), /left\/up displacement/);
   await checkProxyCleanup();
   assert.equal(await portAvailable(0), true);
   const occupied = createTcpServer();
   const occupiedPort = await listen(occupied);
   try { assert.equal(await portAvailable(occupiedPort), false); }
   finally { await new Promise((resolvePromise) => occupied.close(resolvePromise)); }
-  console.log("PASS renderer self-check (route and native tool mapping, JSON-RPC failures, credential redaction, bounded form actions, SSE cleanup, port availability); no host was launched");
+  console.log("PASS renderer self-check (routes, JSON-RPC, redaction, bounded actions, SSE cleanup, ports, bound-label alignment, deliberate displacement, clipping, missing labels, invalid bounds and fixed framing and strict comparison outcomes); no host was launched");
 }
 
 function classifyFailure(appId, error) {
@@ -209,9 +344,16 @@ function createGatewayProxy(baseUrl, path, headers, secrets) {
         });
         response.on("end", () => {
           const payload = Buffer.concat(chunks);
+          const parsed = parseJsonRpc(payload);
+          const candidates = Array.isArray(parsed) ? parsed : parsed ? [parsed] : [];
+          for (const request of rpcRequests) {
+            const result = candidates.find((item) => item.id === request.id)?.result;
+            if (request.method === "initialize" && result?.serverInfo) event.serverInfo = result.serverInfo;
+            if (request.method === "resources/read" && result?.contents?.[0]?.text) {
+              event.resourceSha256 = createHash("sha256").update(result.contents[0].text).digest("hex");
+            }
+          }
           for (const request of tracked) {
-            const parsed = parseJsonRpc(payload);
-            const candidates = Array.isArray(parsed) ? parsed : parsed ? [parsed] : [];
             const result = candidates.find((item) => item.id === request.id);
             if (result) event.results.push({
               name: request.name,
@@ -518,18 +660,92 @@ async function renderCase(browser, manifest, credentials, appId, route, mode, ou
   }
 }
 
-async function renderCheckpoint(browser, manifest, credentials, appId, outDir, secrets, timeoutMs) {
+async function renderCheckpoint(browser, manifest, credentials, appId, outDir, secrets, timeoutMs, replayPartialInput = false) {
   const app = manifest.apps[appId];
   if (!app || !/create_view/i.test(app.native_name)) fail("Checkpoint round-trip requires Excalidraw create_view in the manifest");
   const route = "direct";
-  const proxy = await startProxy(manifest.base_url, routePath(manifest, route, appId), credentials.direct ?? {}, secrets);
+  const gatewayPath = routePath(manifest, route, appId);
+  const proxy = await startProxy(manifest.base_url, gatewayPath, credentials.direct ?? {}, secrets);
   let target;
   let browserState;
-  const createInput = { ...(app.native_arguments ?? {}), elements: JSON.stringify([{ type: "rectangle", id: "ci-seed", x: 12, y: 14, width: 80, height: 50, label: { text: "render gate" } }]) };
+  const evidence = { id: "excalidraw-checkpoint-roundtrip", app: appId, route, gatewayPath,
+    status: "failed", validation: "automated_reference_host", camera: CHECKPOINT_CAMERA,
+    toleranceSceneUnits: ALIGNMENT_TOLERANCE, checkpoints: {}, checks: {} };
+  const createInput = { elements: JSON.stringify([CHECKPOINT_CAMERA, ...CHECKPOINT_BOXES]) };
+  const sceneElements = (data) => Array.isArray(data) ? data : data?.elements;
+  const completedSaves = () => proxy.calls.flatMap((call) => call.results).filter((result) => /save_checkpoint/.test(result.name) && successfulToolResult(result));
+  const hasNewRectangle = (elements) => Array.isArray(elements) && elements.some((element) =>
+    element.type === "rectangle" && !CHECKPOINT_BOXES.some((box) => box.id === element.id));
+  const capture = async (name) => {
+    const svg = browserState.page.frameLocator("iframe").frameLocator("iframe").locator(".svg-wrapper svg");
+    await svg.waitFor({ state: "visible", timeout: timeoutMs });
+    await waitFor(async () => (await svg.locator("text").allTextContents()).includes("Excalidraw"), timeoutMs, "Bound-label scene did not render");
+    await svg.evaluate(() => document.fonts.ready);
+    const measurement = await measureBoundLabels(svg);
+    const bounds = await svg.boundingBox();
+    assert.ok(bounds, "Checkpoint SVG has no screenshot bounds");
+    const scroll = await browserState.page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }));
+    // Locator screenshots round fractional frame origins outward; use a fixed pixel crop.
+    await browserState.page.screenshot({ path: join(outDir, `excalidraw-checkpoint-${name}.png`),
+      fullPage: true, clip: { x: Math.floor(bounds.x + scroll.x), y: Math.floor(bounds.y + scroll.y), width: Math.round(bounds.width), height: Math.round(bounds.height) },
+      animations: "disabled", timeout: timeoutMs });
+    return { svg, measurement };
+  };
   try {
     target = await startHost(option("--host-dir", ""), [proxy.url]);
     browserState = await pageLogs(browser, target, { tool: app.native_name, input: createInput }, timeoutMs, secrets);
-    await screenshotAndAssert(browserState.page, browserState.iframe, join(outDir, "excalidraw-checkpoint-before.png"), timeoutMs);
+    if (replayPartialInput) {
+      const inner = browserState.page.frameLocator("iframe").frameLocator("iframe");
+      const svg = inner.locator(".svg-wrapper svg");
+      await svg.waitFor({ state: "visible", timeout: timeoutMs });
+      await waitFor(async () => (await svg.locator("text").allTextContents()).includes("Excalidraw"), timeoutMs, "Initial App input did not render");
+      const notify = (method, elements) => browserState.page.frameLocator("iframe").locator("body").evaluate((body, message) => {
+        const appFrame = body.querySelector("iframe");
+        if (!appFrame?.contentWindow) throw new Error("Reference host sandbox has no App frame");
+        appFrame.contentWindow.postMessage(message, "*");
+      }, { jsonrpc: "2.0", method, params: { arguments: { elements: JSON.stringify(elements) } } });
+      evidence.progressive = { validation: "controlled_host_notifications_replay", frames: [] };
+      // Drive the real SDK from its parent frame; inspect rendered intermediate states, not a live model stream.
+      for (const count of [1, 2]) {
+        await notify("ui/notifications/tool-input-partial", [CHECKPOINT_CAMERA, ...CHECKPOINT_BOXES.slice(0, count), { type: "rectangle" }]);
+        const expected = CHECKPOINT_BOXES.slice(0, count).map((box) => box.label.text);
+        await waitFor(async () => {
+          const labels = await svg.locator("text").allTextContents();
+          return expected.every((text) => labels.includes(text)) &&
+            CHECKPOINT_BOXES.slice(count).every((box) => !labels.includes(box.label.text));
+        }, timeoutMs, `Partial input did not render exactly ${count} bound labels`);
+        await svg.screenshot({ path: join(outDir, `excalidraw-progressive-${count}.png`), animations: "disabled", timeout: timeoutMs });
+        evidence.progressive.frames.push({ labels: expected, notification: "ui/notifications/tool-input-partial" });
+      }
+      await notify("ui/notifications/tool-input", [CHECKPOINT_CAMERA, ...CHECKPOINT_BOXES]);
+      evidence.checks.progressiveInput = true;
+    }
+    const before = await capture("before");
+    evidence.before = before.measurement;
+    assertLabelAlignment(evidence.before);
+    evidence.checks.beforeAlignment = true;
+    const initial = proxy.calls.flatMap((call) => call.results).find((item) => item.name === app.native_name);
+    assert.ok(successfulToolResult(initial), "Initial checkpoint creation failed");
+    evidence.checkpoints.created = initial.result.structuredContent?.checkpointId;
+    assert.ok(evidence.checkpoints.created, "Initial result omitted checkpoint ID");
+
+    // Mutate rendered text only: storage and callbacks cannot make this negative control pass.
+    const label = before.svg.locator("text").filter({ hasText: /^Bifrost$/ });
+    const originalTransform = await label.evaluate((text) => {
+      const group = text.parentElement;
+      const original = group.getAttribute("transform");
+      group.setAttribute("transform", `${original ?? ""} translate(24 -20)`);
+      return original;
+    });
+    try {
+      evidence.negativeControl = { displacementSceneUnits: { x: 24, y: -20 }, ...(await capture("offset")).measurement };
+      assert.throws(() => assertLabelAlignment(evidence.negativeControl), /ci-gateway is displaced/);
+      assertCheckpointFraming(evidence.before, evidence.negativeControl);
+      evidence.checks.deliberateDisplacementRejected = true;
+    } finally {
+      await label.evaluate((text, transform) => transform === null ? text.parentElement.removeAttribute("transform") : text.parentElement.setAttribute("transform", transform), originalTransform);
+    }
+    assertLabelAlignment(await measureBoundLabels(before.svg));
 
     const inner = browserState.page.frameLocator("iframe").frameLocator("iframe");
     await inner.getByRole("button", { name: /Edit/ }).click({ timeout: timeoutMs });
@@ -543,42 +759,132 @@ async function renderCheckpoint(browser, manifest, credentials, appId, outDir, s
     await browserState.page.mouse.down();
     await browserState.page.mouse.move(bounds.x + bounds.width * 0.48, bounds.y + bounds.height * 0.48, { steps: 5 });
     await browserState.page.mouse.up();
-    await waitFor(() => proxy.calls.some((call) => call.results.some((result) => /save_checkpoint/.test(result.name))), timeoutMs, "Excalidraw save_checkpoint callback did not complete after the edit");
-    const save = proxy.calls.flatMap((call) => call.results).find((item) => /save_checkpoint/.test(item.name));
-    if (save?.isError) fail("Excalidraw save_checkpoint callback returned isError");
-    const saveInput = proxy.calls.flatMap((call) => call.toolCalls).find((item) => /save_checkpoint/.test(item.name))?.arguments;
+    await waitFor(() => completedSaves().some((result) => {
+      try { return hasNewRectangle(sceneElements(JSON.parse(result.arguments.data))); } catch { return false; }
+    }), timeoutMs, "Excalidraw save_checkpoint did not persist a new rectangle after the pointer edit");
+    const save = completedSaves().at(-1);
+    const saveInput = save?.arguments;
     if (!saveInput?.id || !saveInput?.data) fail("save_checkpoint callback omitted its id or edited data");
     let savedData;
     try { savedData = JSON.parse(saveInput.data); } catch { fail("save_checkpoint callback data was not JSON"); }
-    const savedElements = Array.isArray(savedData) ? savedData : savedData.elements;
-    if (!Array.isArray(savedElements) || !savedElements.some((element) => element?.id === "ci-seed") || !savedElements.some((element) => element?.id !== "ci-seed")) {
-      fail("save_checkpoint callback did not include both the seed and a new edited element");
-    }
+    const savedElements = sceneElements(savedData);
+    assertBoundCheckpoint(savedElements);
+    assert.ok(hasNewRectangle(savedElements), "save_checkpoint omitted the pointer edit");
+    evidence.checkpoints.saved = saveInput.id;
+    evidence.checks.saveWithBoundLabelsAndPointerEdit = true;
+    evidence.savedPayloadSha256 = createHash("sha256").update(saveInput.data).digest("hex");
+    const sceneFields = ["id", "type", "x", "y", "width", "height", "angle", "seed", "strokeColor", "backgroundColor", "fillStyle", "strokeWidth", "strokeStyle", "roughness", "opacity", "roundness", "text", "originalText", "fontSize", "fontFamily", "textAlign", "verticalAlign", "containerId", "boundElements", "lineHeight", "autoResize"];
+    await writeFile(join(outDir, "excalidraw-checkpoint-scene.json"), JSON.stringify({ camera: CHECKPOINT_CAMERA,
+      elements: savedElements.map((element) => Object.fromEntries(sceneFields.filter((key) => Object.hasOwn(element, key)).map((key) => [key, element[key]]))),
+    }, null, 2) + "\n", { mode: 0o600 });
 
     // Restore in a fresh host view: the saved checkpoint must survive the fullscreen editor closing.
     const editLogs = browserState.logs;
     await browserState.context.close();
     browserState = await pageLogs(browser, target, {
       tool: app.native_name,
-      input: { elements: JSON.stringify([{ type: "restoreCheckpoint", id: saveInput.id }]) },
+      input: { elements: JSON.stringify([{ type: "restoreCheckpoint", id: saveInput.id }, CHECKPOINT_CAMERA]) },
     }, timeoutMs, secrets);
     browserState.logs.unshift(...editLogs);
     await waitFor(() => proxy.calls.some((call) => call.results.some((result) => /read_checkpoint/.test(result.name))), timeoutMs, "Excalidraw read_checkpoint callback did not complete from the App view");
     const read = proxy.calls.flatMap((call) => call.results).find((item) => /read_checkpoint/.test(item.name));
-    if (!read || read.isError) fail("Excalidraw read_checkpoint callback failed");
+    if (!successfulToolResult(read) || read.arguments?.id !== saveInput.id) fail("Excalidraw read_checkpoint callback failed or read a different checkpoint");
     const readText = (read.result?.content ?? []).filter((block) => block.type === "text").map((block) => block.text).join("\n");
     let readData;
     try { readData = JSON.parse(readText); } catch { fail("read_checkpoint callback did not return JSON checkpoint data"); }
-    const elements = Array.isArray(readData) ? readData : readData.elements;
-    if (!Array.isArray(elements) || !elements.some((element) => element?.id === "ci-seed") || !elements.some((element) => element?.id !== "ci-seed")) fail("read_checkpoint did not return the saved edited diagram");
-    const editedScreenshot = await screenshotAndAssert(browserState.page, browserState.page.locator("iframe").last(), join(outDir, "excalidraw-checkpoint-after.png"), timeoutMs);
-    return { id: "excalidraw-checkpoint-roundtrip", app: appId, route, status: "passed", checkpointId: saveInput.id, editedElementCount: elements.length, ...editedScreenshot, callbackCalls: [save.name, read.name], hostLogs: redact(target.logs.join(""), secrets), console: browserState.logs };
+    const elements = sceneElements(readData);
+    assertBoundCheckpoint(elements);
+    assert.deepEqual(elements, savedElements, "Checkpoint readback differs from the saved scene");
+    evidence.readPayloadSha256 = createHash("sha256").update(readText).digest("hex");
+    evidence.checks.exactReadbackWithBoundLabels = true;
+    evidence.checkpoints.read = read.arguments.id;
+    const restored = proxy.calls.flatMap((call) => call.results).filter((item) => item.name === app.native_name).at(-1);
+    assert.ok(successfulToolResult(restored), "Restored view creation failed");
+    evidence.checkpoints.restoredView = restored.result.structuredContent?.checkpointId;
+    evidence.editedElementCount = elements.length;
+    evidence.callbackCalls = [save.name, read.name];
+    evidence.after = (await capture("after")).measurement;
+    for (const [name, assertion] of [
+      ["fixedFraming", () => assertCheckpointFraming(evidence.before, evidence.after)],
+      ["afterAlignment", () => assertLabelAlignment(evidence.after)],
+    ]) {
+      try { assertion(); evidence.checks[name] = true; }
+      catch (error) { evidence.checks[name] = false; (evidence.failures ??= []).push(error.message); }
+    }
+    evidence.status = Object.values(evidence.checks).every(Boolean) ? "passed" : "failed";
+    return evidence;
+  } catch (error) {
+    evidence.error = redact(error.message, secrets);
+    throw error;
   } finally {
+    evidence.serverInfo = proxy.calls.find((call) => call.serverInfo)?.serverInfo;
+    evidence.appResourceSha256 = proxy.calls.find((call) => call.resourceSha256)?.resourceSha256;
+    await writeFile(join(outDir, "excalidraw-checkpoint-report.json"), redact(JSON.stringify(evidence, null, 2), secrets) + "\n", { mode: 0o600 });
     await writeFile(join(outDir, "excalidraw-checkpoint.console.json"), JSON.stringify({ console: browserState?.logs ?? [], host: redact(target?.logs.join("") ?? "", secrets), calls: proxy.calls.map((call) => ({ rpcMethod: call.rpcMethod, toolCalls: call.toolCalls.map((tool) => tool.name), results: call.results.map((result) => ({ name: result.name, isError: result.isError })) })) }, null, 2) + "\n", { mode: 0o600 });
     if (browserState) await browserState.context.close();
     if (target) await stopChild(target.child);
     await closeProxy(proxy);
   }
+}
+
+async function renderExcalidrawComparison(browser, manifest, profiles, outDir, secrets, timeoutMs) {
+  const builds = manifest.excalidraw_comparison;
+  assert.deepEqual(builds.map((build) => build.version).sort(), ["corrected", "official"]);
+  const results = [];
+  const directory = join(outDir, "excalidraw-comparison");
+  await mkdir(directory, { recursive: true });
+  for (const build of builds) {
+    const source = new URL(build.source_url);
+    assert.ok(source.protocol === "http:" && source.hostname === "127.0.0.1" && source.port,
+      "Direct comparison must use the disposable runner's loopback server");
+    assert.match(build.identity.commit, /^[a-f0-9]{40}$/);
+    assert.match(build.identity.html_sha256, /^[a-f0-9]{64}$/);
+    for (const connection of ["direct", "gateway"]) {
+      const id = `${build.version}-${connection}`;
+      const caseDir = join(directory, id);
+      await mkdir(caseDir, { recursive: true });
+      const endpoint = connection === "direct" ? "/mcp" : build.gateway_path;
+      const caseManifest = {
+        ...manifest, base_url: connection === "direct" ? build.source_url : manifest.base_url,
+        apps: { ...manifest.apps, excalidraw: { ...manifest.apps.excalidraw,
+          native_name: connection === "direct" ? "create_view" : build.gateway_tool } },
+        routes: { ...manifest.routes, direct: { ...manifest.routes.direct, excalidraw: endpoint } },
+      };
+      try {
+        const evidence = await renderCheckpoint(browser, caseManifest,
+          { direct: connection === "direct" ? {} : profiles.direct }, "excalidraw", caseDir, secrets, timeoutMs, true);
+        assert.equal(evidence.appResourceSha256, build.identity.html_sha256, "Loaded App differs from the pinned build");
+        assertComparisonOutcome(evidence, build.version);
+        results.push({ ...evidence, id, version: build.version, connection, endpoint, testedApp: build.identity,
+          observedStatus: evidence.status, status: "passed",
+          expectation: build.version === "official" ? "known_restore_displacement" : "aligned_restore" });
+      } catch (error) {
+        results.push({ id, version: build.version, connection, endpoint, testedApp: build.identity,
+          status: "failed", error: redact(error.message, secrets) });
+      }
+    }
+  }
+  const equivalence = { id: "excalidraw-direct-gateway-equivalence", status: "failed" };
+  try {
+    assert.equal(results.length, 4);
+    assert.ok(results.every((result) => result.status === "passed"), "All four comparison legs must satisfy their exact expectations");
+    for (const version of ["official", "corrected"]) {
+      const direct = results.find((result) => result.version === version && result.connection === "direct");
+      const gateway = results.find((result) => result.version === version && result.connection === "gateway");
+      for (const phase of ["before", "after"]) assertEquivalentMeasurements(direct[phase], gateway[phase]);
+      assert.equal(direct.appResourceSha256, gateway.appResourceSha256);
+    }
+    equivalence.status = "passed";
+  } catch (error) { equivalence.error = redact(error.message, secrets); }
+  results.push(equivalence);
+  await writeFile(join(directory, "report.json"), redact(JSON.stringify({
+    validation: "automated_reference_host", codexVerification: "not_run", testedGateway: manifest.gateway,
+    referenceHost: { repository: HOST_REPOSITORY, commit: HOST_COMMIT, version: HOST_VERSION },
+    browser: browser.version(), camera: CHECKPOINT_CAMERA, results,
+    passed: results.every((result) => result.status === "passed"),
+  }, null, 2), secrets) + "\n", { mode: 0o600 });
+  for (const result of results) console.log(`${result.status === "passed" ? "PASS" : "FAIL"} ${result.id}${result.error ? ": " + result.error : ""}`);
+  return results;
 }
 
 async function checkFourConnections(browser, manifest, credentials, outDir, secrets, timeoutMs) {
@@ -616,13 +922,14 @@ async function main() {
     return;
   }
   if (process.argv.includes("--help")) {
-    console.log("Usage: node tests/mcpapps/render-reference-host.mjs --manifest <qualification-manifest.json> --host-dir <pinned-ext-apps-root> --out <artifact-directory> [--timeout-ms 120000]");
+    console.log("Usage: node tests/mcpapps/render-reference-host.mjs --manifest <qualification-manifest.json> --host-dir <pinned-ext-apps-root> --out <artifact-directory> [--checkpoint-only] [--timeout-ms 120000]");
     return;
   }
   const manifestPath = option("--manifest", null);
   const hostDir = option("--host-dir", null);
   const outDir = resolve(option("--out", "artifacts/mcpapps-render"));
   const timeoutMs = Number(option("--timeout-ms", "120000"));
+  const checkpointOnly = process.argv.includes("--checkpoint-only");
   if (!manifestPath || !hostDir) fail("--manifest and --host-dir are required; run bootstrap-reference-host.mjs first");
   if (!Number.isFinite(timeoutMs) || timeoutMs < 1000) fail("--timeout-ms must be at least 1000");
   await mkdir(outDir, { recursive: true });
@@ -647,10 +954,10 @@ async function main() {
   catch { ({ chromium } = require("playwright")); }
   if (!chromium) fail("Playwright is missing; run npm ci in tests/e2e first");
   const started = performance.now();
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({ headless: true, channel: process.env.PLAYWRIGHT_CHANNEL });
   const results = [];
   try {
-    for (const appId of Object.keys(manifest.apps)) {
+    if (!checkpointOnly) for (const appId of Object.keys(manifest.apps)) {
       for (const route of ["direct", "virtual", "aggregate"]) {
         const headers = profiles[route];
         credentials[route] = headers;
@@ -662,24 +969,35 @@ async function main() {
       catch (error) { results.push({ id: `${appId}-direct-codemode`, app: appId, route: "direct", mode: "code_mode", status: "failed", failure_class: classifyFailure(appId, error), error: redact(error.message, secrets) }); }
     }
     const excalidrawId = Object.keys(manifest.apps).find((id) => /excalidraw/i.test(id));
-    if (excalidrawId) {
+    if (manifest.excalidraw_comparison) {
+      try { results.push(...await renderExcalidrawComparison(browser, manifest, profiles, outDir, secrets, timeoutMs)); }
+      catch (error) { results.push({ id: "excalidraw-comparison", status: "failed", error: redact(error.message, secrets) }); }
+    } else if (excalidrawId) {
       try { results.push(await renderCheckpoint(browser, manifest, profiles, excalidrawId, outDir, secrets, timeoutMs)); }
       catch (error) { results.push({ id: "excalidraw-checkpoint-roundtrip", status: "failed", failure_class: classifyFailure(excalidrawId, error), error: redact(error.message, secrets) }); }
     } else results.push({ id: "excalidraw-checkpoint-roundtrip", status: "failed", error: "Manifest has no Excalidraw App" });
-    try { results.push(await checkFourConnections(browser, manifest, profiles, outDir, secrets, timeoutMs)); }
+    if (!checkpointOnly) try { results.push(await checkFourConnections(browser, manifest, profiles, outDir, secrets, timeoutMs)); }
     catch (error) { results.push({ id: "four-connections-stall", status: "failed", failure_class: classifyFailure("host", error), error: redact(error.message, secrets) }); }
   } finally {
     await browser.close();
   }
 
   const report = {
+    validation: "automated_reference_host",
+    codexVerification: "not_run",
+    testedGateway: Object.fromEntries(["commit", "version", "binary_sha256", "image", "image_id", "image_digest"].filter((key) => manifest.gateway?.[key] !== undefined).map((key) => [key, manifest.gateway[key]])),
+    renderer: {
+      commit: execFileSync("git", ["rev-parse", "HEAD"], { cwd: new URL("../..", import.meta.url), encoding: "utf8" }).trim(),
+      sha256: createHash("sha256").update(await readFile(new URL(import.meta.url))).digest("hex"),
+    },
+    browser: { version: browser.version(), channel: process.env.PLAYWRIGHT_CHANNEL ?? "chromium" },
     referenceHost: { repository: HOST_REPOSITORY, version: HOST_VERSION, commit: HOST_COMMIT },
     runtimeSeconds: Math.round((performance.now() - started) / 1000),
     results,
     passed: results.filter((result) => result.status === "passed").length,
     failed: results.filter((result) => result.status !== "passed").length,
   };
-  await writeFile(join(outDir, "render-report.json"), JSON.stringify(report, null, 2) + "\n", { mode: 0o600 });
+  await writeFile(join(outDir, "render-report.json"), redact(JSON.stringify(report, null, 2), secrets) + "\n", { mode: 0o600 });
   console.log(`MCP Apps reference-host render: ${report.passed}/${results.length} passed in ${report.runtimeSeconds}s; report: ${join(outDir, "render-report.json")}`);
   if (report.failed) process.exitCode = 1;
 }

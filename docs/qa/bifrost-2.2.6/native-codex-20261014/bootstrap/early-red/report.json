@@ -1,0 +1,21 @@
+{
+  "validation": "isolated_actual_App_initialization_replay",
+  "timing": "immediate",
+  "passed": false,
+  "host": {
+    "events": [
+      "ui/initialize",
+      "input/result sent",
+      "ui/notifications/initialized",
+      "ui/notifications/size-changed"
+    ],
+    "calls": []
+  },
+  "dom": {
+    "text": "Open in Excalidraw\nEdit",
+    "svg": 0,
+    "early": null,
+    "core": null
+  },
+  "errors": []
+}

@@ -1,0 +1,14 @@
+{
+  "observed_at": "2026-10-14T10:55:55.734Z",
+  "validation": "native Codex MCP App; observed DOM and screenshot",
+  "checkpoint": "1a94a805c1a44209bf",
+  "source_checkpoint": "a4de9e1013d44a30b3",
+  "app_commit": "4c3700f0ef25a261177fecad03284a57bf7847be",
+  "html_sha256": "1a29d10ee805c360ccee49f104e19062cee70852c9e6db22b5d61a9f95a252d7",
+  "loaded_module_sha256": "d1d925fbf17c09605cde2cb635b092dcfbe5559f3aaf3f36ee353d4641fa433c",
+  "loaded_module_bytes": 444857,
+  "debug_markers_absent": true,
+  "user_observation": "four rectangles and three centered texts",
+  "screenshot": "restored-native.jpg",
+  "framing": "passed: exact same pixels as direct control at the same native viewport and 100% zoom"
+}

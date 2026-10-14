@@ -1,0 +1,124 @@
+{
+  "observed_at": "2026-10-14T10:58:41.657547+00:00",
+  "validation": "native Codex observed pixels; not a simulated host",
+  "control_checkpoint": "b3c6eb56c5244b9782",
+  "restored_checkpoint": "1a94a805c1a44209bf",
+  "original_saved_checkpoint": "a4de9e1013d44a30b3",
+  "control_order": "direct control captured after restored view; same seven saved elements; not the original pre-edit screenshot",
+  "viewport_image_px": [
+    766,
+    923
+  ],
+  "native_zoom": "100% displayed in both captures",
+  "loaded_module_sha256": "d1d925fbf17c09605cde2cb635b092dcfbe5559f3aaf3f36ee353d4641fa433c",
+  "fixed_framing": true,
+  "exact_visible_pixels_equal": true,
+  "pixel_difference_bbox": null,
+  "alignment_tolerance_px": 8,
+  "measurement": "Fill-color bounds within RGB distance 24; dark text ink within a 12px inset, maximum RGB <110; centered bounding-box difference. JPEG capture is inspected independently of saved text geometry.",
+  "control": {
+    "Codex": {
+      "box_fill_bounds_px": [
+        84,
+        354,
+        300,
+        450
+      ],
+      "text_ink_bounds_px": [
+        165,
+        392,
+        221,
+        408
+      ],
+      "dx_px": 1.0,
+      "dy_px": -2.0
+    },
+    "Bifrost": {
+      "box_fill_bounds_px": [
+        464,
+        354,
+        681,
+        450
+      ],
+      "text_ink_bounds_px": [
+        542,
+        392,
+        605,
+        408
+      ],
+      "dx_px": 1.0,
+      "dy_px": -2.0
+    },
+    "Excalidraw": {
+      "box_fill_bounds_px": [
+        274,
+        594,
+        491,
+        690
+      ],
+      "text_ink_bounds_px": [
+        333,
+        632,
+        433,
+        648
+      ],
+      "dx_px": 0.5,
+      "dy_px": -2.0
+    }
+  },
+  "restored": {
+    "Codex": {
+      "box_fill_bounds_px": [
+        84,
+        354,
+        300,
+        450
+      ],
+      "text_ink_bounds_px": [
+        165,
+        392,
+        221,
+        408
+      ],
+      "dx_px": 1.0,
+      "dy_px": -2.0
+    },
+    "Bifrost": {
+      "box_fill_bounds_px": [
+        464,
+        354,
+        681,
+        450
+      ],
+      "text_ink_bounds_px": [
+        542,
+        392,
+        605,
+        408
+      ],
+      "dx_px": 1.0,
+      "dy_px": -2.0
+    },
+    "Excalidraw": {
+      "box_fill_bounds_px": [
+        274,
+        594,
+        491,
+        690
+      ],
+      "text_ink_bounds_px": [
+        333,
+        632,
+        433,
+        648
+      ],
+      "dx_px": 0.5,
+      "dy_px": -2.0
+    }
+  },
+  "native_negative_control": "not injected; deliberate +24/-20 displacement rejected separately in automated reference-host qualification",
+  "captures": {
+    "direct-native-control.jpg": "41bbcfd000d74564d0344b963fefaa512bc474c1ec4d47519754ed706a51643e",
+    "restored-native.jpg": "41bbcfd000d74564d0344b963fefaa512bc474c1ec4d47519754ed706a51643e"
+  }
+}
