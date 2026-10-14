@@ -29,7 +29,7 @@ retains only the App pane; chat, account controls, desktop and menu bar were
 removed without modifying drawing pixels. Its receipt records crop and hashes.
 
 A second diagnostic HTML was served by the gateway but Codex kept the first
-trace script. The final QA uses a freshly named temporary registration to avoid
-that cached build. All diagnostic markers are removed from the committed source
+trace script. The final QA reloaded the test connection and verified the loaded script digest
+in the native panel. All diagnostic markers are removed from the committed source
 and rebuilt HTML. No production service, merge, release or user checkpoint was
-changed. PR 15 remains draft until the fixed native view is observed and recorded.
+changed. The [final native verification](../final/README.md) now records the corrected build and passing same-scene framing comparison.

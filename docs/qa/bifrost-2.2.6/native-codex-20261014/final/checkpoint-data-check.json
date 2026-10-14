@@ -1,0 +1,40 @@
+{
+  "observed_at": "2026-10-14T10:44:42.901541+00:00",
+  "scope": "checkpoint data only; native rendering pending",
+  "source_checkpoint": "a4de9e1013d44a30b3",
+  "restored_checkpoint": "1a94a805c1a44209bf",
+  "native_tool_namespace": "mcp__bifrost_pr15_native_qa",
+  "configured_test_registration": "bifrost-pr15-native-fixed-qa",
+  "route": "http://127.0.0.1:51835/mcp/excalidraw",
+  "exact_saved_elements_preserved": true,
+  "drawn_element_count": 7,
+  "centers_scene_units": [
+    {
+      "text": "Codex",
+      "container": "native-pr15-codex",
+      "dx": 0.0,
+      "dy": 0.0
+    },
+    {
+      "text": "Bifrost",
+      "container": "native-pr15-bifrost",
+      "dx": 0.0,
+      "dy": 0.0
+    },
+    {
+      "text": "Excalidraw",
+      "container": "native-pr15-excalidraw",
+      "dx": 0.0,
+      "dy": 0.0
+    }
+  ],
+  "camera": [
+    {
+      "type": "cameraUpdate",
+      "x": 0,
+      "y": 0,
+      "width": 800,
+      "height": 600
+    }
+  ]
+}

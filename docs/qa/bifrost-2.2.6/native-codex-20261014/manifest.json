@@ -1,12 +1,12 @@
 {
   "validation": "native_codex_mcp_app",
-  "status": "native_blank_restore_found; initialization_fix_qualified_automatically; final_native_pending",
+  "status": "passed: corrected native rendering, real edit/save/read, exact same-scene pixel framing",
   "observed_at": "2026-10-14",
   "gateway": {
     "commit": "3f65a71cd0419c473ef116ba2fa57f72cebaa06a",
     "version": "v2.2.6-native-qa.3f65a71cd041",
     "binary_sha256": "62844d27065bfd10d418e5bf14b08b61769f30d201e5bc0591f12797083c06d3",
-    "source": "git archive of exact PR head",
+    "source": "exact git archive of baseline PR head; gateway implementation unchanged at automated qualification head f54038b339a0",
     "compiler": "go1.27.2",
     "platform": "darwin/arm64",
     "management_ui": "disposable embed placeholder; not tested"
@@ -28,14 +28,16 @@
     "protocol_only": true,
     "server_identity_verified": true,
     "app_resource_identity_verified": true,
-    "native_render": "Initial native App render observed in a user-provided Codex screenshot; labels visually centered. Restored render not observed.",
+    "native_render": "Historical initial render and blank restore; final corrected result is recorded under final/.",
     "native_tool_call": "created via mcp__bifrost_pr15_native_qa__excalidraw_create_view"
   },
   "native_checkpoints": {
     "created": "a4de9e1013d44a30b3",
     "saved": "a4de9e1013d44a30b3",
     "read": "a4de9e1013d44a30b3",
-    "restored_view": "2186fe8d0f52415193"
+    "restored_view": "2186fe8d0f52415193",
+    "final_restored_view": "1a94a805c1a44209bf",
+    "direct_same_scene_control": "b3c6eb56c5244b9782"
   },
   "captures": [
     {
@@ -60,12 +62,26 @@
       "phase": "original fresh native restore failed",
       "receipt": "bootstrap/native-restored-white.receipt.json",
       "observed": "empty App pane; no drawing or controls"
+    },
+    {
+      "file": "final/restored-native.jpg",
+      "phase": "corrected native restoration",
+      "receipt": "final/capture-receipt.json",
+      "zoom": "100% displayed",
+      "viewport_equivalence": "exact visible pixel equality with final direct same-scene control"
+    },
+    {
+      "file": "final/direct-native-control.jpg",
+      "phase": "direct control of same saved scene, captured after restoration",
+      "receipt": "final/capture-receipt.json",
+      "zoom": "100% displayed"
     }
   ],
   "pr15": {
-    "head": "3f65a71cd0419c473ef116ba2fa57f72cebaa06a",
-    "draft": true,
-    "ready_condition": "Observe native initial and restored bound-label scene at constant framing, including an App edit/save/read and final captures."
+    "native_baseline_head": "3f65a71cd0419c473ef116ba2fa57f72cebaa06a",
+    "qualified_source_head": "f54038b339a0d63b66dfa85158a585938c328bbd",
+    "status_at_evidence_capture": "draft; transition after documentary commit checks",
+    "native_ready_condition": "passed; actual edit/save/read and same-scene native rendering at identical framing"
   },
   "activation": {
     "connection_loaded": true,
@@ -82,7 +98,8 @@
     "tab_screenshot": "Timed out at 30 seconds; runtime reset.",
     "read_only_dom_evaluation": "CDP operation deadline exceeded before dispatch.",
     "documented_native_tab_observation": "Timed out at 55 seconds; runtime reset.",
-    "repair_boundary": "No further retries of these observation methods."
+    "repair_boundary": "No further retries of these observation methods.",
+    "scope": "Historical earlier observation failures; final native DOM and screenshot observation succeeded."
   },
   "diagnosis": {
     "report": "debug/README.md",
@@ -101,6 +118,20 @@
     "commit": "4c3700f0ef25a261177fecad03284a57bf7847be",
     "html_sha256": "1a29d10ee805c360ccee49f104e19062cee70852c9e6db22b5d61a9f95a252d7",
     "registration": "bifrost-pr15-native-fixed-qa",
-    "native_render": "pending"
+    "native_render": "passed",
+    "loaded_module_sha256": "d1d925fbf17c09605cde2cb635b092dcfbe5559f3aaf3f36ee353d4641fa433c",
+    "final_report": "final/README.md"
+  },
+  "final_native_verification": {
+    "report": "final/native-pixel-comparison.json",
+    "loaded_build_matches": true,
+    "exact_visible_pixels_equal": true,
+    "viewport_px": [
+      766,
+      923
+    ],
+    "zoom": "100%",
+    "control_order": "direct same-scene control captured after restored view",
+    "original_checkpoint_preserved": true
   }
 }

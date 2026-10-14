@@ -1,0 +1,27 @@
+{
+  "captured_at": "2026-10-14T11:02:09.688450+00:00",
+  "source": "documented Codex MCP Apps tab screenshot API",
+  "redaction": "App-only backend capture: chat, account, desktop and host chrome are excluded at source; no drawing pixels changed",
+  "checkpoint_restore": "1a94a805c1a44209bf",
+  "checkpoint_direct_control": "b3c6eb56c5244b9782",
+  "images": [
+    {
+      "file": "restored-native.jpg",
+      "format": "JPEG",
+      "size": [
+        766,
+        923
+      ],
+      "sha256": "41bbcfd000d74564d0344b963fefaa512bc474c1ec4d47519754ed706a51643e"
+    },
+    {
+      "file": "direct-native-control.jpg",
+      "format": "JPEG",
+      "size": [
+        766,
+        923
+      ],
+      "sha256": "41bbcfd000d74564d0344b963fefaa512bc474c1ec4d47519754ed706a51643e"
+    }
+  ]
+}
