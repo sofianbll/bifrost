@@ -250,7 +250,7 @@ def probe(args, report):
                 status, _, clients = request(base + "/api/mcp/clients", headers=admin)
                 require_status(status, 200, "client discovery")
                 rows = clients.get("clients", [])
-                row = next((c for c in rows if c.get("id") == client_id), None)
+                row = next((c for c in rows if c.get("config", {}).get("id") == client_id), None)
                 if row and row.get("tools"):
                     break
                 if time.monotonic() >= deadline:
@@ -268,8 +268,8 @@ def probe(args, report):
                 start()
                 status, _, clients = request(base + "/api/mcp/clients", headers=admin)
                 require_status(status, 200, "restarted client projection")
-                row = next((c for c in clients.get("clients", []) if c.get("id") == client_id), {})
-                if row.get("needs_session_stickiness") is not True:
+                row = next((c for c in clients.get("clients", []) if c.get("config", {}).get("id") == client_id), {})
+                if row.get("config", {}).get("needs_session_stickiness") is not True:
                     raise AssertionError("persistent flag was not restored from the existing store")
                 report["checkpoints"].append({"phase": f"after-restart-{iteration}", "persistent_flag": True,
                                                "header": assert_authorized(vk, f"restart-{iteration}-header"),
