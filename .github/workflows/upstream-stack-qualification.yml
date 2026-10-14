@@ -25,7 +25,7 @@ jobs:
           - layer: B
             commit: adb80e661560174025ff9f9c23b918cb377e14b9
           - layer: C
-            commit: 314e02b21dbc0ffc7be68ede049005c0276fe0b8
+            commit: a369739b6c5c6cd0921bce4fa8e0b9a6ae6b6034
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     defaults:
