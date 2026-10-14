@@ -53,6 +53,34 @@ function assertCheckpointFraming(before, after) {
   }
 }
 
+function assertComparisonOutcome(evidence, version) {
+  assert.ok(["official", "corrected"].includes(version), "Unknown comparison version");
+  assert.ok(!evidence.error, "Comparison must complete; setup or callback errors are not expected failures");
+  const expected = {
+    progressiveInput: true, beforeAlignment: true, deliberateDisplacementRejected: true,
+    saveWithBoundLabelsAndPointerEdit: true, exactReadbackWithBoundLabels: true,
+    fixedFraming: true, afterAlignment: version === "corrected",
+  };
+  assert.deepEqual(evidence.checks, expected, `Unexpected ${version} checkpoint outcome`);
+  assert.equal(evidence.status, version === "corrected" ? "passed" : "failed");
+  assert.equal(evidence.editedElementCount, 7, "Pointer edit must preserve the six bound-label elements");
+  if (version === "official") {
+    assert.equal(evidence.after.labels.length, 3);
+    assert.ok(evidence.after.labels.every((label) => label.dx < -ALIGNMENT_TOLERANCE && label.dy < -ALIGNMENT_TOLERANCE),
+      "Official negative control must reproduce the left/up displacement of all three restored labels");
+  }
+}
+
+function assertEquivalentMeasurements(direct, gateway) {
+  assertCheckpointFraming(direct, gateway);
+  for (const label of direct.labels) {
+    const other = gateway.labels.find((item) => item.id === label.id);
+    for (const key of ["x", "y", "width", "height"]) {
+      assert.ok(Math.abs(label.text[key] - other.text[key]) <= 2, `Direct/gateway text ${label.id} ${key} differs`);
+    }
+  }
+}
+
 async function measureBoundLabels(svg) {
   return svg.evaluate((element, boxes) => {
     const viewport = element.getBoundingClientRect();
@@ -213,13 +241,29 @@ async function selfCheck() {
   const reframed = structuredClone(aligned);
   reframed.labels[0].box.x += 3;
   assert.throws(() => assertCheckpointFraming(aligned, reframed), /fixed camera/);
+  assertEquivalentMeasurements(aligned, aligned);
+  assert.throws(() => assertEquivalentMeasurements(aligned, displaced), /Direct\/gateway text/);
+  const comparison = { status: "passed", editedElementCount: 7, checks: {
+    progressiveInput: true, beforeAlignment: true, deliberateDisplacementRejected: true, saveWithBoundLabelsAndPointerEdit: true,
+    exactReadbackWithBoundLabels: true, fixedFraming: true, afterAlignment: true,
+  }, after: aligned };
+  assertComparisonOutcome(comparison, "corrected");
+  assert.throws(() => assertComparisonOutcome(comparison, "official"), /Unexpected official/);
+  const knownFailure = { ...comparison, status: "failed", checks: { ...comparison.checks, afterAlignment: false },
+    after: { ...aligned, labels: aligned.labels.map((label) => ({ ...label, dx: -25, dy: -12 })) } };
+  assertComparisonOutcome(knownFailure, "official");
+  for (const key of Object.keys(knownFailure.checks).filter((key) => key !== "afterAlignment")) {
+    assert.throws(() => assertComparisonOutcome({ ...knownFailure, checks: { ...knownFailure.checks, [key]: false } }, "official"), /Unexpected official/);
+  }
+  assert.throws(() => assertComparisonOutcome({ ...knownFailure, error: "blank App" }, "official"), /must complete/);
+  assert.throws(() => assertComparisonOutcome({ ...knownFailure, after: aligned }, "official"), /left\/up displacement/);
   await checkProxyCleanup();
   assert.equal(await portAvailable(0), true);
   const occupied = createTcpServer();
   const occupiedPort = await listen(occupied);
   try { assert.equal(await portAvailable(occupiedPort), false); }
   finally { await new Promise((resolvePromise) => occupied.close(resolvePromise)); }
-  console.log("PASS renderer self-check (routes, JSON-RPC, redaction, bounded actions, SSE cleanup, ports, bound-label alignment, deliberate displacement, clipping, missing labels, invalid bounds and fixed framing); no host was launched");
+  console.log("PASS renderer self-check (routes, JSON-RPC, redaction, bounded actions, SSE cleanup, ports, bound-label alignment, deliberate displacement, clipping, missing labels, invalid bounds and fixed framing and strict comparison outcomes); no host was launched");
 }
 
 function classifyFailure(appId, error) {
@@ -616,7 +660,7 @@ async function renderCase(browser, manifest, credentials, appId, route, mode, ou
   }
 }
 
-async function renderCheckpoint(browser, manifest, credentials, appId, outDir, secrets, timeoutMs) {
+async function renderCheckpoint(browser, manifest, credentials, appId, outDir, secrets, timeoutMs, replayPartialInput = false) {
   const app = manifest.apps[appId];
   if (!app || !/create_view/i.test(app.native_name)) fail("Checkpoint round-trip requires Excalidraw create_view in the manifest");
   const route = "direct";
@@ -650,6 +694,31 @@ async function renderCheckpoint(browser, manifest, credentials, appId, outDir, s
   try {
     target = await startHost(option("--host-dir", ""), [proxy.url]);
     browserState = await pageLogs(browser, target, { tool: app.native_name, input: createInput }, timeoutMs, secrets);
+    if (replayPartialInput) {
+      const inner = browserState.page.frameLocator("iframe").frameLocator("iframe");
+      const svg = inner.locator(".svg-wrapper svg");
+      await waitFor(async () => (await svg.locator("text").allTextContents()).includes("Excalidraw"), timeoutMs, "Initial App input did not render");
+      const notify = (method, elements) => browserState.page.frameLocator("iframe").locator("body").evaluate((body, message) => {
+        const appFrame = body.querySelector("iframe");
+        if (!appFrame?.contentWindow) throw new Error("Reference host sandbox has no App frame");
+        appFrame.contentWindow.postMessage(message, "*");
+      }, { jsonrpc: "2.0", method, params: { arguments: { elements: JSON.stringify(elements) } } });
+      evidence.progressive = { validation: "controlled_host_notifications_replay", frames: [] };
+      // Drive the real SDK from its parent frame; inspect rendered intermediate states, not a live model stream.
+      for (const count of [1, 2]) {
+        await notify("ui/notifications/tool-input-partial", [CHECKPOINT_CAMERA, ...CHECKPOINT_BOXES.slice(0, count), { type: "rectangle" }]);
+        const expected = CHECKPOINT_BOXES.slice(0, count).map((box) => box.label.text);
+        await waitFor(async () => {
+          const labels = await svg.locator("text").allTextContents();
+          return expected.every((text) => labels.includes(text)) &&
+            CHECKPOINT_BOXES.slice(count).every((box) => !labels.includes(box.label.text));
+        }, timeoutMs, `Partial input did not render exactly ${count} bound labels`);
+        await svg.screenshot({ path: join(outDir, `excalidraw-progressive-${count}.png`), animations: "disabled", timeout: timeoutMs });
+        evidence.progressive.frames.push({ labels: expected, notification: "ui/notifications/tool-input-partial" });
+      }
+      await notify("ui/notifications/tool-input", [CHECKPOINT_CAMERA, ...CHECKPOINT_BOXES]);
+      evidence.checks.progressiveInput = true;
+    }
     const before = await capture("before");
     evidence.before = before.measurement;
     assertLabelAlignment(evidence.before);
@@ -757,6 +826,66 @@ async function renderCheckpoint(browser, manifest, credentials, appId, outDir, s
   }
 }
 
+async function renderExcalidrawComparison(browser, manifest, profiles, outDir, secrets, timeoutMs) {
+  const builds = manifest.excalidraw_comparison;
+  assert.deepEqual(builds.map((build) => build.version).sort(), ["corrected", "official"]);
+  const results = [];
+  const directory = join(outDir, "excalidraw-comparison");
+  await mkdir(directory, { recursive: true });
+  for (const build of builds) {
+    const source = new URL(build.source_url);
+    assert.ok(source.protocol === "http:" && source.hostname === "127.0.0.1" && source.port,
+      "Direct comparison must use the disposable runner's loopback server");
+    assert.match(build.identity.commit, /^[a-f0-9]{40}$/);
+    assert.match(build.identity.html_sha256, /^[a-f0-9]{64}$/);
+    for (const connection of ["direct", "gateway"]) {
+      const id = `${build.version}-${connection}`;
+      const caseDir = join(directory, id);
+      await mkdir(caseDir, { recursive: true });
+      const endpoint = connection === "direct" ? "/mcp" : build.gateway_path;
+      const caseManifest = {
+        ...manifest, base_url: connection === "direct" ? build.source_url : manifest.base_url,
+        apps: { ...manifest.apps, excalidraw: { ...manifest.apps.excalidraw,
+          native_name: connection === "direct" ? "create_view" : build.gateway_tool } },
+        routes: { ...manifest.routes, direct: { ...manifest.routes.direct, excalidraw: endpoint } },
+      };
+      try {
+        const evidence = await renderCheckpoint(browser, caseManifest,
+          { direct: connection === "direct" ? {} : profiles.direct }, "excalidraw", caseDir, secrets, timeoutMs, true);
+        assert.equal(evidence.appResourceSha256, build.identity.html_sha256, "Loaded App differs from the pinned build");
+        assertComparisonOutcome(evidence, build.version);
+        results.push({ ...evidence, id, version: build.version, connection, endpoint, testedApp: build.identity,
+          observedStatus: evidence.status, status: "passed",
+          expectation: build.version === "official" ? "known_restore_displacement" : "aligned_restore" });
+      } catch (error) {
+        results.push({ id, version: build.version, connection, endpoint, testedApp: build.identity,
+          status: "failed", error: redact(error.message, secrets) });
+      }
+    }
+  }
+  const equivalence = { id: "excalidraw-direct-gateway-equivalence", status: "failed" };
+  try {
+    assert.equal(results.length, 4);
+    assert.ok(results.every((result) => result.status === "passed"), "All four comparison legs must satisfy their exact expectations");
+    for (const version of ["official", "corrected"]) {
+      const direct = results.find((result) => result.version === version && result.connection === "direct");
+      const gateway = results.find((result) => result.version === version && result.connection === "gateway");
+      for (const phase of ["before", "after"]) assertEquivalentMeasurements(direct[phase], gateway[phase]);
+      assert.equal(direct.appResourceSha256, gateway.appResourceSha256);
+    }
+    equivalence.status = "passed";
+  } catch (error) { equivalence.error = redact(error.message, secrets); }
+  results.push(equivalence);
+  await writeFile(join(directory, "report.json"), redact(JSON.stringify({
+    validation: "automated_reference_host", codexVerification: "not_run", testedGateway: manifest.gateway,
+    referenceHost: { repository: HOST_REPOSITORY, commit: HOST_COMMIT, version: HOST_VERSION },
+    browser: browser.version(), camera: CHECKPOINT_CAMERA, results,
+    passed: results.every((result) => result.status === "passed"),
+  }, null, 2), secrets) + "\n", { mode: 0o600 });
+  for (const result of results) console.log(`${result.status === "passed" ? "PASS" : "FAIL"} ${result.id}${result.error ? ": " + result.error : ""}`);
+  return results;
+}
+
 async function checkFourConnections(browser, manifest, credentials, outDir, secrets, timeoutMs) {
   const appIds = Object.keys(manifest.apps);
   if (appIds.length !== 4) fail(`Expected four Apps for the connection-stall check; found ${appIds.length}`);
@@ -839,7 +968,10 @@ async function main() {
       catch (error) { results.push({ id: `${appId}-direct-codemode`, app: appId, route: "direct", mode: "code_mode", status: "failed", failure_class: classifyFailure(appId, error), error: redact(error.message, secrets) }); }
     }
     const excalidrawId = Object.keys(manifest.apps).find((id) => /excalidraw/i.test(id));
-    if (excalidrawId) {
+    if (manifest.excalidraw_comparison) {
+      try { results.push(...await renderExcalidrawComparison(browser, manifest, profiles, outDir, secrets, timeoutMs)); }
+      catch (error) { results.push({ id: "excalidraw-comparison", status: "failed", error: redact(error.message, secrets) }); }
+    } else if (excalidrawId) {
       try { results.push(await renderCheckpoint(browser, manifest, profiles, excalidrawId, outDir, secrets, timeoutMs)); }
       catch (error) { results.push({ id: "excalidraw-checkpoint-roundtrip", status: "failed", failure_class: classifyFailure(excalidrawId, error), error: redact(error.message, secrets) }); }
     } else results.push({ id: "excalidraw-checkpoint-roundtrip", status: "failed", error: "Manifest has no Excalidraw App" });

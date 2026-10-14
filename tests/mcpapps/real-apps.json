@@ -69,5 +69,13 @@
     "aggregate": "/mcp"
   },
   "pdf_tool_execution_timeout": "60s",
-  "pdf_long_poll_seconds": 30
+  "pdf_long_poll_seconds": 30,
+  "excalidraw_official": {
+    "repository": "https://github.com/excalidraw/excalidraw-mcp",
+    "commit": "157aa23ceb1976008aadc89eb05e3444060f09d6",
+    "version": "0.3.2",
+    "connection_string": "http://excalidraw-official:3004/mcp",
+    "native_name": "excalidraw_official-create_view",
+    "route": "/mcp/excalidraw-official"
+  }
 }

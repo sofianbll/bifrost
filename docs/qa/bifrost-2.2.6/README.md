@@ -142,3 +142,37 @@ visually inspected and contain only the QA diagram.
 ## Reviewed fix and PR preparation
 
 The [two-axis review and final local evidence](restore-fix/review/README.md) include the resolved mixed-arrow regression, the standalone App test (7/7), the real-library checks (10/10) and a new full roundtrip (1/1). This supersedes the first local App fix for publication; historical evidence above is retained. Native Codex and full CI remain separate gates.
+
+
+## GitHub-only official/corrected differential qualification
+
+The fork image workflow now builds pristine official Excalidraw at
+`157aa23ceb1976008aadc89eb05e3444060f09d6` and the reviewed fix at
+`4c3700f0ef25a261177fecad03284a57bf7847be`. Both run as disposable HTTP servers
+on the same CI network. Each exact App build is exercised through the pinned
+reference host both without Bifrost and through the candidate gateway.
+The direct server ports are bound to runner loopback; the CI launcher refuses
+real qualification outside GitHub Actions. No personal Codex connection is used.
+
+Each leg replays real partial-input notifications from the App's sandbox parent,
+checks one then two rendered labels, and returns to complete input before the
+pointer edit/save/read/fresh-view restore. Intermediate screenshots are retained.
+This controlled SDK replay does not claim live-model streaming or Codex-host
+support. Complete input is measured at the same camera and viewport, and the
+rendered +24/-20 negative control must be detected in all four legs.
+
+The official baseline is an explicitly asserted negative control: creation,
+progressive input, pointer save, exact readback and fixed framing must succeed,
+while all three restored labels must show the known left/up displacement.
+A blank view, setup/callback error, unexpected check result or missing identity
+fails the gate. Both corrected legs must align. The differential assertion also
+requires matching App HTML hashes and matching measured before/after geometry
+between the direct and gateway legs of each build (2 scene units).
+
+GitHub uploads the existing `mcp-apps-qualification` artifact, including
+`excalidraw-comparison/report.json` and four per-leg directories with captures,
+checkpoint reports and synthetic scene data. The report records App commits and
+hashes, the tested gateway image/commit/version, checkpoints, host/browser pins,
+and `codexVerification: not_run`. The original four-App route/Code Mode matrix
+remains enabled. These test/workflow-only changes are exempt from the paid
+provider harness: gateway implementation and provider wire contracts do not change.

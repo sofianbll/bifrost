@@ -123,6 +123,11 @@ jobs:
         run: |
           npm ci --prefix tests/e2e
           tests/e2e/node_modules/.bin/playwright install --with-deps chromium
+      - name: Check MCP Apps comparison guardrails
+        if: ${{ !cancelled() && matrix.arch == 'amd64' && steps.image-probe.outcome == 'success' }}
+        run: |
+          python3 tests/mcpapps/ci.py --self-check
+          node tests/mcpapps/render-reference-host.mjs --self-check
       - name: Bootstrap pinned MCP Apps reference host
         id: reference-host
         if: ${{ !cancelled() && matrix.arch == 'amd64' && steps.image-probe.outcome == 'success' }}
@@ -144,6 +149,21 @@ jobs:
           node scripts/setup-bun.mjs
           pnpm test
           pnpm run build
+      - name: Checkout pristine official Excalidraw App
+        if: ${{ !cancelled() && matrix.arch == 'amd64' && steps.image-probe.outcome == 'success' }}
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: excalidraw/excalidraw-mcp
+          ref: 157aa23ceb1976008aadc89eb05e3444060f09d6
+          path: .qa/excalidraw-official
+          persist-credentials: false
+      - name: Build pristine official Excalidraw App
+        if: ${{ !cancelled() && matrix.arch == 'amd64' && steps.image-probe.outcome == 'success' }}
+        working-directory: .qa/excalidraw-official
+        run: |
+          pnpm install --frozen-lockfile --ignore-scripts
+          node scripts/setup-bun.mjs
+          pnpm run build
       - name: Verify actual Excalidraw checkpoint normalizer
         if: ${{ !cancelled() && matrix.arch == 'amd64' && steps.image-probe.outcome == 'success' }}
         run: >-
@@ -160,7 +180,7 @@ jobs:
               --scene docs/qa/bifrost-2.2.6/restore-fix/saved-scene.json \
               --timing "$timing" --out "$RUNNER_TEMP/mcpapps-initialization/$timing"
           done
-      - name: Qualify real MCP Apps and their reference-host rendering
+      - name: Qualify real MCP Apps and Excalidraw official/corrected comparison
         timeout-minutes: 20
         if: ${{ !cancelled() && matrix.arch == 'amd64' && steps.image-probe.outcome == 'success' && steps.reference-host.outcome == 'success' }}
         run: >-
@@ -170,6 +190,7 @@ jobs:
           --render-script tests/mcpapps/render-reference-host.mjs
           --reference-host-dir "$RUNNER_TEMP/ext-apps"
           --excalidraw-dir "$GITHUB_WORKSPACE/.qa/excalidraw"
+          --excalidraw-official-dir "$GITHUB_WORKSPACE/.qa/excalidraw-official"
       - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         if: always() && matrix.arch == 'amd64'
         with:
