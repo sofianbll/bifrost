@@ -1,0 +1,20 @@
+{
+  "source": "User-provided screenshot of the restored native view",
+  "source_sha256": "22bac190356e890c337e1f4d5e30c25341093cca7da3950d8b5d5bc150fa01d0",
+  "source_size": [
+    1728,
+    1117
+  ],
+  "crop_xyxy": [
+    874,
+    90,
+    1716,
+    1105
+  ],
+  "output": "native-restored-white.png",
+  "output_sha256": "f49a890eccc8dca4ede17ac8fbb6bef47ad5d886488a6c2578779a44f0f4204a",
+  "redaction": "App pane only. Chat, menu bar, account controls and desktop excluded; pixels unchanged.",
+  "observation": "Native restored pane entirely blank; no fixture boxes, labels or editor controls visible.",
+  "source_checkpoint": "a4de9e1013d44a30b3",
+  "restored_checkpoint": "2186fe8d0f52415193"
+}

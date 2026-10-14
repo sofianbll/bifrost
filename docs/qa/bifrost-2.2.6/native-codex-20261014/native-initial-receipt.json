@@ -1,0 +1,27 @@
+{
+  "source": "user-provided Codex screenshot",
+  "source_sha256": "368896daf84d25a8a83ad02513cb52dd63aa83dfb803655a92385190c0e9771d",
+  "source_size": [
+    1712,
+    1068
+  ],
+  "crop_xyxy": [
+    875,
+    48,
+    1712,
+    1068
+  ],
+  "redaction": "Only the App pane retained; conversation, question card, account controls and browser tabs excluded. No drawing pixels modified.",
+  "output": "native-initial.png",
+  "output_sha256": "aea5b65cbad206794a1bc2f05330321047ca390f3dbccf1525c52bad26bf9950",
+  "output_size": [
+    837,
+    1020
+  ],
+  "observed_controls": [
+    "Excalidraw editing toolbar",
+    "Open in Excalidraw",
+    "100% zoom"
+  ],
+  "visual_observation": "Codex, Bifrost and Excalidraw labels appear centered inside their respective containers. Initial scene only; no restored scene observed."
+}

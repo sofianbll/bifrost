@@ -5,7 +5,7 @@
       "connection_type": "http",
       "connection_string": "http://excalidraw:3004/mcp",
       "repository": "https://github.com/sofianbll/excalidraw-mcp",
-      "commit": "61bb966aa2ceee485aaa3badd91807c2edc6f236",
+      "commit": "4c3700f0ef25a261177fecad03284a57bf7847be",
       "version": "0.3.2",
       "port": 3004,
       "native_name": "excalidraw-create_view",

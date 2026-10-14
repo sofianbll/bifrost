@@ -1,0 +1,77 @@
+{
+  "observed_at": "2026-10-14",
+  "ci_run": "https://github.com/sofianbll/bifrost/actions/runs/38482759889",
+  "tested_gateway": {
+    "image": "bifrost:candidate",
+    "image_id": "sha256:7678374133c077926b2cc883c34fab276a52520d311c020d483bc57d4404a52e",
+    "commit": "3f65a71cd0419c473ef116ba2fa57f72cebaa06a",
+    "version": "2.2.6+sofian.3f65a71cd041"
+  },
+  "tested_excalidraw": {
+    "repository": "https://github.com/sofianbll/excalidraw-mcp",
+    "commit": "61bb966aa2ceee485aaa3badd91807c2edc6f236",
+    "source_sha256": "a687f202c3d3e829f0aa2da89c0431ce279ee05774b0ac8c1dcc6be361393774",
+    "html_sha256": "dfe653acc2274a51352126994337eab8ce3ec165f4ad28b8249b8c16201519b0"
+  },
+  "reference_host": {
+    "repository": "https://github.com/modelcontextprotocol/ext-apps",
+    "version": "2.0.3",
+    "commit": "82221c0c8ce7661efa6771c9d461511b1650495f"
+  },
+  "browser": {
+    "version": "143.0.7499.4",
+    "channel": "chromium"
+  },
+  "renderer": {
+    "commit": "3f65a71cd0419c473ef116ba2fa57f72cebaa06a",
+    "sha256": "b23f94a87de751ad359fdac425d1da05affe7e6a2e16487e4a92638254854bd3"
+  },
+  "route": "/mcp/excalidraw",
+  "checkpoints": {
+    "created": "f49f7f4ed3c44f09a3",
+    "saved": "f49f7f4ed3c44f09a3",
+    "read": "f49f7f4ed3c44f09a3",
+    "restoredView": "4db8e27df6c34e9aa1"
+  },
+  "camera": {
+    "type": "cameraUpdate",
+    "x": 0,
+    "y": 0,
+    "width": 800,
+    "height": 600
+  },
+  "viewport": {
+    "width": 1400,
+    "height": 1050
+  },
+  "validation": {
+    "automated": "passed",
+    "wire": "80/80",
+    "render": "18/18",
+    "normalizer": "10/10",
+    "native_codex": "not_run",
+    "negative_control": "rendered +24/-20 displacement rejected"
+  },
+  "hygiene": {
+    "screenshots": "Synthetic App drawing and its own toolbar only; visually inspected; all 1400x1050; host/browser/desktop excluded",
+    "private_logs_and_full_html_excluded": true,
+    "credentials_and_user_data_excluded": true,
+    "scene": "synthetic Codex/Bifrost/Excalidraw boxes and one pointer edit"
+  },
+  "evidence_storage": "This final-head evidence is retained locally; the preceding fully qualified c3e8e2561 run is versioned in ci-pr15/.",
+  "scope": "isolated CI Docker network and source-pinned App; no production access, tag, image publication, merge or release",
+  "artifacts": {
+    "ci-run.json": "373653f9f1fbde03e49201c6fc0cd6615a68eada19f63efcc6c53f6f0c1f295c",
+    "codemode-errors-comparison.json": "c1eb5494056218adb058ffe08f0468463dc9576f0898edd84fb25bf3a4299c13",
+    "excalidraw-checkpoint-after.png": "695c340a00b5e0b9477ac7a38f7f1089d1d280901f9350f4d8b342a8e002ce91",
+    "excalidraw-checkpoint-before.png": "99dc36236ccd43f3f3992a1430f328bd93052cc2a797edfa7815d1e985800a79",
+    "excalidraw-checkpoint-offset.png": "e35509e1e21b848b4444d3c36d8c89d5895223733e1560de7f760844b168e979",
+    "excalidraw-checkpoint-report.json": "fbe66ab5d586b65070a5c18fee4bcd7b789149a2ab89c8091dd173878981c092",
+    "excalidraw-checkpoint-scene.json": "ddbb7c300200f8999d619afc83fb9e5d2db52a2b1fe49c14d6c2cb694b135fc8",
+    "mcp-apps-comparison.json": "d43ffe36027c515c2b9f4c4719d5102bfbac2910832ffdf82b4824eace911759",
+    "normalizer-report.json": "02c91cf5558120a3cb6ab7c5198a7a5685a01daa5b89be090e2f8d617c5fd946",
+    "pr-checks.json": "e83244085c701018f8b06c2f00b445a75306d15da2bdcde0c3c282c7a2de77e9",
+    "render-summary.json": "7a1542bcff5accf6215fff12f4866421d0787bf3cd2e34de7e62b8fbdb719cd0",
+    "wire-report.json": "465bef165216ad7bcc3bd5026f17f753e4a41c8feaa1694e2a6f92ce8dd0dbf1"
+  }
+}

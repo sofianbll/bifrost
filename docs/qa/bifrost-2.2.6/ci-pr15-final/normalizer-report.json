@@ -1,0 +1,82 @@
+{
+  "validation": "isolated_excalidraw_app_normalizer",
+  "appRepository": "https://github.com/excalidraw/excalidraw-mcp",
+  "appCommit": "61bb966aa2ceee485aaa3badd91807c2edc6f236",
+  "appSourceSha256": "a687f202c3d3e829f0aa2da89c0431ce279ee05774b0ac8c1dcc6be361393774",
+  "normalizerSha256": "4289465c7e923a73754eab2c54b4c06d197a2f896059dfd03b17384f8e3bdadb",
+  "dependency": "@excalidraw/excalidraw@0.18.0",
+  "browserVersion": "143.0.7499.4",
+  "checks": [
+    {
+      "name": "complete checkpoint geometry, order and metadata preserved",
+      "passed": true
+    },
+    {
+      "name": "one bound text restores unchanged",
+      "passed": true
+    },
+    {
+      "name": "normalization is idempotent across repeated restores",
+      "passed": true
+    },
+    {
+      "name": "saved font choice preserved",
+      "passed": true
+    },
+    {
+      "name": "shorthand still creates a centered bound label",
+      "passed": true
+    },
+    {
+      "name": "mixed shorthand and saved elements preserve saved geometry",
+      "passed": true
+    },
+    {
+      "name": "mixed input preserves drawing order",
+      "passed": true
+    },
+    {
+      "name": "new arrows retain reciprocal bindings on saved boxes without moving them",
+      "passed": true
+    },
+    {
+      "name": "camera pseudo-element preserved",
+      "passed": true
+    },
+    {
+      "name": "deliberate displacement rejected by preservation check",
+      "passed": true
+    }
+  ],
+  "deltas": [
+    {
+      "text": "Codex",
+      "width": 52.216796875,
+      "height": 25,
+      "beforeFont": 5,
+      "afterFont": 5,
+      "dx": 0,
+      "dy": 0
+    },
+    {
+      "text": "Bifrost",
+      "width": 55.556640625,
+      "height": 25,
+      "beforeFont": 5,
+      "afterFont": 5,
+      "dx": 0,
+      "dy": 0
+    },
+    {
+      "text": "Excalidraw",
+      "width": 91.064453125,
+      "height": 25,
+      "beforeFont": 5,
+      "afterFont": 5,
+      "dx": 0,
+      "dy": 0
+    }
+  ],
+  "passed": 10,
+  "failed": 0
+}

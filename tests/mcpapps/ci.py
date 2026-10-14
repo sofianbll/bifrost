@@ -34,7 +34,7 @@ def load_manifest():
         app["code_native_name"] = app["code_namespace"] + "-" + app["native_name"].removeprefix(name + "-")
     for name in ("pdf", "debug", "monitor"):
         assert data["apps"][name]["version"] == "2.0.3"
-    assert data["apps"]["excalidraw"]["commit"] == "61bb966aa2ceee485aaa3badd91807c2edc6f236"
+    assert data["apps"]["excalidraw"]["commit"] == "4c3700f0ef25a261177fecad03284a57bf7847be"
     assert data["apps"]["excalidraw"]["connection_string"] == "http://excalidraw:3004/mcp"
     return data
 

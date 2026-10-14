@@ -1,0 +1,106 @@
+{
+  "validation": "native_codex_mcp_app",
+  "status": "native_blank_restore_found; initialization_fix_qualified_automatically; final_native_pending",
+  "observed_at": "2026-10-14",
+  "gateway": {
+    "commit": "3f65a71cd0419c473ef116ba2fa57f72cebaa06a",
+    "version": "v2.2.6-native-qa.3f65a71cd041",
+    "binary_sha256": "62844d27065bfd10d418e5bf14b08b61769f30d201e5bc0591f12797083c06d3",
+    "source": "git archive of exact PR head",
+    "compiler": "go1.27.2",
+    "platform": "darwin/arm64",
+    "management_ui": "disposable embed placeholder; not tested"
+  },
+  "test_target": {
+    "origin": "http://127.0.0.1:51835",
+    "route": "/mcp/excalidraw",
+    "registration": "bifrost-pr15-native-qa",
+    "transport": "local HTTP gateway to local stdio Excalidraw",
+    "providers_configured": 0,
+    "fresh_private_store": true
+  },
+  "excalidraw": {
+    "repository": "https://github.com/sofianbll/excalidraw-mcp",
+    "commit": "61bb966aa2ceee485aaa3badd91807c2edc6f236",
+    "html_sha256": "dfe653acc2274a51352126994337eab8ce3ec165f4ad28b8249b8c16201519b0"
+  },
+  "preflight": {
+    "protocol_only": true,
+    "server_identity_verified": true,
+    "app_resource_identity_verified": true,
+    "native_render": "Initial native App render observed in a user-provided Codex screenshot; labels visually centered. Restored render not observed.",
+    "native_tool_call": "created via mcp__bifrost_pr15_native_qa__excalidraw_create_view"
+  },
+  "native_checkpoints": {
+    "created": "a4de9e1013d44a30b3",
+    "saved": "a4de9e1013d44a30b3",
+    "read": "a4de9e1013d44a30b3",
+    "restored_view": "2186fe8d0f52415193"
+  },
+  "captures": [
+    {
+      "file": "native-initial.png",
+      "phase": "initial native fullscreen editor",
+      "source": "user-provided screenshot; cropped to the App pane",
+      "receipt": "native-initial-receipt.json",
+      "labels": "Codex, Bifrost and Excalidraw visually centered",
+      "zoom": "100% as displayed in the editor",
+      "viewport_equivalence": "not yet verified against a restored native view"
+    },
+    {
+      "file": "native-edited-before-restore.png",
+      "phase": "after actual editor change, before restore",
+      "source": "user-provided screenshot; cropped to the App pane",
+      "receipt": "native-edited-before-restore.receipt.json",
+      "labels": "All three visually centered",
+      "zoom": "100% displayed"
+    },
+    {
+      "file": "bootstrap/native-restored-white.png",
+      "phase": "original fresh native restore failed",
+      "receipt": "bootstrap/native-restored-white.receipt.json",
+      "observed": "empty App pane; no drawing or controls"
+    }
+  ],
+  "pr15": {
+    "head": "3f65a71cd0419c473ef116ba2fa57f72cebaa06a",
+    "draft": true,
+    "ready_condition": "Observe native initial and restored bound-label scene at constant framing, including an App edit/save/read and final captures."
+  },
+  "activation": {
+    "connection_loaded": true,
+    "native_panel_open_confirmed_by_user": true,
+    "native_editor_controls_confirmed": "Excalidraw editing toolbar, Open in Excalidraw and 100% zoom visible in screenshot"
+  },
+  "hygiene": {
+    "credentials_config_databases_logs_excluded": true,
+    "production_endpoints_not_invoked": true,
+    "existing_codex_config": "All preceding bytes preserved; a distinct temporary QA table appended."
+  },
+  "native_observation_limits": {
+    "dom_snapshot": "Only main and disabled Undo/Redo controls observed; no drawing bounds obtained.",
+    "tab_screenshot": "Timed out at 30 seconds; runtime reset.",
+    "read_only_dom_evaluation": "CDP operation deadline exceeded before dispatch.",
+    "documented_native_tab_observation": "Timed out at 55 seconds; runtime reset.",
+    "repair_boundary": "No further retries of these observation methods."
+  },
+  "diagnosis": {
+    "report": "debug/README.md",
+    "results": "debug/probe-results.json",
+    "reproducer": "debug/native-title-probe.js",
+    "command": "await probeNativeTitle() in cua_repl",
+    "internal_root_cause": "not_established",
+    "fix": "not_applied; no supported repair interface for the failing native observation path in this repository",
+    "native_gate": "Original restore failed visually. A pre-connect notification fix is qualified automatically; native final candidate pending."
+  },
+  "native_initial_checkpoint_read": "native-checkpoint-initial-read.json",
+  "native_edit_save_read": "native-edit-save-read.json",
+  "native_restore_result": "native-restore-result.json",
+  "blank_restore_diagnosis": "bootstrap/diagnosis.json",
+  "candidate_excalidraw": {
+    "commit": "4c3700f0ef25a261177fecad03284a57bf7847be",
+    "html_sha256": "1a29d10ee805c360ccee49f104e19062cee70852c9e6db22b5d61a9f95a252d7",
+    "registration": "bifrost-pr15-native-fixed-qa",
+    "native_render": "pending"
+  }
+}

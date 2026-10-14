@@ -1,0 +1,43 @@
+{
+  "validation": "native_App_edit_save_read",
+  "observed_at": "2026-10-14T09:22:47.283105+00:00",
+  "route": "/mcp/excalidraw",
+  "checkpoint_id": "a4de9e1013d44a30b3",
+  "http_status": 200,
+  "element_count": 7,
+  "text_count": 3,
+  "added_rectangle_id": "hXOy-5gDrPmgeahiOLg9n",
+  "user_edit_saved": true,
+  "original_boxes_unchanged": true,
+  "bound_labels": [
+    {
+      "text": "Codex",
+      "container_id": "native-pr15-codex",
+      "center_delta_scene_units": {
+        "x": 0.0,
+        "y": 0.0
+      },
+      "reciprocal_binding": true
+    },
+    {
+      "text": "Bifrost",
+      "container_id": "native-pr15-bifrost",
+      "center_delta_scene_units": {
+        "x": 0.0,
+        "y": 0.0
+      },
+      "reciprocal_binding": true
+    },
+    {
+      "text": "Excalidraw",
+      "container_id": "native-pr15-excalidraw",
+      "center_delta_scene_units": {
+        "x": 0.0,
+        "y": 0.0
+      },
+      "reciprocal_binding": true
+    }
+  ],
+  "checkpoint_sha256": "0f132a92b212a9931d956f322cc6c31f96250fbef0f844f6dc0b4da1de4fffe6",
+  "native_visual_after_restore": "not_observed"
+}

@@ -1,0 +1,9 @@
+{
+  "validation": "two_axis_code_review",
+  "app_base": "61bb966aa2ceee485aaa3badd91807c2edc6f236",
+  "app_head": "4c3700f0ef25a261177fecad03284a57bf7847be",
+  "standards_findings": [],
+  "spec_findings": [],
+  "native_final_gate": "pending; PR15 must remain draft",
+  "review_scope": "App source, standalone bootstrap test and actual built-App initialization regression; read-only reviews"
+}

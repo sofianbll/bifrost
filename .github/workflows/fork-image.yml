@@ -132,7 +132,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           repository: sofianbll/excalidraw-mcp
-          ref: 61bb966aa2ceee485aaa3badd91807c2edc6f236
+          ref: 4c3700f0ef25a261177fecad03284a57bf7847be
           path: .qa/excalidraw
           persist-credentials: false
       - name: Build and test reviewed Excalidraw App
@@ -151,6 +151,15 @@ jobs:
           --app-source .qa/excalidraw/src/mcp-app.tsx
           --scene docs/qa/bifrost-2.2.6/restore-fix/saved-scene.json
           --out "$RUNNER_TEMP/mcpapps-normalizer-reports"
+      - name: Verify eager Excalidraw App initialization
+        if: ${{ !cancelled() && matrix.arch == 'amd64' && steps.image-probe.outcome == 'success' }}
+        run: |
+          for timing in immediate delayed; do
+            node tests/mcpapps/qualify-excalidraw-initialization.mjs \
+              --html .qa/excalidraw/dist/mcp-app.html \
+              --scene docs/qa/bifrost-2.2.6/restore-fix/saved-scene.json \
+              --timing "$timing" --out "$RUNNER_TEMP/mcpapps-initialization/$timing"
+          done
       - name: Qualify real MCP Apps and their reference-host rendering
         timeout-minutes: 20
         if: ${{ !cancelled() && matrix.arch == 'amd64' && steps.image-probe.outcome == 'success' && steps.reference-host.outcome == 'success' }}
@@ -168,6 +177,7 @@ jobs:
           path: |
             ${{ runner.temp }}/mcpapps-reports/
             ${{ runner.temp }}/mcpapps-normalizer-reports/
+            ${{ runner.temp }}/mcpapps-initialization/
             ${{ runner.temp }}/mcpapps-fixture-reports/
           retention-days: 14
       - uses: step-security/docker-login-action@870af644803bf9f204aed474adbad2958fec048b # v4.1.0

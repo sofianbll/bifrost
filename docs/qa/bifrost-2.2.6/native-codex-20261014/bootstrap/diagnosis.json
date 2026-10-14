@@ -1,0 +1,69 @@
+{
+  "validation": "App_initialization_race_diagnosis",
+  "status": "source_fixed; final_native_qualification_pending",
+  "gateway_commit": "3f65a71cd0419c473ef116ba2fa57f72cebaa06a",
+  "gateway_version": "v2.2.6-native-qa.3f65a71cd041",
+  "route": "/mcp/excalidraw",
+  "before_app_commit": "61bb966aa2ceee485aaa3badd91807c2edc6f236",
+  "fixed_app_commit": "4c3700f0ef25a261177fecad03284a57bf7847be",
+  "fixed_html_sha256": "1a29d10ee805c360ccee49f104e19062cee70852c9e6db22b5d61a9f95a252d7",
+  "native_checkpoints": {
+    "user_edited": "a4de9e1013d44a30b3",
+    "blank_restore": "2186fe8d0f52415193",
+    "direct_elements_control": "c190882b6c70438793",
+    "read_trace": "a111683fd01345c598",
+    "repeated_restore": "d63f3de1c6d041f298"
+  },
+  "native_observations": {
+    "user_blank_capture": true,
+    "white_view_dom": {
+      "main_present": true,
+      "svg_count": 0
+    },
+    "direct_control": "User observed four rectangles and three texts; two canvas nodes present.",
+    "trace_first_view": "Diagnostic script present, read_checkpoint never started.",
+    "trace_repeated_view": "Read parsed seven elements and mounted two canvas nodes. Native behavior was intermittent.",
+    "second_trace_cached": "DOM script lacked the second timing probe despite the isolated HTTP resource serving its newer hash."
+  },
+  "hypotheses": [
+    {
+      "id": "widget_read_failure",
+      "prediction": "Direct saved elements render while restore does not.",
+      "result": "Direct control rendered; instrument showed initial read never started."
+    },
+    {
+      "id": "invalid_saved_elements",
+      "prediction": "Same actual saved elements fail actual-library replay.",
+      "result": "Rejected: 10/10 normalizer checks and native direct control rendered."
+    },
+    {
+      "id": "host_open_failure",
+      "prediction": "A new direct view also remains blank.",
+      "result": "Direct native control rendered."
+    },
+    {
+      "id": "notifications_before_core_mount",
+      "prediction": "Eager initialization notifications are lost; delaying the same notifications renders the scene.",
+      "result": "Reproduced on old actual App/SDK HTML; fixed and normal timings pass after pre-connect buffering."
+    }
+  ],
+  "root_cause": "Tool input/result handlers were installed only after useApp connected and React mounted the core. Eager initialization notifications could be missed, leaving the restore view empty before read_checkpoint ran.",
+  "qualification_limit": "The initialization defect is reproduced through the actual built App/SDK. Exact message timing of the original native failure was not captured; final native render of the fixed artifact is still required.",
+  "fix": "Register startup handlers with onAppCreated; hold only the latest input with partial/final status and the result, then replay through existing core handlers and release them.",
+  "checks": {
+    "pristine_source_unit_regression": "RED: missing pre-connect handler",
+    "fixed_unit_tests": "8/8",
+    "typecheck": "passed",
+    "full_build": "passed",
+    "old_immediate_replay": "failed: no SVG and no read_checkpoint",
+    "old_delayed_replay": "passed",
+    "fixed_immediate_replay": "passed",
+    "fixed_delayed_replay": "passed",
+    "review_standards_findings": 0,
+    "review_spec_findings": 0
+  },
+  "native_fixed_registration": "bifrost-pr15-native-fixed-qa",
+  "temporary_source_instrumentation_removed": true,
+  "production_touched": false,
+  "pr15_ready": false
+}

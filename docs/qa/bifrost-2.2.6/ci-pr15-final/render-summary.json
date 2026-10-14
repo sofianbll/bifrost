@@ -1,0 +1,160 @@
+{
+  "validation": "automated_reference_host",
+  "codexVerification": "not_run",
+  "testedGateway": {
+    "commit": "3f65a71cd0419c473ef116ba2fa57f72cebaa06a",
+    "version": "2.2.6+sofian.3f65a71cd041",
+    "image": "bifrost:candidate",
+    "image_id": "sha256:7678374133c077926b2cc883c34fab276a52520d311c020d483bc57d4404a52e"
+  },
+  "renderer": {
+    "commit": "3f65a71cd0419c473ef116ba2fa57f72cebaa06a",
+    "sha256": "b23f94a87de751ad359fdac425d1da05affe7e6a2e16487e4a92638254854bd3"
+  },
+  "browser": {
+    "version": "143.0.7499.4",
+    "channel": "chromium"
+  },
+  "referenceHost": {
+    "repository": "https://github.com/modelcontextprotocol/ext-apps",
+    "version": "2.0.3",
+    "commit": "82221c0c8ce7661efa6771c9d461511b1650495f"
+  },
+  "runtimeSeconds": 45,
+  "passed": 18,
+  "failed": 0,
+  "results": [
+    {
+      "id": "excalidraw-direct",
+      "app": "excalidraw",
+      "route": "direct",
+      "status": "passed",
+      "gatewayPath": "/mcp/excalidraw"
+    },
+    {
+      "id": "excalidraw-virtual",
+      "app": "excalidraw",
+      "route": "virtual",
+      "status": "passed",
+      "gatewayPath": "/mcp/codeapps"
+    },
+    {
+      "id": "excalidraw-aggregate",
+      "app": "excalidraw",
+      "route": "aggregate",
+      "status": "passed",
+      "gatewayPath": "/mcp"
+    },
+    {
+      "id": "excalidraw-direct-codemode",
+      "app": "excalidraw",
+      "route": "direct",
+      "status": "passed",
+      "gatewayPath": "/mcp/excalidraw-code"
+    },
+    {
+      "id": "pdf-direct",
+      "app": "pdf",
+      "route": "direct",
+      "status": "passed",
+      "gatewayPath": "/mcp/pdf"
+    },
+    {
+      "id": "pdf-virtual",
+      "app": "pdf",
+      "route": "virtual",
+      "status": "passed",
+      "gatewayPath": "/mcp/codeapps"
+    },
+    {
+      "id": "pdf-aggregate",
+      "app": "pdf",
+      "route": "aggregate",
+      "status": "passed",
+      "gatewayPath": "/mcp"
+    },
+    {
+      "id": "pdf-direct-codemode",
+      "app": "pdf",
+      "route": "direct",
+      "status": "passed",
+      "gatewayPath": "/mcp/pdf-code"
+    },
+    {
+      "id": "debug-direct",
+      "app": "debug",
+      "route": "direct",
+      "status": "passed",
+      "gatewayPath": "/mcp/debug"
+    },
+    {
+      "id": "debug-virtual",
+      "app": "debug",
+      "route": "virtual",
+      "status": "passed",
+      "gatewayPath": "/mcp/codeapps"
+    },
+    {
+      "id": "debug-aggregate",
+      "app": "debug",
+      "route": "aggregate",
+      "status": "passed",
+      "gatewayPath": "/mcp"
+    },
+    {
+      "id": "debug-direct-codemode",
+      "app": "debug",
+      "route": "direct",
+      "status": "passed",
+      "gatewayPath": "/mcp/debug-code"
+    },
+    {
+      "id": "monitor-direct",
+      "app": "monitor",
+      "route": "direct",
+      "status": "passed",
+      "gatewayPath": "/mcp/monitor"
+    },
+    {
+      "id": "monitor-virtual",
+      "app": "monitor",
+      "route": "virtual",
+      "status": "passed",
+      "gatewayPath": "/mcp/codeapps"
+    },
+    {
+      "id": "monitor-aggregate",
+      "app": "monitor",
+      "route": "aggregate",
+      "status": "passed",
+      "gatewayPath": "/mcp"
+    },
+    {
+      "id": "monitor-direct-codemode",
+      "app": "monitor",
+      "route": "direct",
+      "status": "passed",
+      "gatewayPath": "/mcp/monitor-code"
+    },
+    {
+      "id": "excalidraw-checkpoint-roundtrip",
+      "app": "excalidraw",
+      "route": "direct",
+      "gatewayPath": "/mcp/excalidraw",
+      "status": "passed",
+      "checks": {
+        "beforeAlignment": true,
+        "deliberateDisplacementRejected": true,
+        "saveWithBoundLabelsAndPointerEdit": true,
+        "exactReadbackWithBoundLabels": true,
+        "fixedFraming": true,
+        "afterAlignment": true
+      }
+    },
+    {
+      "id": "four-connections-stall",
+      "status": "passed"
+    }
+  ],
+  "redaction": "Full HTML, resource payloads, console dumps and private runtime files omitted; selected synthetic checkpoint scene retained separately."
+}
