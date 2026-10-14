@@ -1,3 +1,5 @@
+[fix]: reconcile Virtual MCP key grants after governance hydration [@sofianbll](https://github.com/sofianbll)
+
 [fix]: expose Code Mode script failures as MCP error results [@sofianbll](https://github.com/sofianbll)
 
 ## ✨ Features
