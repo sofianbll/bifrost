@@ -1,0 +1,94 @@
+name: Persistent MCP restart comparison
+
+on:
+  push:
+    branches: ['codex/persistent-403-226']
+    paths:
+      - '.github/workflows/persistent-mcp-restart.yml'
+      - '.github/workflows/scripts/test-persistent-mcp-restart*.py'
+  pull_request:
+    paths:
+      - '.github/workflows/persistent-mcp-restart.yml'
+      - '.github/workflows/scripts/test-persistent-mcp-restart*.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compare:
+    if: github.repository == 'sofianbll/bifrost'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [stock, fork]
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Checkout pinned stock 2.2.6
+        if: matrix.variant == 'stock'
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: maximhq/bifrost
+          ref: 8b4fce4f1709d66f9208d02f50552da522535f9e
+          path: stock-source
+          persist-credentials: false
+      - uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
+        with:
+          go-version: '1.27.0'
+      - name: Build exact source without a UI test
+        env:
+          VARIANT: ${{ matrix.variant }}
+        run: |
+          set -euo pipefail
+          source_dir="$GITHUB_WORKSPACE"
+          if [[ "$VARIANT" == stock ]]; then source_dir="$GITHUB_WORKSPACE/stock-source"; fi
+          cd "$source_dir"
+          source "$GITHUB_WORKSPACE/.github/workflows/scripts/setup-go-workspace.sh"
+          mkdir -p transports/bifrost-http/ui
+          printf '<html><body>CI HTTP fixture</body></html>' > transports/bifrost-http/ui/index.html
+          cd transports
+          go build -trimpath -ldflags='-X main.Version=v2.2.6' -o "$RUNNER_TEMP/bifrost-restart" ./bifrost-http
+      - name: Probe the existing-store HTTP and OAuth restart
+        env:
+          VARIANT: ${{ matrix.variant }}
+        run: |
+          set -euo pipefail
+          source_dir="$GITHUB_WORKSPACE"
+          if [[ "$VARIANT" == stock ]]; then source_dir="$GITHUB_WORKSPACE/stock-source"; fi
+          python3 .github/workflows/scripts/test-persistent-mcp-restart.py \
+            --binary "$RUNNER_TEMP/bifrost-restart" --variant "$VARIANT" \
+            --commit "$(git -C "$source_dir" rev-parse HEAD)" \
+            --output "$RUNNER_TEMP/persistent-restart/$VARIANT.json"
+      - name: Verify real interruption cleanup
+        if: always()
+        env:
+          VARIANT: ${{ matrix.variant }}
+        run: |
+          set -euo pipefail
+          source_dir="$GITHUB_WORKSPACE"
+          if [[ "$VARIANT" == stock ]]; then source_dir="$GITHUB_WORKSPACE/stock-source"; fi
+          git fetch --depth=1 https://github.com/sofianbll/bifrost.git \
+            d7416ed5b3b13a2f961c9b6e60d83e8a6c56c65e f4527a9ab72210952c03e37ba30e200c5cea5bb4
+          git show d7416ed5b3b13a2f961c9b6e60d83e8a6c56c65e:.github/workflows/scripts/test-persistent-mcp-restart.py \
+            > "$RUNNER_TEMP/legacy-persistent-probe.py"
+          git show f4527a9ab72210952c03e37ba30e200c5cea5bb4:.github/workflows/scripts/test-persistent-mcp-restart.py \
+            > "$RUNNER_TEMP/legacy-cleanup-probe.py"
+          python3 .github/workflows/scripts/test-persistent-mcp-restart.test.py \
+            "$RUNNER_TEMP/bifrost-restart" "$VARIANT" "$(git -C "$source_dir" rev-parse HEAD)" \
+            "$RUNNER_TEMP/persistent-restart/$VARIANT-interruption.json" \
+            "$RUNNER_TEMP/legacy-persistent-probe.py" "$RUNNER_TEMP/legacy-cleanup-probe.py"
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        if: always()
+        with:
+          name: persistent-restart-${{ matrix.variant }}
+          path: ${{ runner.temp }}/persistent-restart/
+          if-no-files-found: error
+          retention-days: 14

@@ -1,0 +1,101 @@
+{
+  "commit": "a6f3075a954e716ae801f03d89e02c3634136604",
+  "variant": "fork",
+  "tested_version": "2.2.6",
+  "validation": "automated_synthetic_http_oauth",
+  "codex_verification": "not_run",
+  "production": "not_accessed",
+  "result": "pass",
+  "route": "/mcp/persistent-http",
+  "authentication": [
+    "VK header",
+    "Bifrost-issued OAuth JWT"
+  ],
+  "sequence": [
+    "create SQLite store with HTTP sticky=false",
+    "authorize and call",
+    "PUT sticky=true",
+    "restart same process binary and store",
+    "authorize and call twice",
+    "restart same store again",
+    "authorize and call twice"
+  ],
+  "historical_incident": "not_reproduced_in_synthetic_scenario",
+  "checkpoints": [
+    {
+      "phase": "before",
+      "header": {
+        "initialize": 200,
+        "tools_list": 200,
+        "tools_call": 200,
+        "marker_echoed": true
+      },
+      "oauth": {
+        "initialize": 200,
+        "tools_list": 200,
+        "tools_call": 200,
+        "marker_echoed": true
+      }
+    },
+    {
+      "phase": "after-restart-1",
+      "persistent_flag": true,
+      "header": {
+        "initialize": 200,
+        "tools_list": 200,
+        "tools_call": 200,
+        "marker_echoed": true
+      },
+      "oauth": {
+        "initialize": 200,
+        "tools_list": 200,
+        "tools_call": 200,
+        "marker_echoed": true
+      }
+    },
+    {
+      "phase": "after-restart-2",
+      "persistent_flag": true,
+      "header": {
+        "initialize": 200,
+        "tools_list": 200,
+        "tools_call": 200,
+        "marker_echoed": true
+      },
+      "oauth": {
+        "initialize": 200,
+        "tools_list": 200,
+        "tools_call": 200,
+        "marker_echoed": true
+      }
+    }
+  ],
+  "upstream_auth": "synthetic static Bearer header; live upstream OAuth not exercised",
+  "negative_controls": [
+    {
+      "restart": 1,
+      "status": 403,
+      "error": "access_denied",
+      "authorized_request_assertion_rejected": true,
+      "kind": "deliberate missing grant, not historical reproduction"
+    },
+    {
+      "restart": 2,
+      "status": 403,
+      "error": "access_denied",
+      "authorized_request_assertion_rejected": true,
+      "kind": "deliberate missing grant, not historical reproduction"
+    }
+  ],
+  "existing_store": {
+    "same_sqlite_file": true,
+    "original_config_unchanged": true
+  },
+  "upstream_fixture_counts": {
+    "authorized_requests": 22,
+    "refused_requests": 0,
+    "initializations": 6,
+    "calls": 6
+  },
+  "elapsed_seconds": 9.661
+}

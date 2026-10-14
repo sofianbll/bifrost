@@ -1,0 +1,12 @@
+{
+  "check": "real SIGTERM cleanup",
+  "variant": "stock",
+  "commit": "8b4fce4f1709d66f9208d02f50552da522535f9e",
+  "result": "pass",
+  "child_was_running": true,
+  "sqlite_store_existed": true,
+  "child_stopped": true,
+  "private_files_removed": true,
+  "interrupted_verdict": "interrupted",
+  "exit_code": 143
+}

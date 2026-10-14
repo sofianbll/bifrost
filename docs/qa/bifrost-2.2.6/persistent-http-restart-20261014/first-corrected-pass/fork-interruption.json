@@ -1,0 +1,12 @@
+{
+  "check": "real SIGTERM cleanup",
+  "variant": "fork",
+  "commit": "f4527a9ab72210952c03e37ba30e200c5cea5bb4",
+  "result": "pass",
+  "child_was_running": true,
+  "sqlite_store_existed": true,
+  "child_stopped": true,
+  "private_files_removed": true,
+  "interrupted_verdict": "interrupted",
+  "exit_code": 143
+}

@@ -1,0 +1,68 @@
+{
+  "check": "real SIGTERM cleanup red/green",
+  "variant": "fork",
+  "commit": "a6f3075a954e716ae801f03d89e02c3634136604",
+  "legacy_startup_script_commit": "d7416ed5b3b13a2f961c9b6e60d83e8a6c56c65e",
+  "legacy_cleanup_script_commit": "f4527a9ab72210952c03e37ba30e200c5cea5bb4",
+  "initial_boot": {
+    "before": {
+      "kind": "legacy red control",
+      "exit_code": -15,
+      "signal_phase": "initial boot",
+      "injection": "SIGTERM parent",
+      "script_sha256": "9fee3afbc207a572c2ef68567ea28d2d08e0f64deb4dd60a758ea11a00efb802",
+      "child_was_running": true,
+      "sqlite_store_existed": true,
+      "child_left_running": true,
+      "private_files_left": true,
+      "interrupted_verdict": null,
+      "driver_stopped_remaining_children": true,
+      "driver_removed_private_files": true
+    },
+    "after": {
+      "kind": "corrected green control",
+      "exit_code": 143,
+      "signal_phase": "initial boot",
+      "injection": "SIGTERM parent",
+      "script_sha256": "f3c10d4066032a6417a0be0492d56af7bbe7e8ffc2df3530c2a2c6cd9b421ebc",
+      "child_was_running": true,
+      "sqlite_store_existed": true,
+      "child_left_running": false,
+      "private_files_left": false,
+      "interrupted_verdict": "interrupted",
+      "driver_stopped_remaining_children": true,
+      "driver_removed_private_files": true
+    }
+  },
+  "normal_cleanup": {
+    "before": {
+      "kind": "legacy red control",
+      "exit_code": 143,
+      "signal_phase": "normal cleanup",
+      "injection": "SIGSTOP child at terminate, SIGTERM parent at wait",
+      "script_sha256": "df62a416eccc93052b47f0a26bdfccac87b2bb9871b562e8c0592bbb5550fe38",
+      "child_was_running": true,
+      "sqlite_store_existed": true,
+      "child_left_running": true,
+      "private_files_left": false,
+      "interrupted_verdict": "interrupted",
+      "driver_stopped_remaining_children": true,
+      "driver_removed_private_files": true
+    },
+    "after": {
+      "kind": "corrected green control",
+      "exit_code": 143,
+      "signal_phase": "normal cleanup",
+      "injection": "SIGSTOP child at terminate, SIGTERM parent at wait",
+      "script_sha256": "f3c10d4066032a6417a0be0492d56af7bbe7e8ffc2df3530c2a2c6cd9b421ebc",
+      "child_was_running": true,
+      "sqlite_store_existed": true,
+      "child_left_running": false,
+      "private_files_left": false,
+      "interrupted_verdict": "interrupted",
+      "driver_stopped_remaining_children": true,
+      "driver_removed_private_files": true
+    }
+  },
+  "result": "pass"
+}

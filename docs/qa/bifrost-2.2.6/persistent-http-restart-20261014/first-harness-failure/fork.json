@@ -1,0 +1,28 @@
+{
+  "commit": "d7416ed5b3b13a2f961c9b6e60d83e8a6c56c65e",
+  "variant": "fork",
+  "tested_version": "2.2.6",
+  "validation": "automated_synthetic_http_oauth",
+  "codex_verification": "not_run",
+  "production": "not_accessed",
+  "result": "fail",
+  "route": "/mcp/persistent-http",
+  "authentication": [
+    "VK header",
+    "Bifrost-issued OAuth JWT"
+  ],
+  "sequence": [
+    "create SQLite store with HTTP sticky=false",
+    "authorize and call",
+    "PUT sticky=true",
+    "restart same process binary and store",
+    "authorize and call twice",
+    "restart same store again",
+    "authorize and call twice"
+  ],
+  "historical_incident": "not_reproduced_yet",
+  "checkpoints": [],
+  "upstream_auth": "synthetic static Bearer header; live upstream OAuth not exercised",
+  "failure": "fixture tools were not discovered before probe",
+  "elapsed_seconds": 38.874
+}
