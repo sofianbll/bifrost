@@ -337,6 +337,10 @@ func (m *MCPManager) GetAvailableTools(ctx *schemas.BifrostContext) []schemas.Ch
 	return m.toolsManager.GetAvailableTools(ctx)
 }
 
+func (m *MCPManager) GetAvailableGatewayTools(ctx *schemas.BifrostContext) []schemas.ChatTool {
+	return m.toolsManager.GetAvailableGatewayTools(ctx)
+}
+
 // UpdateToolManagerConfig updates the configuration for the tool manager.
 // This allows runtime updates to settings like execution timeout and max agent depth.
 //

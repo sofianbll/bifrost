@@ -2,6 +2,7 @@ package configstore
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
 	"github.com/maximhq/bifrost/core/schemas"
@@ -26,7 +27,7 @@ func TestUpdateMCPClientTools_TargetedColumnUpdate(t *testing.T) {
 	}))
 
 	tools := map[string]schemas.ChatTool{
-		"echo": {Type: "function"},
+		"echo": {Type: "function", MCPRawTool: json.RawMessage(`{"name":"echo","_meta":{"ui":{"visibility":["app"]}}}`), MCPAppOnly: true},
 	}
 	mapping := map[string]string{"echo": "echo-server"}
 
