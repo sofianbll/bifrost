@@ -1429,7 +1429,7 @@ func TestCodeMode_STDIO_ErrorTestServer_IntermittentAndHandling(t *testing.T) {
 	}{
 		{
 			name: "intermittent_fail_low_rate",
-			code: `result = errorTestServer.intermittent_fail(id="test-1", fail_rate=0.1)`,
+			code: `result = errorTestServer.intermittent_fail(id="test-1", fail_rate=0)`,
 			verifyResult: func(t *testing.T, execResult map[string]interface{}) {
 				result, ok := execResult["result"].(map[string]interface{})
 				require.True(t, ok)
@@ -1443,7 +1443,7 @@ func TestCodeMode_STDIO_ErrorTestServer_IntermittentAndHandling(t *testing.T) {
 		},
 		{
 			name: "intermittent_fail_high_rate",
-			code: `result = errorTestServer.intermittent_fail(id="test-2", fail_rate=0.9)`,
+			code: `result = errorTestServer.intermittent_fail(id="test-2", fail_rate=100)`,
 			verifyResult: func(t *testing.T, execResult map[string]interface{}) {
 				result, ok := execResult["result"].(map[string]interface{})
 				require.True(t, ok)
