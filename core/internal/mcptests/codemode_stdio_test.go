@@ -1422,6 +1422,7 @@ func TestCodeMode_STDIO_ErrorTestServer_IntermittentAndHandling(t *testing.T) {
 	_, bifrost := setupCodeModeWithSTDIOServers(t, "error-test-server")
 	ctx := createTestContext()
 
+	// The Go fixture uses 0-100 percentages; endpoints force both outcomes.
 	tests := []struct {
 		name         string
 		code         string
@@ -1429,26 +1430,21 @@ func TestCodeMode_STDIO_ErrorTestServer_IntermittentAndHandling(t *testing.T) {
 	}{
 		{
 			name: "intermittent_fail_low_rate",
-			code: `result = errorTestServer.intermittent_fail(id="test-1", fail_rate=0.1)`,
+			code: `result = errorTestServer.intermittent_fail(id="test-1", fail_rate=0)`,
 			verifyResult: func(t *testing.T, execResult map[string]interface{}) {
 				result, ok := execResult["result"].(map[string]interface{})
 				require.True(t, ok)
-				// Either success or error
-				if result["error"] != nil {
-					assert.Contains(t, result["error"], "Intermittent")
-				} else {
-					assert.True(t, result["success"].(bool))
-				}
+				assert.Equal(t, true, result["success"])
+				assert.Equal(t, float64(0), result["fail_rate"])
 			},
 		},
 		{
 			name: "intermittent_fail_high_rate",
-			code: `result = errorTestServer.intermittent_fail(id="test-2", fail_rate=0.9)`,
+			code: `result = errorTestServer.intermittent_fail(id="test-2", fail_rate=100)`,
 			verifyResult: func(t *testing.T, execResult map[string]interface{}) {
-				result, ok := execResult["result"].(map[string]interface{})
-				require.True(t, ok)
-				// Most likely error
-				assert.NotNil(t, result)
+				result, ok := execResult["result"].(string)
+				require.True(t, ok, "tool errors should be returned as text")
+				assert.Contains(t, result, "Intermittent failure (fail_rate: 100.0%")
 			},
 		},
 		{
