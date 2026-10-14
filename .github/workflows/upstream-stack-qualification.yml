@@ -1,0 +1,284 @@
+name: Qualify clean Bifrost 2.2.6 stack
+
+on:
+  push:
+    branches: [codex/upstream-stack-ci-226]
+    paths:
+      - .github/workflows/upstream-stack-qualification.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    if: github.repository == 'sofianbll/bifrost' && github.ref_type == 'branch'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - layer: A
+            commit: f136c93fcf78f3db3df59974ae49cfc392412f51
+          - layer: B
+            commit: adb80e661560174025ff9f9c23b918cb377e14b9
+          - layer: C
+            commit: 314e02b21dbc0ffc7be68ede049005c0276fe0b8
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: bash
+        working-directory: harness
+    env:
+      CANDIDATE_COMMIT: ${{ matrix.commit }}
+      CANDIDATE_LAYER: ${{ matrix.layer }}
+      HARNESS_COMMIT: 1dcbd14d5875a14dc780f00fc2edd22cfaee66a8
+      QUALIFICATION_DIR: ${{ runner.temp }}/qualification
+    steps:
+      - name: Checkout pinned fork harness
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ env.HARNESS_COMMIT }}
+          path: harness
+          persist-credentials: false
+      - name: Checkout immutable clean candidate
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ matrix.commit }}
+          path: candidate
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify provenance and adapt only the excluded fork UI unit check
+        run: |
+          python3 - <<'PYPROVENANCE'
+          import hashlib, json, os, subprocess
+          from pathlib import Path
+          harness, candidate = Path.cwd(), Path('../candidate').resolve()
+          def git(directory, *args):
+              return subprocess.check_output(['git', '-C', str(directory), *args], text=True).strip()
+          assert git(harness, 'rev-parse', 'HEAD') == os.environ['HARNESS_COMMIT']
+          assert git(candidate, 'rev-parse', 'HEAD') == os.environ['CANDIDATE_COMMIT']
+          assert not git(candidate, 'status', '--porcelain', '--untracked-files=no')
+          assert (candidate / 'transports/version').read_text().strip() == '2.2.6'
+          subprocess.run(['git', '-C', str(candidate), 'merge-base', '--is-ancestor',
+                          '8b4fce4f1709d66f9208d02f50552da522535f9e', 'HEAD'], check=True)
+          assert not (candidate / 'ui/lib/utils/compareVersions.test.ts').exists()
+          source = (harness / 'transports/Dockerfile.local').read_text()
+          excluded = 'RUN npx vitest run lib/utils/compareVersions.test.ts && npm run build-enterprise'
+          assert source.count(excluded) == 1
+          adapted = source.replace(excluded, 'RUN npm run build-enterprise')
+          output = Path(os.environ['QUALIFICATION_DIR'])
+          output.mkdir()
+          (output / 'Dockerfile.candidate').write_text(adapted)
+          digest = lambda path: hashlib.sha256(path.read_bytes()).hexdigest()
+          fixtures = ['tests/integrations/python/config.json',
+                      'tests/e2e/api/collections/provider-harness.json',
+                      'examples/mcps/mcp-apps-test-server/main.go',
+                      'examples/mcps/error-test-server/main.go',
+                      'tests/mcpapps/real-apps.json', 'tests/mcpapps/ci.py',
+                      'tests/mcpapps/render-reference-host.mjs',
+                      '.github/workflows/scripts/test-mcp-apps-fixture.sh']
+          manifest = {'layer': os.environ['CANDIDATE_LAYER'], 'architecture': 'amd64',
+              'wrapper_commit': os.environ['GITHUB_SHA'], 'harness_commit': os.environ['HARNESS_COMMIT'],
+              'candidate_commit': os.environ['CANDIDATE_COMMIT'], 'candidate_tree': git(candidate, 'rev-parse', 'HEAD^{tree}'),
+              'candidate_base': '8b4fce4f1709d66f9208d02f50552da522535f9e',
+              'version': '2.2.6+qualification.' + os.environ['CANDIDATE_COMMIT'],
+              'dockerfile_source_sha256': digest(harness / 'transports/Dockerfile.local'),
+              'dockerfile_adapted_sha256': digest(output / 'Dockerfile.candidate'),
+              'build_adaptation': 'Only omit absent fork compareVersions unit test; preserve candidate UI/Go build and local modules.',
+              'fixture_source': {'commit': os.environ['HARNESS_COMMIT'], 'sha256': {p: digest(harness / p) for p in fixtures}},
+              'codex_verification': 'not_run', 'production': 'not_touched'}
+          (output / 'provenance.json').write_text(json.dumps(manifest, indent=2) + '\n')
+          PYPROVENANCE
+      - uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
+        with:
+          go-version: "1.27.0"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "25"
+      - name: Run complete candidate MCP mock suite with race detector
+        id: mcp-tests
+        working-directory: candidate
+        run: |
+          test ! -f .env
+          make test-mcp
+      - name: Check candidate configuration and persistence packages with local modules
+        id: persistence-tests
+        working-directory: candidate
+        run: |
+          source ../harness/.github/workflows/scripts/setup-go-workspace.sh
+          if [[ "$CANDIDATE_LAYER" != A ]]; then
+            go test -race -count=1 -timeout=10m ./transports/bifrost-http/lib/... \
+              -run '^TestSQLite_VKMCPConfig_Reconciliation$'
+          fi
+          if [[ "$CANDIDATE_LAYER" == C ]]; then
+            go test -race -count=1 -timeout=10m ./framework/configstore/... \
+              -run '^TestUpdateMCPClientTools_'
+          fi
+          test -z "$(git status --porcelain --untracked-files=no)"
+      - uses: step-security/setup-buildx-action@f931205d68723ad9589fd2a7e2ece238bf9de341 # v4.0.0
+      - name: Build candidate gateway and UI independently
+        id: build
+        uses: step-security/docker-build-push-action@846549baaf047e867d038826129a64d81df0f704 # v7.1.0
+        with:
+          context: candidate
+          file: ${{ env.QUALIFICATION_DIR }}/Dockerfile.candidate
+          platforms: linux/amd64
+          load: true
+          tags: bifrost:candidate
+          build-args: |
+            DYNAMIC=1
+            VERSION=2.2.6+qualification.${{ matrix.commit }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/sofianbll/bifrost
+            org.opencontainers.image.revision=${{ matrix.commit }}
+            org.opencontainers.image.version=2.2.6+qualification.${{ matrix.commit }}
+          cache-from: type=gha,scope=upstream-226-${{ matrix.layer }}
+          cache-to: type=gha,mode=max,scope=upstream-226-${{ matrix.layer }}
+      - name: Run candidate Go package race tests and compile its plugin and UI probe
+        id: package-tests
+        uses: step-security/docker-build-push-action@846549baaf047e867d038826129a64d81df0f704 # v7.1.0
+        with:
+          context: candidate
+          file: ${{ env.QUALIFICATION_DIR }}/Dockerfile.candidate
+          target: plugin-artifact
+          platforms: linux/amd64
+          outputs: type=local,dest=${{ runner.temp }}/plugin
+          build-args: |
+            DYNAMIC=1
+            VERSION=2.2.6+qualification.${{ matrix.commit }}
+          cache-from: type=gha,scope=upstream-226-${{ matrix.layer }}
+      - name: Test candidate image, plugin and exact built UI
+        id: image-probe
+        run: bash .github/workflows/scripts/test-dynamic-image.sh bifrost:candidate "$RUNNER_TEMP/plugin/hello-world.so" "$RUNNER_TEMP/plugin/ui-index.html"
+      - name: Run complete candidate C wire fixture and stock comparison
+        id: wire
+        if: matrix.layer == 'C'
+        run: |
+          bash .github/workflows/scripts/test-mcp-apps-fixture.sh bifrost:candidate "$QUALIFICATION_DIR/wire"
+          bash .github/workflows/scripts/test-mcp-apps-fixture.sh --baseline "$QUALIFICATION_DIR/wire"
+      - name: Install existing Playwright dependency and Chromium
+        if: matrix.layer == 'C'
+        run: |
+          npm ci --prefix tests/e2e
+          tests/e2e/node_modules/.bin/playwright install --with-deps chromium
+      - name: Check comparison guardrails and bootstrap pinned reference host
+        if: matrix.layer == 'C'
+        run: |
+          python3 tests/mcpapps/ci.py --self-check
+          node tests/mcpapps/render-reference-host.mjs --self-check
+          node tests/mcpapps/bootstrap-reference-host.mjs --directory "$RUNNER_TEMP/ext-apps"
+      - name: Checkout reviewed Excalidraw App
+        if: matrix.layer == 'C'
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: sofianbll/excalidraw-mcp
+          ref: 4c3700f0ef25a261177fecad03284a57bf7847be
+          path: harness/.qa/excalidraw
+          persist-credentials: false
+      - name: Build and test reviewed Excalidraw App
+        if: matrix.layer == 'C'
+        working-directory: harness/.qa/excalidraw
+        run: |
+          npm install --global pnpm@10.11.0
+          pnpm install --frozen-lockfile --ignore-scripts
+          node scripts/setup-bun.mjs
+          pnpm test
+          pnpm run build
+      - name: Checkout pristine official Excalidraw App
+        if: matrix.layer == 'C'
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: excalidraw/excalidraw-mcp
+          ref: 157aa23ceb1976008aadc89eb05e3444060f09d6
+          path: harness/.qa/excalidraw-official
+          persist-credentials: false
+      - name: Build pristine official Excalidraw App
+        if: matrix.layer == 'C'
+        working-directory: harness/.qa/excalidraw-official
+        run: |
+          pnpm install --frozen-lockfile --ignore-scripts
+          node scripts/setup-bun.mjs
+          pnpm run build
+      - name: Verify actual normalizer and eager initialization
+        if: matrix.layer == 'C'
+        run: |
+          node tests/mcpapps/qualify-excalidraw-restore.mjs \
+            --app-source .qa/excalidraw/src/mcp-app.tsx \
+            --scene docs/qa/bifrost-2.2.6/restore-fix/saved-scene.json --out "$QUALIFICATION_DIR/normalizer"
+          for timing in immediate delayed; do
+            node tests/mcpapps/qualify-excalidraw-initialization.mjs \
+              --html .qa/excalidraw/dist/mcp-app.html \
+              --scene docs/qa/bifrost-2.2.6/restore-fix/saved-scene.json \
+              --timing "$timing" --out "$QUALIFICATION_DIR/initialization/$timing"
+          done
+      - name: Qualify candidate C real Apps and official/corrected direct/gateway comparison
+        id: apps
+        if: matrix.layer == 'C'
+        timeout-minutes: 20
+        run: >-
+          python3 tests/mcpapps/ci.py --image bifrost:candidate
+          --work-dir "$RUNNER_TEMP/mcpapps-private"
+          --report-dir "$QUALIFICATION_DIR/apps"
+          --render-script tests/mcpapps/render-reference-host.mjs
+          --reference-host-dir "$RUNNER_TEMP/ext-apps"
+          --excalidraw-dir "$GITHUB_WORKSPACE/harness/.qa/excalidraw"
+          --excalidraw-official-dir "$GITHUB_WORKSPACE/harness/.qa/excalidraw-official"
+      - name: Record actual image identity, result scope and report hashes
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+          MCP_OUTCOME: ${{ steps.mcp-tests.outcome }}
+          PERSISTENCE_OUTCOME: ${{ steps.persistence-tests.outcome }}
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+          PACKAGE_OUTCOME: ${{ steps.package-tests.outcome }}
+          IMAGE_OUTCOME: ${{ steps.image-probe.outcome }}
+          WIRE_OUTCOME: ${{ steps.wire.outcome }}
+          APPS_OUTCOME: ${{ steps.apps.outcome }}
+        run: |
+          python3 - <<'PYRESULT'
+          import hashlib, json, os, subprocess
+          from pathlib import Path
+          output = Path(os.environ['QUALIFICATION_DIR'])
+          if not (output / 'provenance.json').is_file():
+              raise SystemExit('No verified source provenance was produced')
+          manifest = json.loads((output / 'provenance.json').read_text())
+          result = subprocess.run(['docker', 'image', 'inspect', 'bifrost:candidate'], text=True, capture_output=True)
+          if result.returncode == 0:
+              info = json.loads(result.stdout)[0]
+              labels = info['Config']['Labels']
+              assert labels['org.opencontainers.image.revision'] == manifest['candidate_commit']
+              manifest['image_id'] = info['Id']
+              manifest['version'] = labels['org.opencontainers.image.version']
+              manifest['image_digest'] = info.get('RepoDigests', [])
+          manifest['job_status_at_report'] = os.environ['JOB_STATUS']
+          manifest['outcomes'] = {key.removesuffix('_OUTCOME').lower(): os.environ[key]
+              for key in ('MCP_OUTCOME', 'PERSISTENCE_OUTCOME', 'BUILD_OUTCOME', 'PACKAGE_OUTCOME',
+                          'IMAGE_OUTCOME', 'WIRE_OUTCOME', 'APPS_OUTCOME')}
+          for name in ('hello-world.so', 'ui-index.html'):
+              file = Path(os.environ['RUNNER_TEMP']) / 'plugin' / name
+              if file.is_file():
+                  manifest[name + '_sha256'] = hashlib.sha256(file.read_bytes()).hexdigest()
+          manifest['checks'] = {'mcp_mock_race': 'candidate make test-mcp',
+              'package_race': 'candidate local Go workspace in Docker dynamic-check plus focused host packages',
+              'wire_and_apps': 'C only; lower layers do not implement Apps'}
+          manifest['report_sha256'] = {str(p.relative_to(output)): hashlib.sha256(p.read_bytes()).hexdigest()
+              for p in output.rglob('*') if p.is_file() and p.name != 'provenance.json'}
+          (output / 'provenance.json').write_text(json.dumps(manifest, indent=2) + '\n')
+          PYRESULT
+      - name: Preserve qualification evidence
+        if: always()
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: clean-stack-${{ matrix.layer }}-amd64
+          path: |
+            ${{ env.QUALIFICATION_DIR }}/
+            candidate/test-reports/
+          if-no-files-found: error
+          retention-days: 14
+      - name: Remove disposable candidate image
+        if: always()
+        run: docker image rm -f bifrost:candidate >/dev/null 2>&1 || true
