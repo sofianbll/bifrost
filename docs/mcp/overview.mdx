@@ -146,7 +146,7 @@ The HTTP gateway relays MCP Apps over the same `/mcp` endpoint. A client must re
 
 Tools marked with `_meta.ui.visibility: ["app"]` remain available to native MCP clients but are omitted from model-facing tool catalogs unless their metadata also includes `model`. Bifrost returns the upstream native `CallToolResult` fields, including structured content, metadata, and `isError`, after MCP post-hooks. If a hook changes the compatibility result without changing the native result, Bifrost drops that stale native payload and returns the effective hook result.
 
-The gateway relays completed resource and tool results. Raw tool definitions retained for native metadata are capped at 256 KiB per tool. Code Mode clients can expose linked Apps and callbacks to native MCP clients, while nested Code Mode calls remain data-only. The gateway does not provide partial tool input delivery, live streaming of an upstream `CallToolResult`, or native Codex streaming; these require separate protocol support.
+The serialized App metadata sidecar is capped at 256 KiB per tool, including its raw definition, resource URI, and visibility values. If metadata exceeds that budget, Bifrost drops the raw definition first, then omits an oversized resource URI or reduces oversized visibility to the fail-closed `app` classification. Code Mode clients can expose linked Apps and callbacks to native MCP clients, while nested Code Mode calls remain data-only. The gateway does not provide partial tool input delivery, live streaming of an upstream `CallToolResult`, or native Codex streaming; these require separate protocol support.
 
 ```mermaid
 graph TD
