@@ -74,13 +74,22 @@ if (adaptedTransport.split(streamableMarker).length !== 2 || adaptedTransport.sp
 adaptedTransport = adaptedTransport.replace(connectMarker, `${connectMarker}\n  const fixtureOptions = await fixtureTransportOptions(serverUrl);`);
 adaptedTransport = adaptedTransport.replace(streamableMarker, "new StreamableHTTPClientTransport(serverUrl, fixtureOptions)");
 adaptedTransport = adaptedTransport.replace(sseMarker, "new SSEClientTransport(serverUrl, fixtureOptions)");
-await writeFile(join(directory, transportPath), adaptedTransport);
+
+// The pinned basic host does not advertise MCP Apps by default. The fixture
+// qualification host explicitly opts into the official UI extension before
+// either transport initializes; ordinary host behavior remains untouched.
+const clientMarker = "const client = new Client(IMPLEMENTATION);";
+if (adaptedTransport.split(clientMarker).length !== 3) throw new Error("Pinned host client creation seams changed");
+const negotiatedTransport = adaptedTransport.replaceAll(
+  clientMarker,
+  `${clientMarker}\n    client.registerCapabilities({ extensions: { "io.modelcontextprotocol/ui": { mimeTypes: ["text/html;profile=mcp-app"] } } });`,
+);
 
 // Separately gated controlled replay through the pinned host's official
 // AppBridge API. It is a deterministic protocol control, not model streaming.
 const partialReplayMarker = "appBridge.sendToolInput({ arguments: input });";
-if (adaptedTransport.split(partialReplayMarker).length !== 2) throw new Error("Pinned host full-input seam changed");
-const adaptedPartialReplay = adaptedTransport.replace(
+if (negotiatedTransport.split(partialReplayMarker).length !== 2) throw new Error("Pinned host full-input seam changed");
+const adaptedPartialReplay = negotiatedTransport.replace(
   partialReplayMarker,
   `const replayPartialInput = Reflect.get(window, "__bifrostReplayPartialInput");
   if (typeof replayPartialInput === "function") await replayPartialInput(appBridge, input);
@@ -107,6 +116,14 @@ const adapter = {
   patchSha256: sha256(`${serveSource}\0${adaptedServe}\0${transportSource}\0${adaptedTransport}`),
   purpose: "Per-URL synthetic fixture Bearer header via requestInit in the pinned MCP transports",
 };
+const negotiationAdapter = {
+  transportFile: transportPath,
+  authAdaptedSourceSha256: sha256(adaptedTransport),
+  negotiatedSourceSha256: sha256(negotiatedTransport),
+  patchSha256: sha256(`${adaptedTransport}\0${negotiatedTransport}`),
+  capability: { extension: "io.modelcontextprotocol/ui", mimeTypes: ["text/html;profile=mcp-app"] },
+  purpose: "Explicitly negotiate MCP Apps support in the test-only pinned reference-host client",
+};
 const output = {
   repository,
   version,
@@ -118,11 +135,12 @@ const output = {
     provenance: "SDK source is built from the pinned repository workspace; no npm tarball integrity is claimed",
   },
   hostFixtureAuthAdapter: adapter,
+  hostFixtureNegotiationAdapter: negotiationAdapter,
   controlledPartialReplay: {
     transportFile: transportPath,
-    authAdaptedSourceSha256: sha256(adaptedTransport),
+    negotiatedSourceSha256: sha256(negotiatedTransport),
     partialReplayAdaptedSourceSha256: sha256(adaptedPartialReplay),
-    patchSha256: sha256(`${adaptedTransport}\0${adaptedPartialReplay}`),
+    patchSha256: sha256(`${negotiatedTransport}\0${adaptedPartialReplay}`),
     seam: "window.__bifrostReplayPartialInput(AppBridge,input) is an opt-in test hook before pinned host final-input/result calls",
   },
   appBundle: {
