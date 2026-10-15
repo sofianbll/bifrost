@@ -273281,5 +273281,2034 @@
         }
       ]
     }
+  ,
+    {
+      "name": "145. MCP Apps fixture (mcp-apps)",
+      "description": "Offline MCP Apps contract against the in-repository STDIO fixture. Covers negotiated UI metadata and resource reads on direct, Virtual MCP and aggregate routes; tool results and errors; App-only callback visibility, namespace collision and source routing; full/limited/denied grants; and direct versus nested Code Mode behavior. Uses only the fixture and makes no LLM-provider call.",
+      "item": [
+        {
+          "name": "MCP Apps fixture direct initialize negotiates UI",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var text = pm.response.text() || '';",
+                  "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
+                  "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(200); });",
+                  "pm.test(\"UI extension negotiated\", function () { pm.expect(body.result && body.result.capabilities && body.result.capabilities.extensions && body.result.capabilities.extensions['io.modelcontextprotocol/ui'], text).to.be.an('object') });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-mcp-apps-full"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-06-18\",\"clientInfo\":{\"name\":\"provider-harness\",\"version\":\"1.0\"},\"capabilities\":{\"extensions\":{\"io.modelcontextprotocol/ui\":{\"mimeTypes\":[\"text/html;profile=mcp-app\"]}}}}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp/mcp-apps-fixture",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp",
+                "mcp-apps-fixture"
+              ]
+            }
+          }
+        },
+        {
+          "name": "MCP Apps fixture direct initialize omits UI without negotiation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var text = pm.response.text() || '';",
+                  "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
+                  "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(200); });",
+                  "pm.test(\"UI extension omitted without negotiation\", function () { pm.expect((((body.result || {}).capabilities || {}).extensions || {})['io.modelcontextprotocol/ui']).to.eql(undefined) });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-mcp-apps-full"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-06-18\",\"clientInfo\":{\"name\":\"provider-harness\",\"version\":\"1.0\"},\"capabilities\":{}}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp/mcp-apps-fixture",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp",
+                "mcp-apps-fixture"
+              ]
+            }
+          }
+        },
+        {
+          "name": "MCP Apps fixture direct tools list preserves App metadata",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var text = pm.response.text() || '';",
+                  "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
+                  "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(200); });",
+                  "pm.test('both URI fields and input schema survive discovery', function () { var tools = (body.result && body.result.tools) || []; var app = tools.filter(function (t) { return t.name.indexOf('open_view') !== -1; })[0]; pm.expect(app, text).to.be.an('object'); pm.expect(app._meta.ui.resourceUri).to.eql(app._meta['ui/resourceUri']); pm.expect(app._meta.ui.resourceUri).to.match(/^ui:\\/\\/bifrost\\//); pm.collectionVariables.set('mcpAppsDirectUri', app._meta.ui.resourceUri); pm.expect(app.description).to.eql('Open the fixture MCP App'); pm.expect(app.annotations).to.eql({readOnlyHint:false,destructiveHint:true,idempotentHint:false,openWorldHint:true}); pm.expect(app.inputSchema).to.eql({type:'object',properties:{message:{description:'Message to return',type:'string'}}}); });",
+                  "pm.test('App-only callback is marked for host visibility', function () { var tools = (body.result && body.result.tools) || []; var callback = tools.filter(function (t) { return t.name === 'save_state'; })[0]; pm.expect(callback, text).to.be.an('object'); pm.expect(callback._meta.ui.visibility).to.eql(['app']); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-mcp-apps-full"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\",\"params\":{}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp/mcp-apps-fixture",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp",
+                "mcp-apps-fixture"
+              ]
+            }
+          }
+        },
+        {
+          "name": "MCP Apps fixture direct resources list returns array",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var text = pm.response.text() || '';",
+                  "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
+                  "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(200); });",
+                  "pm.test(\"resources/list returns array\", function () { pm.expect(body.result && body.result.resources, text).to.be.an('array') });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-mcp-apps-full"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"resources/list\",\"params\":{}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp/mcp-apps-fixture",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp",
+                "mcp-apps-fixture"
+              ]
+            }
+          }
+        },
+        {
+          "name": "MCP Apps fixture direct resources read returns HTML and CSP",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var text = pm.response.text() || '';",
+                  "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
+                  "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(200); });",
+                  "pm.test(\"resource HTML MIME and CSP are relayed\", function () { var c = body.result && body.result.contents && body.result.contents[0]; pm.expect(c, text).to.be.an('object'); pm.expect(c.mimeType).to.eql('text/html;profile=mcp-app'); pm.expect(c.text).to.include('id=\\\"fixture\\\"'); pm.expect(c._meta.ui.csp).to.be.an('object'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-mcp-apps-full"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"resources/read\",\"params\":{\"uri\":\"{{mcpAppsDirectUri}}\"}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp/mcp-apps-fixture",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp",
+                "mcp-apps-fixture"
+              ]
+            }
+          }
+        },
+        {
+          "name": "MCP Apps fixture direct structured tool result",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var text = pm.response.text() || '';",
+                  "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
+                  "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(200); });",
+                  "pm.test(\"content structuredContent metadata and success marker survive\", function () { var r=body.result||{}; pm.expect(r.content && r.content[0] && r.content[0].type,text).to.eql('text'); pm.expect(r.content && r.content[0] && r.content[0].text,text).to.include('first'); pm.expect(r.structuredContent.instance).to.eql('first'); pm.expect(r._meta.fixture).to.eql('first'); pm.expect(r.isError).to.not.eql(true); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-mcp-apps-full"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"mcp_apps_fixture-structured_result\",\"arguments\":{}}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp/mcp-apps-fixture",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp",
+                "mcp-apps-fixture"
+              ]
+            }
+          }
+        },
+        {
+          "name": "MCP Apps fixture direct App callback remains callable",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var text = pm.response.text() || '';",
+                  "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
+                  "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(200); });",
+                  "pm.test(\"App-only callback resolves on direct route\", function () { pm.expect(body.result && body.result.content && body.result.content[0].text,text).to.include('first:save_state'); pm.expect(body.result.isError).to.not.eql(true); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-mcp-apps-full"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"save_state\",\"arguments\":{}}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp/mcp-apps-fixture",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp",
+                "mcp-apps-fixture"
+              ]
+            }
+          }
+        },
+        {
+          "name": "MCP Apps fixture direct tool error marker",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var text = pm.response.text() || '';",
+                  "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
+                  "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(200); });",
+                  "pm.test(\"fixture tool error remains isError\", function () { pm.expect(body.result && body.result.isError,text).to.eql(true); pm.expect(body.result.content[0].text).to.include('fixture tool failure: first'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-mcp-apps-full"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"mcp_apps_fixture-fail_tool\",\"arguments\":{}}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp/mcp-apps-fixture",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp",
+                "mcp-apps-fixture"
+              ]
+            }
+          }
+        },
+        {
+          "name": "MCP Apps fixture Virtual MCP full discovery",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var text = pm.response.text() || '';",
+                  "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
+                  "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(200); });",
+                  "pm.test(\"Virtual MCP preserves both UI metadata fields\", function () { var tools=(body.result && body.result.tools) || []; var app=tools.filter(function(t){return t.name.indexOf('open_view')!==-1;})[0]; pm.expect(app,text).to.be.an('object'); pm.expect(app._meta.ui.resourceUri).to.eql(app._meta['ui/resourceUri']); pm.collectionVariables.set('mcpAppsVirtualUri',app._meta.ui.resourceUri); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-mcp-apps-full"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\",\"params\":{}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp/mcp-apps-full-virtual",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp",
+                "mcp-apps-full-virtual"
+              ]
+            }
+          }
+        },
+        {
+          "name": "MCP Apps fixture Virtual MCP full resource read",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var text = pm.response.text() || '';",
+                  "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
+                  "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(200); });",
+                  "pm.test(\"Virtual MCP resource is readable with MIME and CSP\", function () { var c=body.result&&body.result.contents&&body.result.contents[0]; pm.expect(c,text).to.be.an('object'); pm.expect(c.mimeType).to.eql('text/html;profile=mcp-app'); pm.expect(c.text).to.include('first'); pm.expect(c._meta.ui.csp).to.be.an('object'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-mcp-apps-full"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"resources/read\",\"params\":{\"uri\":\"{{mcpAppsVirtualUri}}\"}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp/mcp-apps-full-virtual",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp",
+                "mcp-apps-full-virtual"
+              ]
+            }
+          }
+        },
+        {
+          "name": "MCP Apps fixture Virtual MCP limited discovery",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var text = pm.response.text() || '';",
+                  "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
+                  "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(200); });",
+                  "pm.test(\"limited key sees only its allowed App tool\", function () { var tools=(body.result && body.result.tools) || []; pm.expect(tools.some(function(t){return t.name.indexOf('open_view')!==-1;}),text).to.eql(true); pm.expect(tools.some(function(t){return t.name.indexOf('fail_tool')!==-1;})).to.eql(false); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-mcp-apps-limited"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\",\"params\":{}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp/mcp-apps-limited-virtual",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp",
+                "mcp-apps-limited-virtual"
+              ]
+            }
+          }
+        },
+        {
+          "name": "MCP Apps fixture limited key cannot read ungranted App resource",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var text = pm.response.text() || '';",
+                  "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
+                  "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(200); });",
+                  "pm.test(\"resource linked to a disallowed App tool is refused\", function () { pm.expect(body.error,text).to.be.an('object'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-mcp-apps-limited-no-app"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"resources/read\",\"params\":{\"uri\":\"{{mcpAppsDirectUri}}\"}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp/mcp-apps-fixture",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp",
+                "mcp-apps-fixture"
+              ]
+            }
+          }
+        },
+        {
+          "name": "MCP Apps fixture aggregate discovery and namespaced UI URIs",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var text = pm.response.text() || '';",
+                  "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
+                  "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(200); });",
+                  "pm.test('aggregate namespaces sources and marks callbacks app-only', function () { var tools=(body.result && body.result.tools) || []; var one=tools.filter(function(t){return t.name.indexOf('mcp_apps_fixture-open_view')!==-1;})[0]; var two=tools.filter(function(t){return t.name.indexOf('mcp_apps_fixture_second-open_view')!==-1;})[0]; pm.expect(one,text).to.be.an('object'); pm.expect(two,text).to.be.an('object'); pm.expect(one._meta.ui.resourceUri).to.eql(one._meta['ui/resourceUri']); pm.expect(two._meta.ui.resourceUri).to.eql(two._meta['ui/resourceUri']); pm.expect(one._meta.ui.resourceUri).to.not.eql(two._meta.ui.resourceUri); pm.collectionVariables.set('mcpAppsAggUri1',one._meta.ui.resourceUri); pm.collectionVariables.set('mcpAppsAggUri2',two._meta.ui.resourceUri); var callbacks=tools.filter(function(t){return /save_state$/.test(t.name);}); pm.expect(callbacks.length).to.eql(2); pm.expect(callbacks.every(function(t){return t._meta.ui.visibility[0]==='app';})).to.eql(true); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-mcp-apps-full"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\",\"params\":{}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp"
+              ]
+            }
+          }
+        },
+        {
+          "name": "MCP Apps fixture aggregate reads first source resource",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var text = pm.response.text() || '';",
+                  "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
+                  "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(200); });",
+                  "pm.test(\"first resource routes to its own source\", function () { var c=body.result&&body.result.contents&&body.result.contents[0]; pm.expect(c,text).to.be.an('object'); pm.expect(c.mimeType).to.eql('text/html;profile=mcp-app'); pm.expect(c.text).to.include('first'); pm.expect(c._meta.ui.csp).to.be.an('object'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-mcp-apps-full"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"resources/read\",\"params\":{\"uri\":\"{{mcpAppsAggUri1}}\"}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp"
+              ]
+            }
+          }
+        },
+        {
+          "name": "MCP Apps fixture aggregate reads second source resource",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var text = pm.response.text() || '';",
+                  "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
+                  "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(200); });",
+                  "pm.test(\"second resource routes to its own source\", function () { var c=body.result&&body.result.contents&&body.result.contents[0]; pm.expect(c,text).to.be.an('object'); pm.expect(c.mimeType).to.eql('text/html;profile=mcp-app'); pm.expect(c.text).to.include('second'); pm.expect(c._meta.ui.csp).to.be.an('object'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-mcp-apps-full"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"resources/read\",\"params\":{\"uri\":\"{{mcpAppsAggUri2}}\"}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp"
+              ]
+            }
+          }
+        },
+        {
+          "name": "MCP Apps fixture aggregate rejects ambiguous callback alias",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var text = pm.response.text() || '';",
+                  "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
+                  "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(200); });",
+                  "pm.test(\"bare callback alias is rejected with two sources\", function () { pm.expect(body.error,text).to.be.an('object'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-mcp-apps-full"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"save_state\",\"arguments\":{}}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp"
+              ]
+            }
+          }
+        },
+        {
+          "name": "MCP Apps fixture aggregate namespaced callback routes first",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var text = pm.response.text() || '';",
+                  "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
+                  "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(200); });",
+                  "pm.test(\"namespaced callback reaches correct instance\", function () { pm.expect(body.result&&body.result.content&&body.result.content[0].text,text).to.include('first:save_state'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-mcp-apps-full"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"mcp_apps_fixture-save_state\",\"arguments\":{}}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp"
+              ]
+            }
+          }
+        },
+        {
+          "name": "MCP Apps fixture aggregate namespaced callback routes second",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var text = pm.response.text() || '';",
+                  "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
+                  "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(200); });",
+                  "pm.test(\"namespaced callback reaches correct instance\", function () { pm.expect(body.result&&body.result.content&&body.result.content[0].text,text).to.include('second:save_state'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-mcp-apps-full"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"mcp_apps_fixture_second-save_state\",\"arguments\":{}}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp"
+              ]
+            }
+          }
+        },
+        {
+          "name": "MCP Apps fixture aggregate structured result",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var text = pm.response.text() || '';",
+                  "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
+                  "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(200); });",
+                  "pm.test(\"aggregate tool result keeps source identity and metadata\", function () { var r=body.result||{}; pm.expect(r.content[0].type,text).to.eql('text'); pm.expect(r.content[0].text,text).to.include('second'); pm.expect(r.structuredContent.instance).to.eql('second'); pm.expect(r._meta.fixture).to.eql('second'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-mcp-apps-full"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"mcp_apps_fixture_second-structured_result\",\"arguments\":{}}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp"
+              ]
+            }
+          }
+        },
+        {
+          "name": "MCP Apps fixture denied aggregate initialize",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var text = pm.response.text() || '';",
+                  "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
+                  "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(200); });",
+                  "pm.test(\"denied aggregate initialize succeeds with empty capabilities\", function () { pm.expect(body.result,text).to.be.an('object'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-mcp-apps-denied"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-06-18\",\"clientInfo\":{\"name\":\"provider-harness\",\"version\":\"1.0\"},\"capabilities\":{\"extensions\":{\"io.modelcontextprotocol/ui\":{\"mimeTypes\":[\"text/html;profile=mcp-app\"]}}}}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp"
+              ]
+            }
+          }
+        },
+        {
+          "name": "MCP Apps fixture denied aggregate tools list is empty",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var text = pm.response.text() || '';",
+                  "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
+                  "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(200); });",
+                  "pm.test(\"denied aggregate returns empty tools\", function () { pm.expect(body.result&&body.result.tools,text).to.eql([]); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-mcp-apps-denied"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\",\"params\":{}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp"
+              ]
+            }
+          }
+        },
+        {
+          "name": "[EXPECT-403] MCP Apps fixture denied Virtual MCP is forbidden",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var text = pm.response.text() || '';",
+                  "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
+                  "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(403); });",
+                  "pm.test(\"denial message does not leak tool name\", function () { pm.expect(text.toLowerCase()).to.not.include('open_view'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-mcp-apps-denied"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\",\"params\":{}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp/mcp-apps-limited-virtual",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp",
+                "mcp-apps-limited-virtual"
+              ]
+            }
+          }
+        },
+        {
+          "name": "[EXPECT-403] MCP Apps fixture denied direct endpoint is forbidden",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var text = pm.response.text() || '';",
+                  "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
+                  "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(403); });",
+                  "pm.test(\"denial message does not leak tool name\", function () { pm.expect(text.toLowerCase()).to.not.include('open_view'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-mcp-apps-denied"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\",\"params\":{}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp/mcp-apps-fixture",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp",
+                "mcp-apps-fixture"
+              ]
+            }
+          }
+        },
+        {
+          "name": "MCP Apps fixture Code Mode client exposes native App metadata",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var text = pm.response.text() || '';",
+                  "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
+                  "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(200); });",
+                  "pm.test(\"Code Mode preserves native App metadata and has no UI metadata itself\", function () { var tools=(body.result && body.result.tools) || []; var app=tools.filter(function(t){return t.name.indexOf('open_view')!==-1;})[0]; var exec=tools.filter(function(t){return t.name==='executeToolCode';})[0]; pm.expect(app,text).to.be.an('object'); pm.expect(app._meta.ui.resourceUri).to.eql(app._meta['ui/resourceUri']); pm.expect(exec,text).to.be.an('object'); pm.expect(exec._meta).to.eql(undefined); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-mcp-apps-full"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\",\"params\":{}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp/mcp-apps-fixture",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp",
+                "mcp-apps-fixture"
+              ]
+            }
+          }
+        },
+        {
+          "name": "MCP Apps fixture Code Mode direct App call preserves full result",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var text = pm.response.text() || '';",
+                  "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
+                  "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(200); });",
+                  "pm.test(\"native direct call retains App result contract\", function () { var r=body.result||{}; pm.expect(r.structuredContent.instance,text).to.eql('first'); pm.expect(r._meta.fixture).to.eql('first'); pm.expect(r.content[0].text).to.include('native'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-mcp-apps-full"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"open_view\",\"arguments\":{\"message\":\"native\"}}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp/mcp-apps-fixture",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp",
+                "mcp-apps-fixture"
+              ]
+            }
+          }
+        },
+        {
+          "name": "MCP Apps fixture Code Mode nested App call returns text only",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var text = pm.response.text() || '';",
+                  "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
+                  "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(200); });",
+                  "pm.test(\"script returns nested text without structured App metadata\", function () { var r=body.result||{}; pm.expect(r.isError,text).to.not.eql(true); pm.expect(r.content&&r.content[0]&&r.content[0].text,text).to.include('nested'); pm.expect(r.structuredContent).to.eql(undefined); pm.expect(r._meta).to.eql(undefined); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-mcp-apps-full"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"executeToolCode\",\"arguments\":{\"code\":\"result = mcp_apps_fixture.open_view(message=\\\"nested\\\")\"}}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp/mcp-apps-fixture",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp",
+                "mcp-apps-fixture"
+              ]
+            }
+          }
+        },
+        {
+          "name": "MCP Apps fixture Code Mode nested tool error remains script value",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var text = pm.response.text() || '';",
+                  "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
+                  "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(200); });",
+                  "pm.test(\"nested tool error is returned to script as a value per upstream behavior\", function () { var r=body.result||{}; pm.expect(r.isError,text).to.not.eql(true); pm.expect(r.content&&r.content[0]&&r.content[0].text,text).to.include('fixture tool failure: first'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-mcp-apps-full"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"executeToolCode\",\"arguments\":{\"code\":\"result = mcp_apps_fixture.fail_tool()\"}}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp/mcp-apps-fixture",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp",
+                "mcp-apps-fixture"
+              ]
+            }
+          }
+        },
+        {
+          "name": "MCP Apps fixture Code Mode script failure sets isError",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var text = pm.response.text() || '';",
+                  "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
+                  "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(200); });",
+                  "pm.test(\"only sandbox script failure marks outer result isError\", function () { pm.expect(body.result&&body.result.isError,text).to.eql(true); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-mcp-apps-full"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"executeToolCode\",\"arguments\":{\"code\":\"this is not valid Starlark !\"}}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp/mcp-apps-fixture",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp",
+                "mcp-apps-fixture"
+              ]
+            }
+          }
+        },
+        {
+          "name": "MCP Apps fixture limited direct discovery",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var text = pm.response.text() || '';",
+                  "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
+                  "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(200); });",
+                  "pm.test(\"MCP Apps fixture limited direct discovery\", function () { var tools=(body.result&&body.result.tools)||[]; pm.expect(tools.some(function(t){return /open_view$/.test(t.name);}),text).to.eql(true); pm.expect(tools.some(function(t){return /fail_tool$/.test(t.name);})).to.eql(false); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-mcp-apps-limited"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\",\"params\":{}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp/mcp-apps-fixture",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp",
+                "mcp-apps-fixture"
+              ]
+            }
+          }
+        },
+        {
+          "name": "MCP Apps fixture limited direct resource remains readable",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var text = pm.response.text() || '';",
+                  "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
+                  "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(200); });",
+                  "pm.test(\"MCP Apps fixture limited direct resource remains readable\", function () { var c=body.result&&body.result.contents&&body.result.contents[0]; pm.expect(c,text).to.be.an('object'); pm.expect(c.mimeType).to.eql('text/html;profile=mcp-app'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-mcp-apps-limited"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"resources/read\",\"params\":{\"uri\":\"{{mcpAppsDirectUri}}\"}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp/mcp-apps-fixture",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp",
+                "mcp-apps-fixture"
+              ]
+            }
+          }
+        },
+        {
+          "name": "MCP Apps fixture limited aggregate discovery",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var text = pm.response.text() || '';",
+                  "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
+                  "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(200); });",
+                  "pm.test(\"MCP Apps fixture limited aggregate discovery\", function () { var names=((body.result&&body.result.tools)||[]).map(function(t){return t.name;}); pm.expect(names.some(function(n){return n.indexOf('mcp_apps_fixture-')===0;}),text).to.eql(true); pm.expect(names.some(function(n){return n.indexOf('mcp_apps_fixture_second-')===0;})).to.eql(false); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-mcp-apps-limited"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\",\"params\":{}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp"
+              ]
+            }
+          }
+        },
+        {
+          "name": "[EXPECT-403] MCP Apps fixture denied direct resource read",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var text = pm.response.text() || '';",
+                  "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
+                  "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(403); });",
+                  "pm.test(\"MCP Apps fixture denied direct resource read\", function () { pm.expect(text.toLowerCase()).to.not.include('open_view'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-mcp-apps-denied"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"resources/read\",\"params\":{\"uri\":\"{{mcpAppsDirectUri}}\"}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp/mcp-apps-fixture",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp",
+                "mcp-apps-fixture"
+              ]
+            }
+          }
+        },
+        {
+          "name": "[EXPECT-403] MCP Apps fixture denied direct callback",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var text = pm.response.text() || '';",
+                  "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
+                  "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(403); });",
+                  "pm.test(\"MCP Apps fixture denied direct callback\", function () { pm.expect(text.toLowerCase()).to.not.include('save_state'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-mcp-apps-denied"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"save_state\",\"arguments\":{}}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp/mcp-apps-fixture",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp",
+                "mcp-apps-fixture"
+              ]
+            }
+          }
+        },
+        {
+          "name": "[EXPECT-403] MCP Apps fixture denied Virtual MCP resource read",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var text = pm.response.text() || '';",
+                  "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
+                  "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(403); });",
+                  "pm.test(\"MCP Apps fixture denied Virtual MCP resource read\", function () { pm.expect(text.toLowerCase()).to.not.include('open_view'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-mcp-apps-denied"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"resources/read\",\"params\":{\"uri\":\"{{mcpAppsDirectUri}}\"}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp/mcp-apps-limited-virtual",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp",
+                "mcp-apps-limited-virtual"
+              ]
+            }
+          }
+        },
+        {
+          "name": "[EXPECT-403] MCP Apps fixture denied Virtual MCP callback",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var text = pm.response.text() || '';",
+                  "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
+                  "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(403); });",
+                  "pm.test(\"MCP Apps fixture denied Virtual MCP callback\", function () { pm.expect(text.toLowerCase()).to.not.include('save_state'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-mcp-apps-denied"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"save_state\",\"arguments\":{}}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp/mcp-apps-limited-virtual",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp",
+                "mcp-apps-limited-virtual"
+              ]
+            }
+          }
+        },
+        {
+          "name": "MCP Apps fixture denied aggregate resource",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var text = pm.response.text() || '';",
+                  "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
+                  "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(200); });",
+                  "pm.test('denied aggregate resource returns protocol error without leaking source tool', function () { pm.expect(body.error,text).to.be.an('object'); pm.expect((body.error.message||'').toLowerCase()).to.not.include('save_state'); pm.expect((body.error.message||'').toLowerCase()).to.not.include('open_view'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-mcp-apps-denied"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"resources/read\",\"params\":{\"uri\":\"{{mcpAppsDirectUri}}\"}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp"
+              ]
+            }
+          }
+        },
+        {
+          "name": "MCP Apps fixture denied aggregate callback",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var text = pm.response.text() || '';",
+                  "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
+                  "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(200); });",
+                  "pm.test('denied aggregate callback does not reveal source identity', function () { pm.expect(body.error,text).to.be.an('object'); var message=(body.error.message||'').toLowerCase(); pm.expect(message).to.not.include('mcp_apps_fixture'); pm.expect(message).to.not.include('mcp_apps_fixture_second'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-mcp-apps-denied"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"save_state\",\"arguments\":{}}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp"
+              ]
+            }
+          }
+        },
+        {
+          "name": "MCP Apps fixture direct legacy-only metadata remains routable",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var text = pm.response.text() || \"\";",
+                  "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
+                  "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(200); });",
+                  "pm.test(\"legacy-only URI is rewritten and modern field stays absent\", function () { var tools=(body.result&&body.result.tools)||[]; var tool=tools.find(function(t){return t.name===\"open_view\";}); var meta=(tool&&tool._meta)||{}; pm.expect(tool,text).to.be.an(\"object\"); pm.expect(meta[\"ui/resourceUri\"],text).to.eql(\"ui://bifrost/bWNwX2FwcHNfZml4dHVyZV9zZWNvbmQ/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw\"); pm.expect(meta[\"ui\"],text).to.eql(undefined); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-mcp-apps-full"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\",\"params\":{}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp/mcp-apps-fixture-second",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp",
+                "mcp-apps-fixture-second"
+              ]
+            }
+          }
+        },
+        {
+          "name": "MCP Apps fixture direct modern-only metadata remains routable",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var text = pm.response.text() || \"\";",
+                  "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
+                  "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(200); });",
+                  "pm.test(\"modern-only URI is rewritten and legacy field stays absent\", function () { var tools=(body.result&&body.result.tools)||[]; var tool=tools.find(function(t){return t.name===\"open_view\";}); var meta=(tool&&tool._meta)||{}; pm.expect(tool,text).to.be.an(\"object\"); pm.expect(meta[\"ui\"],text).to.eql(\"ui://bifrost/bWNwX2FwcHNfZml4dHVyZV9tb2Rlcm4/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw\"); pm.expect(meta[\"ui/resourceUri\"],text).to.eql(undefined); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-mcp-apps-full"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\",\"params\":{}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp/mcp-apps-fixture-modern",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp",
+                "mcp-apps-fixture-modern"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "144. Code Mode error semantics (codemode-errors)",
+      "description": "Pins Code Mode error handling through the MCP wire using the local error-test-server profile. A protocol-marked nested tool error remains a script value; a Starlark execution failure marks the outer executeToolCode result as an error.",
+      "item": [
+        {
+          "name": "Code Mode nested validation error remains a value (codemode-errors)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-codemode-errors"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"executeToolCode\",\"arguments\":{\"code\":\"message = errorTestServer.return_error(error_type=\\\"validation\\\")\\nresult = message\"}}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp/error-test-server",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp",
+                "error-test-server"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('executeToolCode succeeds when the nested tool returns an error value', function () {",
+                  "  pm.expect(pm.response.code, pm.response.text()).to.eql(200);",
+                  "  var body = pm.response.json();",
+                  "  pm.expect(body.error, pm.response.text()).to.not.exist;",
+                  "  pm.expect(body.result, pm.response.text()).to.exist;",
+                  "  pm.expect(body.result.isError, pm.response.text()).to.not.eql(true);",
+                  "  var text = JSON.stringify(body.result);",
+                  "  pm.expect(text).to.include('Validation Error');",
+                  "  pm.expect(text).to.include('Execution completed successfully');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Code Mode failed script sets outer isError (codemode-errors)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-codemode-errors"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"executeToolCode\",\"arguments\":{\"code\":\"result = definitely_not_defined + 1\"}}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp/error-test-server",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp",
+                "error-test-server"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Starlark execution failure marks the outer result as an error', function () {",
+                  "  pm.expect(pm.response.code, pm.response.text()).to.eql(200);",
+                  "  var body = pm.response.json();",
+                  "  pm.expect(body.error, pm.response.text()).to.not.exist;",
+                  "  pm.expect(body.result, pm.response.text()).to.exist;",
+                  "  pm.expect(body.result.isError, pm.response.text()).to.eql(true);",
+                  "  pm.expect(JSON.stringify(body.result)).to.include('definitely_not_defined');",
+                  "  pm.expect(JSON.stringify(body.result)).to.not.include('Execution completed successfully');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Code Mode nested Error prefix remains a value (codemode-errors)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-codemode-errors"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"executeToolCode\",\"arguments\":{\"code\":\"message = errorTestServer.return_error(error_type=\\\"prefix\\\")\\nresult = message\"}}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp/error-test-server",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp",
+                "error-test-server"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var text = pm.response.text() || \"\";",
+                  "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
+                  "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(200); });",
+                  "pm.test(\"Error: prefix payload stays a successful script value\", function () { var r=body.result||{}; pm.expect(r.isError,text).to.not.eql(true); pm.expect(r.content&&r.content[0]&&r.content[0].text,text).to.include(\"Error: synthetic fixture error value\"); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
   ]
 }

@@ -1235,11 +1235,11 @@ func TestBuildTLSHTTPClientUsesGlobalProxy(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, "https://mcp.bifrost.test/sse", nil)
+	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, "https://203.0.113.10/sse", nil)
 	if resp, err := httpClient.Do(req); err == nil {
 		resp.Body.Close()
 	}
-	proxytest.AssertRoute(t, set, proxytest.Route{Proxy: "config"}, "mcp.bifrost.test:443", nil)
+	proxytest.AssertRoute(t, set, proxytest.Route{Proxy: "config"}, "203.0.113.10:443", nil)
 
 	// MCP allows private networks (local MCP servers) but never instance metadata.
 	set.Reset()

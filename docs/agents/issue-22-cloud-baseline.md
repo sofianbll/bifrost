@@ -1,0 +1,25 @@
+# Issue #22 Cloud baseline
+
+The unchanged official dev source was pinned to `83258b776c68e1e3d2c1ca0d08a31c2e5811344f`. The exact candidate/product comparison is still pending the source-pinned Actions workflow; these Cloud checks establish prerequisites only. They do not qualify native MCP Apps relay or reference-host rendering.
+
+The verified toolchain was Go 1.27.2, GCC 14.2.0, Node 24.19.0/npm 11.9.0, and system Chromium 154.0.8037.57. The fork bootstrap in [setup.sh](../../.claude/cloud/setup.sh) reuses the prior environment setup with the current 1.27.2 pin and official release checksums; its offline regression script [setup.test.sh](../../.claude/cloud/setup.test.sh) passes. Cross-module checks used the local workspace setup in [setup-go-workspace.sh](../../.github/workflows/scripts/setup-go-workspace.sh). The main `make test-mcp` target uses `GOWORK=off`, so its result is core-module fixture coverage only. No `.env` was loaded and no provider campaign ran.
+
+| Check | Command | Result |
+|---|---|---|
+| MCP dependencies | `(cd core && go list -deps -test ./mcp/...)` | Pass after toolchain setup |
+| Fixture build | `make install-gotestsum setup-mcp-tests EXPOSE_ENV=:` | Pass |
+| MCP race suite | `make -o install-gotestsum -o setup-mcp-tests test-mcp EXPOSE_ENV=:` | Pass: 738 tests, 29 skipped, no failures/errors, 172.004s |
+| Core MCP package suite | `(cd core && go test -count=1 ./mcp/...)` | Existing `TestBuildTLSHTTPClientUsesGlobalProxy` fails in repeated whole-suite runs; the same test passes alone. Scoped `GODEBUG=netdns=cgo` did not change it. No source or assertion was altered. |
+| Preparation-branch MCP package suite | `(cd core && go test -count=1 ./mcp/...)`, after changing only the proxy test host from `.test` DNS to RFC5737 `203.0.113.10` and updating its expected CONNECT target | Pass: `core/mcp` and all test-bearing subpackages pass. This is test-only Cloud preparation; unchanged stock's earlier suite failure remains recorded, and no proxy production behavior was changed. |
+| HTTP admission, instruction and schema controls | `(cd transports && go test -count=1 ./bifrost-http/handlers -run '^(TestInitialize|TestAdmit|TestConvertToolFunction)')` | Pass, 0.075s |
+| Startup, authority and auth controls | `(cd transports && go test -count=1 ./bifrost-http/lib -run '^(TestReconcileVirtualMCPsConfig|TestSourceOfTruthConfigJSON_MCP|TestLoadConfig_MCP_Merge|TestMergeMCPConfig|TestLoadConfig_InferenceAuthSetupFailures)')` | Pass, 17.048s |
+| MCP store, OpenAPI and Virtual MCP controls | `(cd framework && go test -count=1 ./configstore -run '^(TestUpdateMCPClientTools|TestMCPClientConfig|TestGenerateMCPClientHash_OpenAPIConfig|TestVirtualMCP_)')` | Pass, 0.790s |
+| Browser and local sockets | Playwright launch/close against system Chromium; Python bind to `127.0.0.1:0` | Pass; no App render claim |
+
+The earlier dependency setup failure was environmental, not behavioral. Exact Weaviate, circl and lz4 module versions were fetched from their official GitHub sources with Go checksum verification. `google.golang.org/api@v0.282.0` was reconstructed from official Origin commit `60aebbd7406af09eb63866ff79f0dbd40cccecbb`; the canonical zip matched `go.sum` hash `h1:WmJiSVqUnKqJCpJOx7YADbXaC+9DDsnGSfllFSj7R2I=`. The inherited proxy, Go checksum database, module versions and network policy remained unchanged.
+
+The exact stock image build was inspected with `go version -m`: core, framework, transports and plugins resolve as local `(devel)` modules; build metadata reports source revision `83258b776c68e1e3d2c1ca0d08a31c2e5811344f` and `vcs.modified=false`. The build used the canonical dev UI embed placeholder to satisfy the binary embed directive; this is not UI or image qualification evidence.
+
+Both fixture modules pass `GOWORK=off go test ./...`. The same JSON-RPC `tools/list` and `tools/call` probes were run against the historical fixture source at `0491f6dcb1b3e9e20534d3f34dec814117a665b1` and the prepared source: historical `mcp-apps-test-server` emits both metadata fields when passed `legacy`, while the prepared fixture emits only `ui/resourceUri`; historical `return_error` returns `Unknown error type: prefix`, while the prepared fixture returns `Error: synthetic fixture error value`. This validates fixture inputs only; the gateway relay classification remains an Actions requirement.
+
+The unchanged-stock whole-suite proxy-control failure is recorded separately from any named MCP Apps or Code Mode assertion. The test-only IP adjustment makes this control deterministic in preparation checks; it does not claim unchanged stock's prior whole-suite run was green. No stock red sentinel is assumed. Actual comparator classification must come from the Actions artifact.
