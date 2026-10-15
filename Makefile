@@ -2684,6 +2684,10 @@ run-provider-harness-test: $(if $(HELP),,install-newman) ## Run the Bifrost prov
 			say "$(CYAN)cache-parity not selected - its rows are kept out of the parallel forks and do not run.$(NC)"; \
 		fi; \
 	fi; \
+	if [ -n "$(EXCLUDE_FEATURE_ANY)" ]; then \
+		if [ -n "$$EXCLUDE_FLAG" ]; then EXCLUDE_FLAG="--exclude-feature-any cache-parity,$(EXCLUDE_FEATURE_ANY)"; \
+		else EXCLUDE_FLAG="--exclude-feature-any $(EXCLUDE_FEATURE_ANY)"; fi; \
+	fi; \
 	FEATURE_ANY_FLAG=""; \
 	if [ -n "$$MAIN_FEATURES" ]; then FEATURE_ANY_FLAG="--feature-any $$MAIN_FEATURES"; fi; \
 	: "[SERIAL] folders change gateway-wide state (a feature flag, client config) around the request"; \
@@ -2698,7 +2702,7 @@ run-provider-harness-test: $(if $(HELP),,install-newman) ## Run the Bifrost prov
 	rm -f tmp/.newman-report-prior.json; \
 	if [ -n "$(RERUN_FAILED)" ] && [ -f tmp/newman-report.json ]; then cp -f tmp/newman-report.json tmp/.newman-report-prior.json; fi; \
 	if [ "$$SKIP_MAIN" != "1" ] && { [ -n "$(PROVIDER)" ] || [ -n "$(FEATURE)" ] || [ -n "$(FOLDER)" ] || [ -n "$(RERUN_FAILED)" ] || [ -n "$$MAIN_FEATURES" ] || [ -n "$$EXCLUDE_FLAG" ] || [ -n "$$SMOKE_MANIFEST" ]; }; then \
-		say "$(CYAN)Filtering collection (provider=$(PROVIDER), feature=$(FEATURE), folder=$(FOLDER), feature-any=$$MAIN_FEATURES, exclude=$${EXCLUDE_FLAG:+cache-parity}, smoke=$${SMOKE_MANIFEST:--}, rerun-failed=$(RERUN_FAILED))...$(NC)"; \
+		say "$(CYAN)Filtering collection (provider=$(PROVIDER), feature=$(FEATURE), folder=$(FOLDER), feature-any=$$MAIN_FEATURES, exclude=$$EXCLUDE_FLAG, smoke=$${SMOKE_MANIFEST:--}, rerun-failed=$(RERUN_FAILED))...$(NC)"; \
 		$(USE_NODE); run_quiet node tests/e2e/api/runners/filter-collection.mjs \
 			--source "$$COLLECTION_FILE" \
 			--out tmp/harness-filtered.json \
