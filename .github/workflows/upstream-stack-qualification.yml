@@ -33,7 +33,6 @@ jobs:
       # The first source-pinned run establishes actual unchanged-dev behavior.
       # A later deliberate source/config change can request the strict candidate gate.
       COMPARISON_MODE: ${{ inputs.comparison_mode || 'characterize' }}
-      REPORT_DIR: ${{ runner.temp }}/mcp-stack-qualification
     steps:
       - name: Checkout pinned stock source
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -49,6 +48,8 @@ jobs:
           persist-credentials: false
       - name: Verify exact source identities
         run: |
+          export REPORT_DIR="$RUNNER_TEMP/mcp-stack-qualification"
+          echo "REPORT_DIR=$REPORT_DIR" >> "$GITHUB_ENV"
           test "$(git -C stock rev-parse HEAD)" = "$STOCK_SOURCE"
           test "$(git -C candidate rev-parse HEAD)" = "$CANDIDATE_SOURCE"
           test ! -f candidate/.env
@@ -167,7 +168,7 @@ jobs:
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: mcp-stack-${{ github.sha }}
-          path: ${{ env.REPORT_DIR }}/
+          path: ${{ runner.temp }}/mcp-stack-qualification/
           if-no-files-found: error
           retention-days: 14
       - name: Remove local qualification images
