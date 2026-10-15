@@ -533,14 +533,30 @@ async function startProxy(baseUrl, route, headers, secrets) {
   return proxy;
 }
 
+async function captureProgressiveFrame(page, count, outDir, timeoutMs) {
+  const inner = page.frameLocator("iframe").frameLocator("iframe");
+  const svg = inner.locator(".svg-wrapper svg");
+  await svg.waitFor({ state: "visible", timeout: timeoutMs });
+  const expected = CHECKPOINT_BOXES.slice(0, count).map((box) => box.label.text);
+  await waitFor(async () => {
+    const labels = await svg.locator("text").allTextContents();
+    return labels.length === expected.length && expected.every((text) => labels.includes(text));
+  }, timeoutMs, `Partial input did not render exactly ${count} bound labels`);
+  const labels = await svg.locator("text").allTextContents();
+  assert.deepEqual([...labels].sort(), [...expected].sort(), "Intermediate labels differ from the exact fixture");
+  const receivedOrder = await inner.locator("body").evaluate(() => window.__bifrostToolNotifications);
+  await svg.screenshot({ path: join(outDir, `excalidraw-progressive-${count}.png`), animations: "disabled", timeout: timeoutMs });
+  return { labels, notification: "ui/notifications/tool-input-partial", receivedOrder };
+}
+
 async function pageLogs(browser, target, runCase, timeoutMs, secrets) {
   const formTimeout = actionTimeout(timeoutMs);
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   const page = await context.newPage();
   const logs = [];
-  const progressive = runCase.partialInput ? { validation: "initial_AppBridge_notifications", frames: [] } : undefined;
+  const progressive = runCase.partialInput ? { validation: runCase.partialInput.legacy ? "legacy_late_partial_calibration" : "initial_AppBridge_notifications", frames: [] } : undefined;
   if (progressive) {
-    await context.addInitScript(({ camera, boxes }) => {
+    await context.addInitScript(({ camera, boxes, replay }) => {
       window.__bifrostToolNotifications = [];
       window.addEventListener("message", (event) => {
         if (event.source === window.parent && event.data?.jsonrpc === "2.0" &&
@@ -548,7 +564,7 @@ async function pageLogs(browser, target, runCase, timeoutMs, secrets) {
           window.__bifrostToolNotifications.push(event.data.method);
         }
       });
-      if (window === window.top) window.__bifrostReplayPartialInput = async (bridge, input) => {
+      if (replay && window === window.top) window.__bifrostReplayPartialInput = async (bridge, input) => {
         for (const count of [1, 2]) {
           await bridge.sendToolInputPartial({ arguments: { ...input,
             elements: JSON.stringify([camera, ...boxes.slice(0, count), { type: "rectangle" }]),
@@ -556,23 +572,13 @@ async function pageLogs(browser, target, runCase, timeoutMs, secrets) {
           await window.__bifrostAssertPartialFrame(count);
         }
       };
-    }, { camera: CHECKPOINT_CAMERA, boxes: CHECKPOINT_BOXES });
+    }, { camera: CHECKPOINT_CAMERA, boxes: CHECKPOINT_BOXES, replay: !runCase.partialInput.legacy });
     await page.exposeFunction("__bifrostAssertPartialFrame", async (count) => {
       try {
-        const inner = page.frameLocator("iframe").frameLocator("iframe");
-        const svg = inner.locator(".svg-wrapper svg");
-        await svg.waitFor({ state: "visible", timeout: timeoutMs });
-        const expected = CHECKPOINT_BOXES.slice(0, count).map((box) => box.label.text);
-        await waitFor(async () => {
-          const labels = await svg.locator("text").allTextContents();
-          return expected.every((text) => labels.includes(text)) &&
-            CHECKPOINT_BOXES.slice(count).every((box) => !labels.includes(box.label.text));
-        }, timeoutMs, `Partial input did not render exactly ${count} bound labels`);
-        const order = await inner.locator("body").evaluate(() => window.__bifrostToolNotifications);
-        assert.deepEqual(order, Array(count).fill("ui/notifications/tool-input-partial"),
+        const frame = await captureProgressiveFrame(page, count, runCase.partialInput.outDir, timeoutMs);
+        assert.deepEqual(frame.receivedOrder, Array(count).fill("ui/notifications/tool-input-partial"),
           "Final input/result arrived before the intermediate render");
-        await svg.screenshot({ path: join(runCase.partialInput.outDir, `excalidraw-progressive-${count}.png`), animations: "disabled", timeout: timeoutMs });
-        progressive.frames.push({ labels: expected, notification: "ui/notifications/tool-input-partial", receivedOrder: order });
+        progressive.frames.push(frame);
       } catch (error) { progressive.error = redact(error.message, secrets); throw error; }
     });
   }
@@ -872,12 +878,67 @@ async function renderCheckpoint(browser, manifest, credentials, appId, outDir, s
   }
 }
 
+async function calibrateLatePartialReplay(browser, build, outDir, secrets, timeoutMs) {
+  const source = new URL(build.source_url);
+  assert.ok(source.protocol === "http:" && source.hostname === "127.0.0.1" && source.port,
+    "Calibration must use the disposable loopback App");
+  await mkdir(outDir, { recursive: true });
+  const proxy = await startProxy(build.source_url, "/mcp", {}, secrets);
+  const input = { elements: JSON.stringify([CHECKPOINT_CAMERA, ...CHECKPOINT_BOXES]) };
+  const evidence = { validation: "browser_legacy_late_partial_negative_control", status: "failed", frames: [],
+    testedApp: build.identity, endpoint: "/mcp", codexVerification: "not_run" };
+  let target, state;
+  try {
+    target = await startHost(option("--host-dir", ""), [proxy.url]);
+    state = await pageLogs(browser, target, { tool: "create_view", input,
+      partialInput: { legacy: true, outDir } }, timeoutMs, secrets);
+    const inner = state.page.frameLocator("iframe").frameLocator("iframe");
+    const body = inner.locator("body");
+    await inner.locator(".svg-wrapper svg text").filter({ hasText: /^Excalidraw$/ }).waitFor({ state: "visible", timeout: timeoutMs });
+    await waitFor(async () => (await body.evaluate(() => window.__bifrostToolNotifications)).includes("ui/notifications/tool-result"),
+      timeoutMs, "Legacy control did not receive its original final input/result");
+    evidence.initialReceivedOrder = await body.evaluate(() => window.__bifrostToolNotifications);
+    assert.deepEqual(evidence.initialReceivedOrder, ["ui/notifications/tool-input", "ui/notifications/tool-result"]);
+    // Deliberately replay the old sandbox transport bypass after final input/result.
+    // The real AppBridge forbids this order; the passive App observer must reject it too.
+    const notify = (method, elements) => state.page.frameLocator("iframe").locator("body").evaluate((body, message) => {
+      const frame = body.querySelector("iframe");
+      if (!frame?.contentWindow) throw new Error("Legacy control has no App frame");
+      frame.contentWindow.postMessage(message, "*");
+    }, { jsonrpc: "2.0", method, params: { arguments: { elements: JSON.stringify(elements) } } });
+    for (const count of [1, 2]) {
+      await notify("ui/notifications/tool-input-partial", [CHECKPOINT_CAMERA, ...CHECKPOINT_BOXES.slice(0, count), { type: "rectangle" }]);
+      evidence.frames.push(await captureProgressiveFrame(state.page, count, outDir, timeoutMs));
+    }
+    await notify("ui/notifications/tool-input", [CHECKPOINT_CAMERA, ...CHECKPOINT_BOXES]);
+    await waitFor(async () => (await body.evaluate(() => window.__bifrostToolNotifications)).length >= 5,
+      timeoutMs, "Legacy replay did not deliver the second final input");
+    evidence.receivedOrder = await body.evaluate(() => window.__bifrostToolNotifications);
+    assert.deepEqual(evidence.receivedOrder, ["ui/notifications/tool-input", "ui/notifications/tool-result",
+      "ui/notifications/tool-input-partial", "ui/notifications/tool-input-partial", "ui/notifications/tool-input"]);
+    assert.throws(() => assertProgressiveNotificationOrder(evidence.receivedOrder), /Initial App lifecycle/);
+    evidence.invalidOrderRejected = true;
+    evidence.appResourceSha256 = proxy.calls.find((call) => call.resourceSha256)?.resourceSha256;
+    assert.equal(evidence.appResourceSha256, build.identity.html_sha256);
+    evidence.status = "passed";
+  } catch (error) { evidence.error = redact(error.message, secrets); }
+  finally {
+    await writeFile(join(outDir, "report.json"), redact(JSON.stringify(evidence, null, 2), secrets) + "\n", { mode: 0o600 });
+    if (state) await state.context.close();
+    if (target) await stopChild(target.child);
+    await closeProxy(proxy);
+  }
+  return evidence;
+}
+
 async function renderExcalidrawComparison(browser, manifest, profiles, outDir, secrets, timeoutMs) {
   const builds = manifest.excalidraw_comparison;
   assert.deepEqual(builds.map((build) => build.version).sort(), ["corrected", "official"]);
   const results = [];
   const directory = join(outDir, "excalidraw-comparison");
   await mkdir(directory, { recursive: true });
+  const orderCalibration = await calibrateLatePartialReplay(browser,
+    builds.find((build) => build.version === "corrected"), join(directory, "late-partial-control"), secrets, timeoutMs);
   for (const build of builds) {
     const source = new URL(build.source_url);
     assert.ok(source.protocol === "http:" && source.hostname === "127.0.0.1" && source.port,
@@ -911,6 +972,7 @@ async function renderExcalidrawComparison(browser, manifest, profiles, outDir, s
   }
   const equivalence = { id: "excalidraw-direct-gateway-equivalence", status: "failed" };
   try {
+    assert.equal(orderCalibration.status, "passed", "Browser legacy partial-order control failed");
     assert.equal(results.length, 4);
     assert.ok(results.every((result) => result.status === "passed"), "All four comparison legs must satisfy their exact expectations");
     for (const version of ["official", "corrected"]) {
@@ -926,7 +988,7 @@ async function renderExcalidrawComparison(browser, manifest, profiles, outDir, s
     validation: "automated_reference_host", codexVerification: "not_run", testedGateway: manifest.gateway,
     referenceHost: { repository: HOST_REPOSITORY, commit: HOST_COMMIT, version: HOST_VERSION,
       adaptation: JSON.parse(await readFile(join(option("--host-dir", ""), ".bifrost-reference-host.json"), "utf8")).adaptation },
-    browser: browser.version(), camera: CHECKPOINT_CAMERA, results,
+    browser: browser.version(), camera: CHECKPOINT_CAMERA, orderCalibration, results,
     passed: results.every((result) => result.status === "passed"),
   }, null, 2), secrets) + "\n", { mode: 0o600 });
   for (const result of results) console.log(`${result.status === "passed" ? "PASS" : "FAIL"} ${result.id}${result.error ? ": " + result.error : ""}`);
