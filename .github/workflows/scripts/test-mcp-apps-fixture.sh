@@ -165,7 +165,7 @@ FIRSTBOOT_CONTRACTS = {
         "virtual_mcp": "mcp-apps-full-virtual",
         "virtual_key_id": "vk-mcp-apps-full",
         "virtual_key_value": KEYS["full"],
-        "tool": "mcp_apps_fixture_second-save_state",
+        "tool": "save_state",
         "discovery_clients": ("mcp_apps_fixture_second",),
         "custom_assertion": "file-declared grant invokes the second fixture source",
     },
@@ -597,10 +597,14 @@ def redact(value):
     return value
 
 
-def write_failure_report(report_dir, error):
+def write_failure_report(report_dir, error, filename="fixture-error.json"):
     report_dir.mkdir(parents=True, exist_ok=True)
     details = {"error_type": type(error).__name__, "message": redact(str(error))}
-    (report_dir / "fixture-error.json").write_text(json.dumps(details, indent=2) + "\n")
+    (report_dir / filename).write_text(json.dumps(details, indent=2) + "\n")
+
+
+def failure_report_filename(args):
+    return "stock-fixture-error.json" if len(args) == 3 and args[0] == "--baseline" else "fixture-error.json"
 
 
 def self_check():
@@ -1004,11 +1008,17 @@ def self_check():
                    "body": f"token {SETUP_TOKEN} sk-bf-example"})
     assert safe == {"Authorization": "<redacted>", "body": "token <redacted> <redacted>"}
     with tempfile.TemporaryDirectory() as temp:
+        assert failure_report_filename(["--baseline", "stock-image", "reports"]) == "stock-fixture-error.json"
+        assert failure_report_filename(["candidate-image", "reports"]) == "fixture-error.json"
         write_failure_report(Path(temp), RuntimeError(f"Authorization: Bearer sk-bf-example; {SETUP_TOKEN}"))
         failure = json.loads((Path(temp) / "fixture-error.json").read_text())
         assert failure["error_type"] == "RuntimeError"
         assert "sk-bf-example" not in failure["message"]
         assert SETUP_TOKEN not in failure["message"] and "<redacted>" in failure["message"]
+        write_failure_report(Path(temp), RuntimeError("stock Newman report missing"), "stock-fixture-error.json")
+        assert "stock Newman report missing" in json.loads(
+            (Path(temp) / "stock-fixture-error.json").read_text())["message"]
+        assert "stock Newman report missing" not in (Path(temp) / "fixture-error.json").read_text()
     saved_health, saved_rpc, saved_setup_request = wait_health, rpc, setup_request
     saved_sleep, saved_clock = time.sleep, time.monotonic
     try:
@@ -1040,27 +1050,31 @@ def self_check():
         else:
             raise AssertionError("stock readiness accepted a permanently incomplete catalog")
         time.monotonic = saved_clock
-        shared_contract = FIRSTBOOT_CONTRACTS[FIRSTBOOT_SCOPE]
-        unrelated = {"config": {"name": "mcp_apps_fixture"}, "state": "error", "tools": []}
-        needed = {"config": {"name": "mcp_apps_fixture_second"}, "state": "healthy",
-                  "tools": [{"name": "save_state"}]}
-        setup_calls = []
-        def fake_setup_request(url, path, method):
-            assert (path, method) == ("/api/mcp/clients", "GET")
-            setup_calls.append(path)
-            return 200, {"clients": [unrelated, needed]}
-        globals()["setup_request"] = fake_setup_request
-        ready_firstboot_fixture_catalog("http://fixture.invalid", shared_contract)
-        assert setup_calls and set(setup_calls) == {"/api/mcp/clients"}
-        readiness_clock = iter((0, 0, 181))
-        time.monotonic = lambda: next(readiness_clock)
-        globals()["setup_request"] = lambda *args: (200, {"clients": [unrelated]})
-        try:
-            ready_firstboot_fixture_catalog("http://fixture.invalid", shared_contract)
-        except RuntimeError as error:
-            assert "mcp_apps_fixture_second" in str(error)
-        else:
-            raise AssertionError("firstboot readiness accepted an undiscovered required source")
+        for contract in FIRSTBOOT_CONTRACTS.values():
+            client_name = contract["discovery_clients"][0]
+            unrelated = {"config": {"name": "unrelated_client"}, "state": "error", "tools": []}
+            needed = {"config": {"name": client_name}, "state": "healthy",
+                      "tools": [{"name": contract["tool"]}]}
+            setup_calls = []
+            def fake_setup_request(url, path, method):
+                assert (path, method) == ("/api/mcp/clients", "GET")
+                setup_calls.append(path)
+                return 200, {"clients": [unrelated, needed]}
+            globals()["setup_request"] = fake_setup_request
+            ready_firstboot_fixture_catalog("http://fixture.invalid", contract)
+            assert setup_calls and set(setup_calls) == {"/api/mcp/clients"}
+            missing_tool = {**needed, "tools": [{"name": "unrelated_tool"}]}
+            readiness_clock = iter((0, 0, 181))
+            time.monotonic = lambda: next(readiness_clock)
+            globals()["setup_request"] = lambda *args: (200, {"clients": [unrelated, missing_tool]})
+            try:
+                ready_firstboot_fixture_catalog("http://fixture.invalid", contract)
+            except RuntimeError as error:
+                assert client_name in str(error)
+                assert "unrelated_tool" in str(error) and contract["tool"] in str(error)
+            else:
+                raise AssertionError(f"{contract['scope']} readiness accepted a source missing its requested tool")
+            time.monotonic = saved_clock
         globals()["setup_request"] = saved_setup_request
     finally:
         globals()["wait_health"], globals()["rpc"] = saved_health, saved_rpc
@@ -1211,7 +1225,8 @@ def ready_firstboot_fixture_catalog(url, contract, diagnostic_path=None):
             status, body = setup_request(url, "/api/mcp/clients", "GET")
             clients = body.get("clients") if isinstance(body, dict) else None
             if not isinstance(clients, list):
-                last = {"setup_api_status": status, "error": "response omitted the clients array", "clients": {}}
+                last = {"setup_api_status": status, "required_tool": contract["tool"],
+                        "error": "response omitted the clients array", "clients": {}}
             else:
                 by_name = {}
                 for client in clients:
@@ -1228,18 +1243,20 @@ def ready_firstboot_fixture_catalog(url, contract, diagnostic_path=None):
                                          "tool_count": len(tool_names), "tool_names": tool_names,
                                          "last_failure": redact(client.get("last_failure"))}
                 selected = {name: by_name.get(name) for name in contract["discovery_clients"]}
-                last = {"setup_api_status": status, "clients": selected}
-                if status == 200 and all(info and info["state"] == "healthy" and info["tool_count"] > 0
+                last = {"setup_api_status": status, "required_tool": contract["tool"], "clients": selected}
+                if status == 200 and all(info and info["state"] == "healthy"
+                                         and contract["tool"] in info["tool_names"]
                                          for info in selected.values()):
                     if diagnostic_path:
-                        diagnostic_path.write_text(json.dumps({**last, "ready": True}, indent=2) + "\n")
+                        diagnostic_path.write_text(json.dumps(redact({**last, "ready": True}), indent=2) + "\n")
                     print(f"PASS {contract['scope']} file-declared source discovery is ready", flush=True)
                     return
         except (OSError, urllib.error.URLError, ValueError, TypeError) as error:
             last = {"setup_api_status": None,
+                    "required_tool": contract["tool"],
                     "error": f"{type(error).__name__}: {error}", "clients": {}}
         if diagnostic_path:
-            diagnostic_path.write_text(json.dumps({**last, "ready": False}, indent=2) + "\n")
+            diagnostic_path.write_text(json.dumps(redact({**last, "ready": False}), indent=2) + "\n")
         time.sleep(1)
     raise RuntimeError(f"{contract['scope']} file-declared source discovery incomplete after 180 seconds: "
                        + json.dumps(last))
@@ -1678,7 +1695,7 @@ if __name__ == "__main__":
             report_arg = None
         if report_arg:
             try:
-                write_failure_report(Path(report_arg).resolve(), error)
+                write_failure_report(Path(report_arg).resolve(), error, failure_report_filename(sys.argv[1:]))
             except OSError:
                 print("fixture CI could not write the redacted failure report", file=sys.stderr)
         print(f"fixture CI failed: {error}", file=sys.stderr)
