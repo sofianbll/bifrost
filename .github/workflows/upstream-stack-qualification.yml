@@ -1,6 +1,7 @@
 name: Qualify clean Bifrost 2.2.6 stack
 
 on:
+  workflow_dispatch:
   push:
     branches: [codex/upstream-stack-ci-226]
     paths:
