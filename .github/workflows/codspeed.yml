@@ -33,6 +33,9 @@ concurrency:
 
 jobs:
   benchmarks:
+    # The spec-21 preparation branch uses its source-pinned fixture workflow;
+    # skip the paid macro runner for this one fork qualification effort.
+    if: github.repository != 'sofianbll/bifrost' || (!startsWith(github.ref_name, 'codex/spec21-') && !startsWith(github.head_ref, 'codex/spec21-'))
     name: Benchmarks (${{ matrix.name }})
     # CodSpeed's managed bare-metal runner for walltime benchmarks.
     # https://codspeed.io/docs/benchmarks/go

@@ -13,6 +13,74 @@
         "connection_string": "http://localhost:3012/sse",
         "tools_to_execute": ["echo", "add", "greet"],
         "tools_to_auto_execute": ["echo", "add", "greet"]
+      },
+      {
+        "name": "errorTestServer",
+        "endpoint_slug": "error-test-server",
+        "is_code_mode_client": true,
+        "connection_type": "stdio",
+        "stdio_config": {
+          "command": "go",
+          "args": ["-C", "../../examples/mcps/error-test-server", "run", "."],
+          "envs": ["GOWORK=off"]
+        },
+        "tools_to_execute": ["*"],
+        "tools_to_auto_execute": ["*"]
+      },
+      {
+        "name": "mcp_apps_fixture",
+        "endpoint_slug": "mcp-apps-fixture",
+        "is_code_mode_client": true,
+        "connection_type": "stdio",
+        "stdio_config": {
+          "command": "../../examples/mcps/mcp-apps-test-server/bin/mcp-apps-test-server",
+          "args": ["first", "dual"]
+        },
+        "tools_to_execute": ["*"],
+        "tools_to_auto_execute": []
+      },
+      {
+        "name": "mcp_apps_fixture_second",
+        "endpoint_slug": "mcp-apps-fixture-second",
+        "connection_type": "stdio",
+        "stdio_config": {
+          "command": "../../examples/mcps/mcp-apps-test-server/bin/mcp-apps-test-server",
+          "args": ["second", "legacy"]
+        },
+        "tools_to_execute": ["*"],
+        "tools_to_auto_execute": []
+      },
+      {
+        "name": "mcp_apps_fixture_modern",
+        "endpoint_slug": "mcp-apps-fixture-modern",
+        "connection_type": "stdio",
+        "stdio_config": {
+          "command": "../../examples/mcps/mcp-apps-test-server/bin/mcp-apps-test-server",
+          "args": ["modern", "modern"]
+        },
+        "tools_to_execute": ["*"],
+        "tools_to_auto_execute": []
+      }
+    ],
+    "virtual_mcps": [
+      {
+        "name": "MCP Apps full fixture",
+        "endpoint_slug": "mcp-apps-full-virtual",
+        "enabled": true,
+        "tools": [
+          {"mcp_client_name": "mcp_apps_fixture", "tool_names": ["*"]},
+          {"mcp_client_name": "mcp_apps_fixture_second", "tool_names": ["*"]}
+        ],
+        "virtual_key_ids": ["vk-mcp-apps-full"]
+      },
+      {
+        "name": "MCP Apps limited fixture",
+        "endpoint_slug": "mcp-apps-limited-virtual",
+        "enabled": true,
+        "tools": [
+          {"mcp_client_name": "mcp_apps_fixture", "tool_names": ["open_view"]}
+        ],
+        "virtual_key_ids": ["vk-mcp-apps-limited"]
       }
     ]
   },
@@ -1519,6 +1587,56 @@
             "weight": 1.0
           }
         ]
+      },
+      {
+        "name": "Code Mode errors fixture",
+        "id": "vk-codemode-errors",
+        "value": "sk-bf-codemode-errors",
+        "is_active": true,
+        "provider_configs": [],
+        "mcp_configs": [
+          {"mcp_client_name": "errorTestServer", "tools_to_execute": ["*"]}
+        ]
+      },
+      {
+        "name": "MCP Apps full fixture",
+        "id": "vk-mcp-apps-full",
+        "value": "sk-bf-mcp-apps-full",
+        "is_active": true,
+        "mcp_configs": [
+          {"mcp_client_name": "mcp_apps_fixture", "tools_to_execute": ["*"]},
+          {"mcp_client_name": "mcp_apps_fixture_second", "tools_to_execute": ["*"]},
+          {"mcp_client_name": "mcp_apps_fixture_modern", "tools_to_execute": ["*"]}
+        ],
+        "provider_configs": []
+      },
+      {
+        "name": "MCP Apps limited fixture",
+        "id": "vk-mcp-apps-limited",
+        "value": "sk-bf-mcp-apps-limited",
+        "is_active": true,
+        "mcp_configs": [
+          {"mcp_client_name": "mcp_apps_fixture", "tools_to_execute": ["open_view"]}
+        ],
+        "provider_configs": []
+      },
+      {
+        "name": "MCP Apps limited without App access",
+        "id": "vk-mcp-apps-limited-no-app",
+        "value": "sk-bf-mcp-apps-limited-no-app",
+        "is_active": true,
+        "mcp_configs": [
+          {"mcp_client_name": "mcp_apps_fixture", "tools_to_execute": ["structured_result"]}
+        ],
+        "provider_configs": []
+      },
+      {
+        "name": "MCP Apps denied fixture",
+        "id": "vk-mcp-apps-denied",
+        "value": "sk-bf-mcp-apps-denied",
+        "is_active": true,
+        "mcp_configs": [],
+        "provider_configs": []
       }
     ]
   },
