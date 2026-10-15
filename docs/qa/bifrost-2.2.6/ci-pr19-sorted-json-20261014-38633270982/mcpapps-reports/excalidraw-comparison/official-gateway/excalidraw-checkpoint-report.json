@@ -1,0 +1,272 @@
+{
+  "id": "excalidraw-checkpoint-roundtrip",
+  "app": "excalidraw",
+  "route": "direct",
+  "gatewayPath": "/mcp/excalidraw-official",
+  "status": "failed",
+  "validation": "automated_reference_host",
+  "camera": {
+    "type": "cameraUpdate",
+    "x": 0,
+    "y": 0,
+    "width": 800,
+    "height": 600
+  },
+  "toleranceSceneUnits": 8,
+  "checkpoints": {
+    "created": "f7547243ad5d45e0a1",
+    "saved": "f7547243ad5d45e0a1",
+    "read": "f7547243ad5d45e0a1",
+    "restoredView": "888b31a5ff49441f8e"
+  },
+  "checks": {
+    "progressiveInput": true,
+    "beforeAlignment": true,
+    "deliberateDisplacementRejected": true,
+    "saveWithBoundLabelsAndPointerEdit": true,
+    "exactReadbackWithBoundLabels": true,
+    "fixedFraming": true,
+    "afterAlignment": false
+  },
+  "progressive": {
+    "validation": "controlled_host_notifications_replay",
+    "frames": [
+      {
+        "labels": [
+          "Codex"
+        ],
+        "notification": "ui/notifications/tool-input-partial"
+      },
+      {
+        "labels": [
+          "Codex",
+          "Bifrost"
+        ],
+        "notification": "ui/notifications/tool-input-partial"
+      }
+    ]
+  },
+  "before": {
+    "viewport": {
+      "width": 1400,
+      "height": 1050
+    },
+    "viewBox": [
+      -50,
+      -70,
+      800,
+      600
+    ],
+    "labels": [
+      {
+        "id": "ci-seed",
+        "label": "Codex",
+        "box": {
+          "x": 68.09000069754464,
+          "y": 89.20518275669643,
+          "width": 222.49360002790178,
+          "height": 102.21705845424107
+        },
+        "text": {
+          "x": 150.28571428571428,
+          "y": 127.40571812220982,
+          "width": 59.42857142857143,
+          "height": 25.142848423549108
+        },
+        "dx": 0.6631992885044724,
+        "dy": -0.3365696498325903
+      },
+      {
+        "id": "ci-gateway",
+        "label": "Bifrost",
+        "box": {
+          "x": 448.08998325892856,
+          "y": 89.20518275669643,
+          "width": 222.49365234375,
+          "height": 102.21705845424107
+        },
+        "text": {
+          "x": 523.7142857142857,
+          "y": 127.40571812220982,
+          "width": 72.57142857142857,
+          "height": 25.142848423549108
+        },
+        "dx": 0.6631905691964448,
+        "dy": -0.3365696498325903
+      },
+      {
+        "id": "ci-app",
+        "label": "Excalidraw",
+        "box": {
+          "x": 258.09000069754467,
+          "y": 329.20518275669644,
+          "width": 222.49363490513392,
+          "height": 102.217041015625
+        },
+        "text": {
+          "x": 318.85714285714283,
+          "y": 367.4056919642857,
+          "width": 102.28571428571429,
+          "height": 25.142892020089285
+        },
+        "dx": 0.6631818498883746,
+        "dy": -0.3365652901785552
+      }
+    ]
+  },
+  "negativeControl": {
+    "displacementSceneUnits": {
+      "x": 24,
+      "y": -20
+    },
+    "viewport": {
+      "width": 1400,
+      "height": 1050
+    },
+    "viewBox": [
+      -50,
+      -70,
+      800,
+      600
+    ],
+    "labels": [
+      {
+        "id": "ci-seed",
+        "label": "Codex",
+        "box": {
+          "x": 68.09000069754464,
+          "y": 89.20518275669643,
+          "width": 222.49360002790178,
+          "height": 102.21705845424107
+        },
+        "text": {
+          "x": 150.28571428571428,
+          "y": 127.40571812220982,
+          "width": 59.42857142857143,
+          "height": 25.142848423549108
+        },
+        "dx": 0.6631992885044724,
+        "dy": -0.3365696498325903
+      },
+      {
+        "id": "ci-gateway",
+        "label": "Bifrost",
+        "box": {
+          "x": 448.08998325892856,
+          "y": 89.20518275669643,
+          "width": 222.49365234375,
+          "height": 102.21705845424107
+        },
+        "text": {
+          "x": 547.7142857142857,
+          "y": 107.40571812220982,
+          "width": 72.57142857142857,
+          "height": 25.142857142857142
+        },
+        "dx": 24.663190569196445,
+        "dy": -20.336565290178577
+      },
+      {
+        "id": "ci-app",
+        "label": "Excalidraw",
+        "box": {
+          "x": 258.09000069754467,
+          "y": 329.20518275669644,
+          "width": 222.49363490513392,
+          "height": 102.217041015625
+        },
+        "text": {
+          "x": 318.85714285714283,
+          "y": 367.4056919642857,
+          "width": 102.28571428571429,
+          "height": 25.142892020089285
+        },
+        "dx": 0.6631818498883746,
+        "dy": -0.3365652901785552
+      }
+    ]
+  },
+  "savedPayloadSha256": "d57124158e4017de23eaba472a0866ca464754e88e9a53242339175034c6e46e",
+  "readPayloadSha256": "d57124158e4017de23eaba472a0866ca464754e88e9a53242339175034c6e46e",
+  "editedElementCount": 7,
+  "callbackCalls": [
+    "save_checkpoint",
+    "read_checkpoint"
+  ],
+  "after": {
+    "viewport": {
+      "width": 1400,
+      "height": 1050
+    },
+    "viewBox": [
+      -50,
+      -70,
+      800,
+      600
+    ],
+    "labels": [
+      {
+        "id": "ci-seed",
+        "label": "Codex",
+        "box": {
+          "x": 68.09000069754464,
+          "y": 89.20518275669643,
+          "width": 222.49360002790178,
+          "height": 102.21705845424107
+        },
+        "text": {
+          "x": 120.28571428571429,
+          "y": 114.90571812220982,
+          "width": 59.42857142857143,
+          "height": 25.142848423549108
+        },
+        "dx": -29.336800711495528,
+        "dy": -12.83656964983259
+      },
+      {
+        "id": "ci-gateway",
+        "label": "Bifrost",
+        "box": {
+          "x": 448.08998325892856,
+          "y": 89.20518275669643,
+          "width": 222.49365234375,
+          "height": 102.21705845424107
+        },
+        "text": {
+          "x": 487.2142857142857,
+          "y": 114.90571812220982,
+          "width": 72.57142857142857,
+          "height": 25.142848423549108
+        },
+        "dx": -35.836809430803555,
+        "dy": -12.83656964983259
+      },
+      {
+        "id": "ci-app",
+        "label": "Excalidraw",
+        "box": {
+          "x": 258.09000069754467,
+          "y": 329.20518275669644,
+          "width": 222.49363490513392,
+          "height": 102.217041015625
+        },
+        "text": {
+          "x": 268.35714285714283,
+          "y": 354.9056919642857,
+          "width": 102.28571428571429,
+          "height": 25.142892020089285
+        },
+        "dx": -49.836818150111625,
+        "dy": -12.836565290178555
+      }
+    ]
+  },
+  "failures": [
+    "Bound label ci-seed is displaced: dx=-29.34, dy=-12.84 scene units"
+  ],
+  "serverInfo": {
+    "name": "bifrost",
+    "version": "v2.2.6+sofian.c10746444bc3"
+  },
+  "appResourceSha256": "441650e7bc844a43511b906281d11589e8d24a34a83d657c1d7a56f907c21a63"
+}
