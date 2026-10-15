@@ -250,6 +250,16 @@ func precomputeToolSerialization(tools map[string]schemas.ChatTool) {
 }
 
 func (m *ToolsManager) GetAvailableTools(ctx *schemas.BifrostContext) []schemas.ChatTool {
+	return m.getAvailableTools(ctx, false)
+}
+
+// GetAvailableToolsForMCP includes tools explicitly marked app-only. They are
+// available to the MCP Apps host, but must not enter model catalogs.
+func (m *ToolsManager) GetAvailableToolsForMCP(ctx *schemas.BifrostContext) []schemas.ChatTool {
+	return m.getAvailableTools(ctx, true)
+}
+
+func (m *ToolsManager) getAvailableTools(ctx *schemas.BifrostContext, includeAppOnly bool) []schemas.ChatTool {
 	availableToolsPerClient := m.clientManager.GetToolPerClient(ctx)
 	// Flatten tools from all clients into a single slice, avoiding duplicates
 	var availableTools []schemas.ChatTool
@@ -277,6 +287,9 @@ func (m *ToolsManager) GetAvailableTools(ctx *schemas.BifrostContext) []schemas.
 		// Add tools from this client, checking for duplicates
 		for _, tool := range clientTools {
 			if tool.Function != nil && tool.Function.Name != "" && !seenToolNames[tool.Function.Name] {
+				if !includeAppOnly && tool.MCPApp != nil && slices.Contains(tool.MCPApp.Visibility, "app") && !slices.Contains(tool.MCPApp.Visibility, "model") {
+					continue
+				}
 				seenToolNames[tool.Function.Name] = true
 				schemas.AppendToContextList(ctx, schemas.BifrostContextKeyMCPAddedTools, tool.Function.Name)
 				if !client.ExecutionConfig.IsCodeModeClient {

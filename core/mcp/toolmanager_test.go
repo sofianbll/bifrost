@@ -82,6 +82,29 @@ func makeTool(name string) schemas.ChatTool {
 	}
 }
 
+func TestGetAvailableToolsKeepsAppOnlyToolsOutOfModelCatalog(t *testing.T) {
+	appOnly := makeTool("test-client-open")
+	appOnly.MCPApp = &schemas.MCPAppToolMetadata{Visibility: []string{"app"}}
+	modelAndApp := makeTool("test-client-search")
+	modelAndApp.MCPApp = &schemas.MCPAppToolMetadata{Visibility: []string{"app", "model"}}
+	plain := makeTool("test-client-plain")
+	manager := NewToolsManager(nil, &mockToolClientManager{tools: []schemas.ChatTool{appOnly, modelAndApp, plain}}, nil, nil, defaultLogger)
+	ctx := schemas.NewBifrostContext(context.Background(), schemas.NoDeadline)
+
+	assert.Equal(t, []string{"test-client-search", "test-client-plain"}, toolNamesFromAvailable(manager.GetAvailableTools(ctx)))
+	assert.Equal(t, []string{"test-client-open", "test-client-search", "test-client-plain"}, toolNamesFromAvailable(manager.GetAvailableToolsForMCP(ctx)))
+}
+
+func toolNamesFromAvailable(tools []schemas.ChatTool) []string {
+	names := make([]string, 0, len(tools))
+	for _, tool := range tools {
+		if tool.Function != nil {
+			names = append(names, tool.Function.Name)
+		}
+	}
+	return names
+}
+
 // toolNamesFromChatRequest collects the names of every tool in the request's
 // ChatRequest.Params.Tools slice.
 func toolNamesFromChatRequest(req *schemas.BifrostRequest) []string {
