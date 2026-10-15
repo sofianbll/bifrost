@@ -8,7 +8,6 @@ import { fileURLToPath } from "node:url";
 const repository = "https://github.com/modelcontextprotocol/ext-apps.git";
 const commit = "82221c0c8ce7661efa6771c9d461511b1650495f";
 const version = "2.0.3";
-const sdkNpmIntegrity = "sha512-Tn+4+cyhO4f4cQSDxNyLiIfEE+qlTTuIbWBJB8JTinEXOhDYgCT4wDTQplxD9MBYZH5pCYGC59GaxiwIT4bu8w==";
 const here = dirname(fileURLToPath(import.meta.url));
 const bifrostRoot = resolve(here, "../..");
 
@@ -42,6 +41,11 @@ if (actualCommit !== commit) throw new Error(`Reference host commit mismatch: ${
 
 const manifest = JSON.parse(await readFile(join(directory, "examples/basic-host/package.json"), "utf8"));
 if (manifest.version !== version) throw new Error(`Reference host version mismatch: ${manifest.version}`);
+const packageLock = JSON.parse(await readFile(join(directory, "package-lock.json"), "utf8"));
+const sdkLink = packageLock.packages?.["node_modules/@modelcontextprotocol/ext-apps"];
+if (packageLock.packages?.[""]?.version !== version || sdkLink?.link !== true) {
+  throw new Error("Pinned SDK must resolve from the version-matched ext-apps workspace recorded by package-lock.json");
+}
 await run("npm", ["ci", "--workspace=examples/basic-host", "--include-workspace-root=true"], directory);
 
 // The official host takes URL strings only. This isolated adapter obtains one
@@ -72,6 +76,18 @@ adaptedTransport = adaptedTransport.replace(streamableMarker, "new StreamableHTT
 adaptedTransport = adaptedTransport.replace(sseMarker, "new SSEClientTransport(serverUrl, fixtureOptions)");
 await writeFile(join(directory, transportPath), adaptedTransport);
 
+// Separately gated controlled replay through the pinned host's official
+// AppBridge API. It is a deterministic protocol control, not model streaming.
+const partialReplayMarker = "appBridge.sendToolInput({ arguments: input });";
+if (adaptedTransport.split(partialReplayMarker).length !== 2) throw new Error("Pinned host full-input seam changed");
+const adaptedPartialReplay = adaptedTransport.replace(
+  partialReplayMarker,
+  `const replayPartialInput = Reflect.get(window, "__bifrostReplayPartialInput");
+  if (typeof replayPartialInput === "function") await replayPartialInput(appBridge, input);
+  ${partialReplayMarker}`,
+);
+await writeFile(join(directory, transportPath), adaptedPartialReplay);
+
 const fixtureEntry = join(directory, "examples/basic-host/src/bifrost-fixture-app.ts");
 await copyFile(join(bifrostRoot, "tests/mcpapps/fixture-app.ts"), fixtureEntry);
 await run("npm", ["run", "build", "--workspace=examples/basic-host"], directory);
@@ -95,15 +111,27 @@ const output = {
   repository,
   version,
   commit,
-  sdkPackageIntegrity: sdkNpmIntegrity,
+  sdkDependency: {
+    hostDeclaredRange: manifest.dependencies["@modelcontextprotocol/ext-apps"],
+    workspaceVersion: packageLock.packages[""].version,
+    packageLockWorkspaceLink: sdkLink.link,
+    provenance: "SDK source is built from the pinned repository workspace; no npm tarball integrity is claimed",
+  },
   hostFixtureAuthAdapter: adapter,
+  controlledPartialReplay: {
+    transportFile: transportPath,
+    authAdaptedSourceSha256: sha256(adaptedTransport),
+    partialReplayAdaptedSourceSha256: sha256(adaptedPartialReplay),
+    patchSha256: sha256(`${adaptedTransport}\0${adaptedPartialReplay}`),
+    seam: "window.__bifrostReplayPartialInput(AppBridge,input) is an opt-in test hook before pinned host final-input/result calls",
+  },
   appBundle: {
     entry: "tests/mcpapps/fixture-app.ts",
     entrySha256: sha256(await readFile(join(bifrostRoot, "tests/mcpapps/fixture-app.ts"))),
     output: "examples/basic-host/dist/mcp-app-fixture.js",
     sha256: sha256(generatedBundle),
     bytes: generatedBundle.byteLength,
-    source: "@modelcontextprotocol/ext-apps 2.0.3 App; package output pinned by npm sha512 integrity above",
+    source: "@modelcontextprotocol/ext-apps 2.0.3 App built from the pinned repository workspace link",
   },
 };
 await writeFile(join(directory, ".bifrost-reference-host.json"), `${JSON.stringify(output, null, 2)}\n`, { mode: 0o600 });
