@@ -82,6 +82,24 @@ func makeTool(name string) schemas.ChatTool {
 	}
 }
 
+var availableToolsBenchmarkSink []schemas.ChatTool
+
+// BenchmarkGetAvailableToolsNoApps measures the real core catalog path when
+// discovery produced no MCP Apps metadata. Keep the setup outside the timed
+// loop so this isolates the request-facing catalog work.
+func BenchmarkGetAvailableToolsNoApps(b *testing.B) {
+	manager := NewToolsManager(nil, &mockToolClientManager{tools: []schemas.ChatTool{
+		makeTool("test-client-lookup"),
+		makeTool("test-client-search"),
+	}}, nil, nil, defaultLogger)
+	ctx := schemas.NewBifrostContext(context.Background(), schemas.NoDeadline)
+	b.ReportAllocs()
+	b.ResetTimer()
+	for b.Loop() {
+		availableToolsBenchmarkSink = manager.GetAvailableTools(ctx)
+	}
+}
+
 // toolNamesFromChatRequest collects the names of every tool in the request's
 // ChatRequest.Params.Tools slice.
 func toolNamesFromChatRequest(req *schemas.BifrostRequest) []string {
