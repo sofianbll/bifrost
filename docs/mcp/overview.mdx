@@ -140,6 +140,14 @@ This enables a powerful pattern:
 - Expose all those tools through a single MCP endpoint
 - External clients connect to Bifrost and get access to all aggregated tools
 
+### MCP Apps
+
+The HTTP gateway relays MCP Apps over the same `/mcp` endpoint. A client must request the `io.modelcontextprotocol/ui` extension in `initialize`; Bifrost advertises it only to clients that request it. Tools retain their upstream UI metadata and input schema, while each resource URI is qualified with its source client so two servers can use the same upstream URI safely. Resource reads and tool calls remain scoped to the caller's client, tool, key, and request filters.
+
+Tools marked with `_meta.ui.visibility: ["app"]` remain available to native MCP clients but are omitted from model-facing tool catalogs unless their metadata also includes `model`. Bifrost returns the upstream native `CallToolResult` fields, including structured content, metadata, and `isError`, after MCP post-hooks. If a hook changes the compatibility result without changing the native result, Bifrost drops that stale native payload and returns the effective hook result.
+
+The gateway relays completed resource and tool results. It does not provide partial tool input delivery or live streaming of an upstream `CallToolResult`; these require separate protocol support.
+
 ```mermaid
 graph TD
     Clients["<b>External MCP Clients</b><br/>Claude Desktop, Cursor<br/>Custom Apps"]
