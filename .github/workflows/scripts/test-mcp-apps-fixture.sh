@@ -158,6 +158,17 @@ FIRSTBOOT_REQUEST = "MCP Apps fixture firstboot grants invokes second callback (
 FIRSTBOOT_FOLDER = "146. First-boot Virtual MCP grants"
 FIRSTBOOT_VIRTUAL_MCP = "mcp-apps-full-virtual"
 FIRSTBOOT_VIRTUAL_KEY = "vk-mcp-apps-full"
+FIRSTBOOT_STATUS_ASSERTION = "Status code is 200"
+FIRSTBOOT_HTTP_ASSERTION = "HTTP status is exact"
+FIRSTBOOT_CALLBACK_ASSERTION = "file-declared grant invokes the second fixture source"
+FIRSTBOOT_CONTENT_ASSERTION = "Response has content (text or tool_use)"
+FIRSTBOOT_ASSERTIONS = {
+    "firstboot": {FIRSTBOOT_STATUS_ASSERTION, FIRSTBOOT_HTTP_ASSERTION, FIRSTBOOT_CALLBACK_ASSERTION},
+    "restart": {FIRSTBOOT_STATUS_ASSERTION, FIRSTBOOT_HTTP_ASSERTION, FIRSTBOOT_CALLBACK_ASSERTION,
+                 FIRSTBOOT_CONTENT_ASSERTION},
+}
+FIRSTBOOT_EXPECTED_FAILURES = {FIRSTBOOT_STATUS_ASSERTION, FIRSTBOOT_HTTP_ASSERTION,
+                               FIRSTBOOT_CALLBACK_ASSERTION}
 
 
 def parse_scopes(value=None):
@@ -219,6 +230,20 @@ def require_same_container(before, after):
     if not before or before != after:
         raise RuntimeError("firstboot-grants restart changed the disposable container identity")
     return True
+
+
+def firstboot_comparison_classification(phase, candidate_gate):
+    if phase == "firstboot":
+        if candidate_gate == "candidate-green":
+            return "fixed"
+        if candidate_gate == "expected-stock-red":
+            return "unresolved"
+        raise RuntimeError(f"firstboot phase has an invalid candidate gate: {candidate_gate}")
+    if phase == "restart":
+        if candidate_gate in ("candidate-green", "restart-green-control"):
+            return "green-control"
+        raise RuntimeError(f"restart phase has an invalid candidate gate: {candidate_gate}")
+    raise RuntimeError(f"unknown firstboot-grants phase: {phase}")
 
 
 def build_config(scopes=None):
@@ -317,22 +342,37 @@ def validate_collection(path, feature, expected):
 
 
 def firstboot_phase_result(report, phase, return_code, attachment_snapshot):
+    if phase not in FIRSTBOOT_ASSERTIONS:
+        raise RuntimeError(f"unknown firstboot-grants phase: {phase}")
     by_name = executions_by_name(report, f"firstboot-grants {phase}")
     if set(by_name) != {FIRSTBOOT_REQUEST}:
         raise RuntimeError(f"firstboot-grants {phase}: expected the single first-boot request")
     execution = by_name[FIRSTBOOT_REQUEST]
-    failures = [item.get("assertion") for item in execution.get("assertions", [])
-                if item.get("error") is not None]
+    assertion_results = execution.get("assertions")
+    if not isinstance(assertion_results, list) or not assertion_results:
+        raise RuntimeError(f"firstboot-grants {phase}: Newman report has no assertion results")
+    assertion_names = [item.get("assertion") for item in assertion_results
+                       if isinstance(item, dict) and isinstance(item.get("assertion"), str)
+                       and "error" in item]
+    if len(assertion_names) != len(assertion_results) or len(assertion_names) != len(set(assertion_names)):
+        raise RuntimeError(f"firstboot-grants {phase}: Newman assertion results are malformed or duplicated")
+    if set(assertion_names) != FIRSTBOOT_ASSERTIONS[phase]:
+        raise RuntimeError(f"firstboot-grants {phase}: Newman assertion set differs from the pinned fixture contract "
+                           f"(expected={sorted(FIRSTBOOT_ASSERTIONS[phase])}, got={sorted(assertion_names)})")
+    failures = [item["assertion"] for item in assertion_results if item["error"] is not None]
     status = execution["response"]["code"]
     ids = attachment_snapshot.get("virtual_key_ids")
     if not isinstance(ids, list) or any(not isinstance(item, str) for item in ids):
         raise RuntimeError(f"firstboot-grants {phase}: setup API attachment snapshot is malformed")
     return {"phase": phase, "http_status": status, "newman_exit_code": return_code,
-            "stored_virtual_key_ids": ids, "failed_assertions": failures,
+            "stored_virtual_key_ids": ids, "assertions": assertion_names,
+            "failed_assertions": failures,
             "request": FIRSTBOOT_REQUEST}
 
 
 def validate_firstboot_phase(result, phase, mode, baseline):
+    if phase not in FIRSTBOOT_ASSERTIONS or mode not in ("characterize", "strict"):
+        raise RuntimeError(f"firstboot-grants received an invalid phase or comparison mode: {phase}/{mode}")
     expected_attached = [FIRSTBOOT_VIRTUAL_KEY]
     if mode == "strict" and not baseline:
         if result["http_status"] != 200 or result["stored_virtual_key_ids"] != expected_attached \
@@ -342,7 +382,7 @@ def validate_firstboot_phase(result, phase, mode, baseline):
     if phase == "firstboot":
         if result["http_status"] != 403 or result["stored_virtual_key_ids"] != [] \
                 or result["newman_exit_code"] == 0 \
-                or "HTTP status is exact" not in result["failed_assertions"]:
+                or set(result["failed_assertions"]) != FIRSTBOOT_EXPECTED_FAILURES:
             raise RuntimeError("firstboot-grants firstboot: expected the stock missing-grant 403 with zero stored attachments")
         return "expected-stock-red"
     if result["http_status"] != 200 or result["stored_virtual_key_ids"] != expected_attached \
@@ -534,6 +574,18 @@ def self_check():
         pass
     else:
         raise AssertionError("firstboot restart self-check accepted a replacement container")
+    assert firstboot_comparison_classification("firstboot", "candidate-green") == "fixed"
+    assert firstboot_comparison_classification("firstboot", "expected-stock-red") == "unresolved"
+    assert firstboot_comparison_classification("restart", "candidate-green") == "green-control"
+    assert firstboot_comparison_classification("restart", "restart-green-control") == "green-control"
+    for phase, gate in (("firstboot", "restart-green-control"), ("restart", "expected-stock-red"),
+                        ("other", "candidate-green")):
+        try:
+            firstboot_comparison_classification(phase, gate)
+        except RuntimeError:
+            pass
+        else:
+            raise AssertionError("firstboot comparison mislabeled an inconsistent phase gate")
     firstboot_config = build_config((FIRSTBOOT_SCOPE,))
     assert firstboot_config["providers"] == {}
     assert {client["name"] for client in firstboot_config["mcp"]["client_configs"]} == set(FIXTURE_NAMES[:3])
@@ -550,14 +602,18 @@ def self_check():
     assert "errorTestServer" not in {client["name"] for client in apps_config["mcp"]["client_configs"]}
     assert KEYS["codemode_errors"] not in {key["value"] for key in apps_config["governance"]["virtual_keys"]}
     stock_firstboot = {"phase": "firstboot", "http_status": 403, "newman_exit_code": 1,
-                       "stored_virtual_key_ids": [], "failed_assertions": ["HTTP status is exact"],
+                       "stored_virtual_key_ids": [], "assertions": sorted(FIRSTBOOT_ASSERTIONS["firstboot"]),
+                       "failed_assertions": sorted(FIRSTBOOT_EXPECTED_FAILURES),
                        "request": FIRSTBOOT_REQUEST}
     stock_restart = {"phase": "restart", "http_status": 200, "newman_exit_code": 0,
-                     "stored_virtual_key_ids": [FIRSTBOOT_VIRTUAL_KEY], "failed_assertions": [],
+                     "stored_virtual_key_ids": [FIRSTBOOT_VIRTUAL_KEY],
+                     "assertions": sorted(FIRSTBOOT_ASSERTIONS["restart"]), "failed_assertions": [],
                      "request": FIRSTBOOT_REQUEST}
     firstboot_report = {"run": {"executions": [{"item": {"name": FIRSTBOOT_REQUEST},
                     "response": {"code": 403},
-                    "assertions": [{"assertion": "HTTP status is exact", "error": {"name": "AssertionError"}}]}]}}
+                    "assertions": [{"assertion": assertion,
+                                    "error": {"name": "AssertionError"} if assertion in FIRSTBOOT_EXPECTED_FAILURES else None}
+                                   for assertion in sorted(FIRSTBOOT_ASSERTIONS["firstboot"])]}]}}
     firstboot_snapshot = {"endpoint_slug": FIRSTBOOT_VIRTUAL_MCP, "virtual_mcp_id": "fixture-vmcp-id",
                           "virtual_key_ids": []}
     assert firstboot_phase_result(firstboot_report, "firstboot", 1, firstboot_snapshot) == stock_firstboot
@@ -567,10 +623,29 @@ def self_check():
         pass
     else:
         raise AssertionError("firstboot report gate accepted a missing request")
+    for bad_assertions in ([],
+                           [{"assertion": assertion, "error": {"name": "AssertionError"}}
+                            for assertion in sorted(FIRSTBOOT_EXPECTED_FAILURES - {FIRSTBOOT_CALLBACK_ASSERTION})],
+                           [{"assertion": assertion, "error": {"name": "AssertionError"}}
+                            for assertion in sorted(FIRSTBOOT_EXPECTED_FAILURES)] +
+                           [{"assertion": "unrelated assertion", "error": {"name": "AssertionError"}}],
+                           [{"assertion": None, "error": {"name": "AssertionError"}}],
+                           [{"assertion": assertion, "error": {"name": "AssertionError"}}
+                            for assertion in sorted(FIRSTBOOT_EXPECTED_FAILURES)] +
+                           [{"assertion": FIRSTBOOT_STATUS_ASSERTION, "error": {"name": "AssertionError"}}]):
+        malformed_report = {"run": {"executions": [{"item": {"name": FIRSTBOOT_REQUEST},
+                              "response": {"code": 403}, "assertions": bad_assertions}]}}
+        try:
+            firstboot_phase_result(malformed_report, "firstboot", 1, firstboot_snapshot)
+        except RuntimeError:
+            pass
+        else:
+            raise AssertionError("firstboot report gate accepted missing, extra, or absent assertion results")
     assert validate_firstboot_phase(stock_firstboot, "firstboot", "characterize", True) == "expected-stock-red"
     assert validate_firstboot_phase(stock_restart, "restart", "characterize", True) == "restart-green-control"
     candidate_green = {**stock_firstboot, "http_status": 200, "newman_exit_code": 0,
-                       "stored_virtual_key_ids": [FIRSTBOOT_VIRTUAL_KEY], "failed_assertions": []}
+                       "stored_virtual_key_ids": [FIRSTBOOT_VIRTUAL_KEY], "failed_assertions": [],
+                       "assertions": sorted(FIRSTBOOT_ASSERTIONS["firstboot"])}
     assert validate_firstboot_phase(candidate_green, "firstboot", "strict", False) == "candidate-green"
     assert validate_firstboot_phase({**candidate_green, "phase": "restart"}, "restart", "strict", False) == "candidate-green"
     for malformed in ({**candidate_green, "stored_virtual_key_ids": []},
@@ -1206,14 +1281,13 @@ def main(args):
                         candidate_class = validate_firstboot_phase(candidate_result, phase, mode, False)
                         candidate_result_state = {"http_status": candidate_result["http_status"],
                                                   "stored_virtual_key_ids": candidate_result["stored_virtual_key_ids"],
+                                                  "assertions": candidate_result["assertions"],
                                                   "failed_assertions": candidate_result["failed_assertions"]}
                         stock_result_state = {"http_status": result["http_status"],
                                               "stored_virtual_key_ids": result["stored_virtual_key_ids"],
+                                              "assertions": result["assertions"],
                                               "failed_assertions": result["failed_assertions"]}
-                        expected_class = ("fixed" if phase == "firstboot" and candidate_class == "candidate-green"
-                                          else "unresolved" if phase == "firstboot"
-                                          else "green-control" if candidate_class == "restart-green-control"
-                                          else "restart-regression")
+                        expected_class = firstboot_comparison_classification(phase, candidate_class)
                         phase_comparison = {"phase": phase, "classification": expected_class,
                                             "stock": stock_result_state, "candidate": candidate_result_state,
                                             "stock_virtual_mcp_id": snapshot["virtual_mcp_id"],
