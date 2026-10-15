@@ -164,6 +164,8 @@ FIRSTBOOT_CALLBACK_ASSERTION = "file-declared grant invokes the second fixture s
 FIRSTBOOT_CONTENT_ASSERTION = "Response has content (text or tool_use)"
 FIRSTBOOT_ASSERTIONS = {
     "firstboot": {FIRSTBOOT_STATUS_ASSERTION, FIRSTBOOT_HTTP_ASSERTION, FIRSTBOOT_CALLBACK_ASSERTION},
+    "firstboot-green": {FIRSTBOOT_STATUS_ASSERTION, FIRSTBOOT_HTTP_ASSERTION, FIRSTBOOT_CALLBACK_ASSERTION,
+                        FIRSTBOOT_CONTENT_ASSERTION},
     "restart": {FIRSTBOOT_STATUS_ASSERTION, FIRSTBOOT_HTTP_ASSERTION, FIRSTBOOT_CALLBACK_ASSERTION,
                  FIRSTBOOT_CONTENT_ASSERTION},
 }
@@ -348,19 +350,32 @@ def firstboot_phase_result(report, phase, return_code, attachment_snapshot):
     if set(by_name) != {FIRSTBOOT_REQUEST}:
         raise RuntimeError(f"firstboot-grants {phase}: expected the single first-boot request")
     execution = by_name[FIRSTBOOT_REQUEST]
+    status = execution.get("response", {}).get("code")
+    if phase == "firstboot" and status not in (200, 403):
+        raise RuntimeError(f"firstboot-grants firstboot: unexpected HTTP status for assertion inventory: {status}")
+    assertion_contract = (FIRSTBOOT_ASSERTIONS["firstboot-green"]
+                          if phase == "firstboot" and status == 200 else FIRSTBOOT_ASSERTIONS[phase])
     assertion_results = execution.get("assertions")
     if not isinstance(assertion_results, list) or not assertion_results:
         raise RuntimeError(f"firstboot-grants {phase}: Newman report has no assertion results")
-    assertion_names = [item.get("assertion") for item in assertion_results
-                       if isinstance(item, dict) and isinstance(item.get("assertion"), str)
-                       and "error" in item]
-    if len(assertion_names) != len(assertion_results) or len(assertion_names) != len(set(assertion_names)):
-        raise RuntimeError(f"firstboot-grants {phase}: Newman assertion results are malformed or duplicated")
-    if set(assertion_names) != FIRSTBOOT_ASSERTIONS[phase]:
+    assertion_names = []
+    failures = []
+    for item in assertion_results:
+        if not isinstance(item, dict) or not isinstance(item.get("assertion"), str):
+            raise RuntimeError(f"firstboot-grants {phase}: Newman assertion results are malformed")
+        if item.get("skipped", False) is not False:
+            raise RuntimeError(f"firstboot-grants {phase}: Newman assertion was skipped or has malformed skip state")
+        error = item.get("error")
+        if error is not None and (not isinstance(error, dict) or not isinstance(error.get("name"), str)):
+            raise RuntimeError(f"firstboot-grants {phase}: Newman assertion error is malformed")
+        assertion_names.append(item["assertion"])
+        if error is not None:
+            failures.append(item["assertion"])
+    if len(assertion_names) != len(set(assertion_names)):
+        raise RuntimeError(f"firstboot-grants {phase}: Newman assertion results are duplicated")
+    if set(assertion_names) != assertion_contract:
         raise RuntimeError(f"firstboot-grants {phase}: Newman assertion set differs from the pinned fixture contract "
-                           f"(expected={sorted(FIRSTBOOT_ASSERTIONS[phase])}, got={sorted(assertion_names)})")
-    failures = [item["assertion"] for item in assertion_results if item["error"] is not None]
-    status = execution["response"]["code"]
+                           f"(expected={sorted(assertion_contract)}, got={sorted(assertion_names)})")
     ids = attachment_snapshot.get("virtual_key_ids")
     if not isinstance(ids, list) or any(not isinstance(item, str) for item in ids):
         raise RuntimeError(f"firstboot-grants {phase}: setup API attachment snapshot is malformed")
@@ -611,12 +626,19 @@ def self_check():
                      "request": FIRSTBOOT_REQUEST}
     firstboot_report = {"run": {"executions": [{"item": {"name": FIRSTBOOT_REQUEST},
                     "response": {"code": 403},
-                    "assertions": [{"assertion": assertion,
-                                    "error": {"name": "AssertionError"} if assertion in FIRSTBOOT_EXPECTED_FAILURES else None}
+                    "assertions": [{"assertion": assertion, "skipped": False,
+                                    **({"error": {"name": "AssertionError"}}
+                                       if assertion in FIRSTBOOT_EXPECTED_FAILURES else {})}
                                    for assertion in sorted(FIRSTBOOT_ASSERTIONS["firstboot"])]}]}}
     firstboot_snapshot = {"endpoint_slug": FIRSTBOOT_VIRTUAL_MCP, "virtual_mcp_id": "fixture-vmcp-id",
                           "virtual_key_ids": []}
     assert firstboot_phase_result(firstboot_report, "firstboot", 1, firstboot_snapshot) == stock_firstboot
+    restart_report = {"run": {"executions": [{"item": {"name": FIRSTBOOT_REQUEST},
+                   "response": {"code": 200},
+                   "assertions": [{"assertion": assertion, "skipped": False}
+                                  for assertion in sorted(FIRSTBOOT_ASSERTIONS["restart"])]}]}}
+    restart_snapshot = {**firstboot_snapshot, "virtual_key_ids": [FIRSTBOOT_VIRTUAL_KEY]}
+    assert firstboot_phase_result(restart_report, "restart", 0, restart_snapshot) == stock_restart
     try:
         firstboot_phase_result({"run": {"executions": []}}, "firstboot", 1, firstboot_snapshot)
     except RuntimeError:
@@ -630,6 +652,11 @@ def self_check():
                             for assertion in sorted(FIRSTBOOT_EXPECTED_FAILURES)] +
                            [{"assertion": "unrelated assertion", "error": {"name": "AssertionError"}}],
                            [{"assertion": None, "error": {"name": "AssertionError"}}],
+                           [{"assertion": assertion, "skipped": True,
+                             "error": {"name": "AssertionError"}}
+                            for assertion in sorted(FIRSTBOOT_EXPECTED_FAILURES)],
+                           [{"assertion": assertion, "skipped": False, "error": "malformed"}
+                            for assertion in sorted(FIRSTBOOT_EXPECTED_FAILURES)],
                            [{"assertion": assertion, "error": {"name": "AssertionError"}}
                             for assertion in sorted(FIRSTBOOT_EXPECTED_FAILURES)] +
                            [{"assertion": FIRSTBOOT_STATUS_ASSERTION, "error": {"name": "AssertionError"}}]):
@@ -643,9 +670,13 @@ def self_check():
             raise AssertionError("firstboot report gate accepted missing, extra, or absent assertion results")
     assert validate_firstboot_phase(stock_firstboot, "firstboot", "characterize", True) == "expected-stock-red"
     assert validate_firstboot_phase(stock_restart, "restart", "characterize", True) == "restart-green-control"
-    candidate_green = {**stock_firstboot, "http_status": 200, "newman_exit_code": 0,
-                       "stored_virtual_key_ids": [FIRSTBOOT_VIRTUAL_KEY], "failed_assertions": [],
-                       "assertions": sorted(FIRSTBOOT_ASSERTIONS["firstboot"])}
+    candidate_firstboot_report = {"run": {"executions": [{"item": {"name": FIRSTBOOT_REQUEST},
+                                  "response": {"code": 200},
+                                  "assertions": [{"assertion": assertion, "skipped": False}
+                                                 for assertion in sorted(FIRSTBOOT_ASSERTIONS["firstboot-green"])]}]}}
+    candidate_snapshot = {**firstboot_snapshot, "virtual_key_ids": [FIRSTBOOT_VIRTUAL_KEY]}
+    candidate_green = firstboot_phase_result(candidate_firstboot_report, "firstboot", 0, candidate_snapshot)
+    assert candidate_green["assertions"] == sorted(FIRSTBOOT_ASSERTIONS["firstboot-green"])
     assert validate_firstboot_phase(candidate_green, "firstboot", "strict", False) == "candidate-green"
     assert validate_firstboot_phase({**candidate_green, "phase": "restart"}, "restart", "strict", False) == "candidate-green"
     for malformed in ({**candidate_green, "stored_virtual_key_ids": []},
