@@ -2,6 +2,7 @@ package mcp
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
 	"github.com/maximhq/bifrost/core/schemas"
@@ -32,6 +33,16 @@ func TestComputeToolsHash_DiffersOnContentChange(t *testing.T) {
 
 	assert.NotEqual(t, base, changedType)
 	assert.NotEqual(t, base, changedMapping)
+}
+
+func TestComputeToolsHash_IncludesCachedMCPAppsMetadata(t *testing.T) {
+	var first, refreshed schemas.ChatTool
+	require.NoError(t, json.Unmarshal([]byte(`{"type":"function","function":{"name":"app-open","parameters":{"type":"object","properties":{}}},"_bifrost_mcp_app":{"originalName":"open","resourceUri":"ui://app/one"}}`), &first))
+	require.NoError(t, json.Unmarshal([]byte(`{"type":"function","function":{"name":"app-open","parameters":{"type":"object","properties":{}}},"_bifrost_mcp_app":{"originalName":"open","resourceUri":"ui://app/two"}}`), &refreshed))
+
+	firstHash := computeToolsHash(map[string]schemas.ChatTool{"app-open": first}, nil, "")
+	refreshedHash := computeToolsHash(map[string]schemas.ChatTool{"app-open": refreshed}, nil, "")
+	assert.NotEqual(t, firstHash, refreshedHash, "resource-only changes must refresh the stored catalog")
 }
 
 // TestSetClientTools_UnchangedTools_DoesNotFireCallback pins the funnel's
