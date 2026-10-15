@@ -23689,6 +23689,41 @@ func TestLoadMCPConfig_FileReloadKeepsDerivedEndpointSlug(t *testing.T) {
 	}
 }
 
+func TestLoadConfig_FirstBootVirtualMCPAttachesFileDeclaredVirtualKey(t *testing.T) {
+	initTestLogger()
+	ctx := context.Background()
+	tempDir := createTempDir(t)
+	configData := makeMinimalConfigData(tempDir)
+	configData.MCP = &schemas.MCPConfig{
+		ClientConfigs: []*schemas.MCPClientConfig{{
+			ID: "fixture-client", Name: "fixture", ConnectionType: schemas.MCPConnectionTypeHTTP,
+			ConnectionString: schemas.NewSecretVar("http://127.0.0.1:1"),
+		}},
+		VirtualMCPs: []schemas.VirtualMCPConfig{{
+			Name: "Fixture tools", EndpointSlug: "fixture-tools", Enabled: schemas.Ptr(true),
+			Tools: []schemas.MCPToolSpecConfig{{MCPClientName: "fixture", ToolNames: []string{"echo"}}},
+			VirtualKeyIDs: []string{"vk-first-boot"},
+		}},
+	}
+	configData.Governance = &configstore.GovernanceConfig{
+		VirtualKeys: []tables.TableVirtualKey{makeVirtualKey("vk-first-boot", "first-boot", "vk_first_boot")},
+	}
+	createConfigFile(t, tempDir, configData)
+
+	config, err := LoadConfig(ctx, tempDir)
+	require.NoError(t, err)
+	require.NotNil(t, config)
+	defer config.Close(ctx)
+
+	virtualMCPs, _, err := config.ConfigStore.GetVirtualMCPsPaginated(ctx, configstore.VirtualMCPsQueryParams{Limit: 100})
+	require.NoError(t, err)
+	require.Len(t, virtualMCPs, 1)
+	attachedVirtualKeyIDs, err := config.ConfigStore.GetVirtualKeyIDsForVirtualMCP(ctx, virtualMCPs[0].ID)
+	require.NoError(t, err)
+	require.Equal(t, []string{"vk-first-boot"}, attachedVirtualKeyIDs,
+		"the same config file declares this Virtual MCP and virtual key, so first boot must attach the key")
+}
+
 // TestReconcileVirtualMCPsConfig covers the config.json → store reconciliation for
 // mcp.virtual_mcps: create (with explicit slug + name-resolved tool client + VK attach),
 // idempotent no-op on unchanged hash, update on change, and prune of absent entries.
