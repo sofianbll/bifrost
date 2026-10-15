@@ -273592,7 +273592,7 @@
                   "var text = pm.response.text() || '';",
                   "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
                   "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(200); });",
-                  "pm.test(\"content structuredContent metadata and success marker survive\", function () { var r=body.result||{}; pm.expect(r.content && r.content[0] && r.content[0].type,text).to.eql('text'); pm.expect(r.content && r.content[0] && r.content[0].text,text).to.include('first'); pm.expect(r.structuredContent.instance).to.eql('first'); pm.expect(r._meta.fixture).to.eql('first'); pm.expect(r.isError).to.not.eql(true); });"
+                  "pm.test(\"content structuredContent metadata and success marker survive\", function () { var r=body.result||{}; pm.expect(r.content && r.content[0] && r.content[0].type,text).to.eql('text'); pm.expect(r.content && r.content[0] && r.content[0].text,text).to.include('second'); pm.expect(r.structuredContent.instance).to.eql('second'); pm.expect(r._meta.fixture).to.eql('second'); pm.expect(r.isError).to.not.eql(true); });"
                 ]
               }
             }
@@ -273615,16 +273615,16 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"mcp_apps_fixture-structured_result\",\"arguments\":{}}}"
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"mcp_apps_fixture_second-structured_result\",\"arguments\":{}}}"
             },
             "url": {
-              "raw": "{{baseUrl}}/mcp/mcp-apps-fixture",
+              "raw": "{{baseUrl}}/mcp/mcp-apps-fixture-second",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "mcp",
-                "mcp-apps-fixture"
+                "mcp-apps-fixture-second"
               ]
             }
           }
@@ -273688,7 +273688,7 @@
                   "var text = pm.response.text() || '';",
                   "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
                   "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(200); });",
-                  "pm.test(\"fixture tool error remains isError\", function () { pm.expect(body.result && body.result.isError,text).to.eql(true); pm.expect(body.result.content[0].text).to.include('fixture tool failure: first'); });"
+                  "pm.test(\"fixture tool error remains isError\", function () { pm.expect(body.result && body.result.isError,text).to.eql(true); pm.expect(body.result.content[0].text).to.include('fixture tool failure: second'); });"
                 ]
               }
             }
@@ -273711,16 +273711,16 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"mcp_apps_fixture-fail_tool\",\"arguments\":{}}}"
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"mcp_apps_fixture_second-fail_tool\",\"arguments\":{}}}"
             },
             "url": {
-              "raw": "{{baseUrl}}/mcp/mcp-apps-fixture",
+              "raw": "{{baseUrl}}/mcp/mcp-apps-fixture-second",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "mcp",
-                "mcp-apps-fixture"
+                "mcp-apps-fixture-second"
               ]
             }
           }
