@@ -934,7 +934,7 @@ func captureNativeMCPAppResult(destination *json.RawMessage, result *mcp.CallToo
 	if destination == nil || result == nil {
 		return
 	}
-	if encoded, err := json.Marshal(result); err == nil {
+	if encoded, err := schemas.MarshalSorted(result); err == nil {
 		*destination = encoded
 	}
 }

@@ -611,7 +611,7 @@ func MarshalMCPAppToolCache(tools map[string]ChatTool) ([]byte, error) {
 	}
 	out := make(map[string]json.RawMessage, len(tools))
 	for name, tool := range tools {
-		encoded, err := json.Marshal(tool)
+		encoded, err := MarshalSorted(tool)
 		if err != nil {
 			return nil, err
 		}
@@ -623,18 +623,18 @@ func MarshalMCPAppToolCache(tools map[string]ChatTool) ([]byte, error) {
 		if err := json.Unmarshal(encoded, &fields); err != nil {
 			return nil, err
 		}
-		sidecar, err := json.Marshal(tool.MCPApp)
+		sidecar, err := MarshalSorted(tool.MCPApp)
 		if err != nil {
 			return nil, err
 		}
 		fields["_bifrost_mcp_app"] = sidecar
-		encoded, err = json.Marshal(fields)
+		encoded, err = MarshalSorted(fields)
 		if err != nil {
 			return nil, err
 		}
 		out[name] = encoded
 	}
-	return json.Marshal(out)
+	return MarshalSorted(out)
 }
 
 // UnmarshalMCPAppToolCache decodes both historical flat tool maps and the
