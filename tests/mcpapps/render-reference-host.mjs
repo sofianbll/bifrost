@@ -557,14 +557,9 @@ async function pageLogs(browser, target, runCase, timeoutMs, secrets) {
   const progressive = runCase.partialInput ? { validation: runCase.partialInput.legacy ? "legacy_late_partial_calibration" : "initial_AppBridge_notifications", frames: [] } : undefined;
   if (progressive) {
     await context.addInitScript(({ camera, boxes, replay }) => {
-      window.__bifrostToolNotifications = [];
-      window.addEventListener("message", (event) => {
-        if (event.source === window.parent && event.data?.jsonrpc === "2.0" &&
-          ["ui/notifications/tool-input-partial", "ui/notifications/tool-input", "ui/notifications/tool-result"].includes(event.data.method)) {
-          window.__bifrostToolNotifications.push(event.data.method);
-        }
-      });
-      if (replay && window === window.top) window.__bifrostReplayPartialInput = async (bridge, input) => {
+      if (window === window.top) window.__bifrostReplayPartialInput = async (bridge, input) => {
+        await window.__bifrostObserveToolNotifications();
+        if (!replay) return;
         for (const count of [1, 2]) {
           await bridge.sendToolInputPartial({ arguments: { ...input,
             elements: JSON.stringify([camera, ...boxes.slice(0, count), { type: "rectangle" }]),
@@ -573,6 +568,18 @@ async function pageLogs(browser, target, runCase, timeoutMs, secrets) {
         }
       };
     }, { camera: CHECKPOINT_CAMERA, boxes: CHECKPOINT_BOXES, replay: !runCase.partialInput.legacy });
+    await page.exposeFunction("__bifrostObserveToolNotifications", async () => {
+      // The sandbox's document.open() erases listeners installed before App initialization.
+      await page.frameLocator("iframe").frameLocator("iframe").locator("body").evaluate(() => {
+        window.__bifrostToolNotifications = [];
+        window.addEventListener("message", (event) => {
+          if (event.source === window.parent && event.data?.jsonrpc === "2.0" &&
+            ["ui/notifications/tool-input-partial", "ui/notifications/tool-input", "ui/notifications/tool-result"].includes(event.data.method)) {
+            window.__bifrostToolNotifications.push(event.data.method);
+          }
+        });
+      });
+    });
     await page.exposeFunction("__bifrostAssertPartialFrame", async (count) => {
       try {
         const frame = await captureProgressiveFrame(page, count, runCase.partialInput.outDir, timeoutMs);
