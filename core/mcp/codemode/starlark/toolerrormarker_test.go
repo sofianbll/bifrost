@@ -4,6 +4,7 @@ package starlark
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -127,14 +128,23 @@ func (m *protocolErrorClientManager) AcquireClientConn(_ *schemas.BifrostContext
 }
 
 func TestExecuteToolCodeCanUseProtocolMarkedRemoteErrorsAsValues(t *testing.T) {
-	for _, tc := range []struct{ name, text string }{
-		{name: "without Error prefix", text: "permission denied"},
-		{name: "with Error prefix", text: "Error: permission denied"},
+	for _, tc := range []struct {
+		name, text string
+		isError    bool
+		wireError  bool
+	}{
+		{name: "unmarked Error prefix is a value", text: "Error: remote rejected"},
+		{name: "protocol error without Error prefix", text: "remote rejected", isError: true},
+		{name: "protocol error with Error prefix", text: "Error: remote rejected", isError: true},
+		{name: "native JSON-RPC error remains a failure", text: "remote transport failed", wireError: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			remote := mcpserver.NewMCPServer("remote", "test", mcpserver.WithToolCapabilities(true))
 			remote.AddTool(mcpgo.NewTool("lookup"), func(context.Context, mcpgo.CallToolRequest) (*mcpgo.CallToolResult, error) {
-				return &mcpgo.CallToolResult{IsError: true, Content: []mcpgo.Content{mcpgo.TextContent{Type: "text", Text: tc.text}}}, nil
+				if tc.wireError {
+					return nil, errors.New(tc.text)
+				}
+				return &mcpgo.CallToolResult{IsError: tc.isError, Content: []mcpgo.Content{mcpgo.TextContent{Type: "text", Text: tc.text}}}, nil
 			})
 			conn, err := client.NewInProcessClient(remote)
 			if err != nil {
@@ -150,12 +160,14 @@ func TestExecuteToolCodeCanUseProtocolMarkedRemoteErrorsAsValues(t *testing.T) {
 			if _, err := conn.Initialize(context.Background(), initReq); err != nil {
 				t.Fatal(err)
 			}
-			direct, directErr := conn.CallTool(context.Background(), mcpgo.CallToolRequest{
-				Request: mcpgo.Request{Method: string(mcpgo.MethodToolsCall)},
-				Params:  mcpgo.CallToolParams{Name: "lookup", Arguments: map[string]interface{}{}},
-			})
-			if directErr != nil || direct == nil || !direct.IsError {
-				t.Fatalf("fixture did not return an MCP isError result: result=%+v err=%v", direct, directErr)
+			if !tc.wireError {
+				direct, directErr := conn.CallTool(context.Background(), mcpgo.CallToolRequest{
+					Request: mcpgo.Request{Method: string(mcpgo.MethodToolsCall)},
+					Params:  mcpgo.CallToolParams{Name: "lookup", Arguments: map[string]interface{}{}},
+				})
+				if directErr != nil || direct == nil || direct.IsError != tc.isError {
+					t.Fatalf("fixture did not return its declared MCP result: result=%+v err=%v", direct, directErr)
+				}
 			}
 
 			state := &schemas.MCPClientState{
@@ -186,10 +198,11 @@ func TestExecuteToolCodeCanUseProtocolMarkedRemoteErrorsAsValues(t *testing.T) {
 			if msg == nil || msg.ChatToolMessage == nil || msg.Content == nil || msg.Content.ContentStr == nil {
 				t.Fatalf("expected successful outer tool result, got %+v", msg)
 			}
-			if msg.IsError != nil && *msg.IsError {
-				t.Fatalf("remote protocol error was promoted to outer failure: %q", *msg.Content.ContentStr)
+			outerIsError := msg.IsError != nil && *msg.IsError
+			if outerIsError != tc.wireError {
+				t.Fatalf("outer isError=%v, want %v: %q", outerIsError, tc.wireError, *msg.Content.ContentStr)
 			}
-			if !strings.Contains(*msg.Content.ContentStr, tc.text) {
+			if !tc.wireError && !strings.Contains(*msg.Content.ContentStr, tc.text) {
 				t.Fatalf("remote error value %q was not available to the script: %q", tc.text, *msg.Content.ContentStr)
 			}
 		})
