@@ -38,6 +38,53 @@ func TestConvertToolFunctionParametersToMCPInputSchemaPreservesDefs(t *testing.T
 	assert.Contains(t, string(data), `"$ref":"#/$defs/Preferences"`)
 }
 
+type markerToolManager struct {
+	fakeInstructionsToolManager
+	message *schemas.ChatMessage
+}
+
+func (f *markerToolManager) GetAvailableMCPTools(context.Context) []schemas.ChatTool {
+	return []schemas.ChatTool{{
+		Type: schemas.ChatToolTypeFunction,
+		Function: &schemas.ChatToolFunction{
+			Name:       "lookup",
+			Parameters: &schemas.ToolFunctionParameters{Type: "object", Properties: schemas.NewOrderedMapFromPairs()},
+		},
+	}}
+}
+
+func (f *markerToolManager) ExecuteChatMCPTool(context.Context, *schemas.ChatAssistantMessageToolCall) (*schemas.ChatMessage, *schemas.BifrostError) {
+	return f.message, nil
+}
+
+// A Code Mode failure must survive the gateway's real tools/call boundary as
+// MCP's protocol-level isError field.
+func TestCallToolPreservesCodeModeErrorMarker(t *testing.T) {
+	message := &schemas.ChatMessage{
+		Content:         &schemas.ChatMessageContent{ContentStr: schemas.Ptr("Execution runtime error: missing value")},
+		ChatToolMessage: &schemas.ChatToolMessage{IsError: schemas.Ptr(true)},
+	}
+	tm := &markerToolManager{message: message}
+	h := &MCPServerHandler{toolManager: tm, config: &lib.Config{ClientConfig: &configstore.ClientConfig{}}}
+	h.mcpServer.Store(h.buildServer(tm.GetAvailableMCPTools(context.Background())))
+
+	response := h.server().HandleMessage(context.Background(), []byte(`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"lookup","arguments":{}}}`))
+	require.NotNil(t, response)
+	encoded, err := json.Marshal(response)
+	require.NoError(t, err)
+	var envelope struct {
+		Result struct {
+			IsError bool `json:"isError"`
+			Content []struct {
+				Text string `json:"text"`
+			} `json:"content"`
+		} `json:"result"`
+	}
+	require.NoError(t, json.Unmarshal(encoded, &envelope))
+	assert.True(t, envelope.Result.IsError)
+	assert.Contains(t, envelope.Result.Content[0].Text, "Execution runtime error")
+}
+
 func TestConvertToolFunctionParametersToMCPInputSchemaPreservesLegacyDefinitionsAsDefs(t *testing.T) {
 	params := &schemas.ToolFunctionParameters{
 		Type: "object",
