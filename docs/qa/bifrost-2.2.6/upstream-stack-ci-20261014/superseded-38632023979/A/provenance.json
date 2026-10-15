@@ -1,0 +1,46 @@
+{
+  "layer": "A",
+  "architecture": "amd64",
+  "wrapper_commit": "22824934ee91b265e34c1b39248203a329c24ed2",
+  "harness_commit": "1dcbd14d5875a14dc780f00fc2edd22cfaee66a8",
+  "candidate_commit": "f136c93fcf78f3db3df59974ae49cfc392412f51",
+  "candidate_tree": "ac30312581eff320d90ff9428c3d2488f4e92f8a",
+  "candidate_base": "8b4fce4f1709d66f9208d02f50552da522535f9e",
+  "version": "2.2.6+qualification.f136c93fcf78f3db3df59974ae49cfc392412f51",
+  "dockerfile_source_sha256": "fc1f5d155f2bfce1fce91b1d18e434e2401f427a38282e9d07ba10d49d35746d",
+  "dockerfile_adapted_sha256": "ea0e57038435a7745dccfb091fe7ac52568ae6defc8a5fcc8980f7e379cb039d",
+  "build_adaptation": "Only omit absent fork compareVersions unit test; preserve candidate UI/Go build and local modules.",
+  "fixture_source": {
+    "commit": "1dcbd14d5875a14dc780f00fc2edd22cfaee66a8",
+    "sha256": {
+      "tests/integrations/python/config.json": "ae845f0667f73c900db7b9a483225565d8e199d4d4bf6e4aa899a554afa562cd",
+      "tests/e2e/api/collections/provider-harness.json": "d76b101d7d3e156b67030fb71c3fcbaa7514b4d586681bcb694d75780ecb31ad",
+      "examples/mcps/mcp-apps-test-server/main.go": "60d63bb3ba5be44384bbef95addf8cf752e18bfcf544930fe34ee77112228ef8",
+      "examples/mcps/error-test-server/main.go": "412e78cc32f012312a90eabf39e7f5c081869318dd0bde560f8b0600afd868c5",
+      "tests/mcpapps/real-apps.json": "5a880f201839e6b63084fd0607b0f206b806e86736cf2bb42cdcc548b62cc5dd",
+      "tests/mcpapps/ci.py": "83b646a1cbf0d83ec157bf6faa801c8d19bf88a882cca12d6fc3a042c812ee24",
+      "tests/mcpapps/render-reference-host.mjs": "ed8970d523fd775be9a52db62dd79006f5cacd3b7c0f369cea9e82dd28ee3eb5",
+      ".github/workflows/scripts/test-mcp-apps-fixture.sh": "12f71d79c900e7a5d0afed4438c33d2a7e1d1748e07f59a444da94369c0ea0b0"
+    }
+  },
+  "codex_verification": "not_run",
+  "production": "not_touched",
+  "job_status_at_report": "cancelled",
+  "outcomes": {
+    "mcp": "success",
+    "persistence": "success",
+    "build": "cancelled",
+    "package": "skipped",
+    "image": "skipped",
+    "wire": "skipped",
+    "apps": "skipped"
+  },
+  "checks": {
+    "mcp_mock_race": "candidate make test-mcp",
+    "package_race": "candidate local Go workspace in Docker dynamic-check plus focused host packages",
+    "wire_and_apps": "C only; lower layers do not implement Apps"
+  },
+  "report_sha256": {
+    "Dockerfile.candidate": "ea0e57038435a7745dccfb091fe7ac52568ae6defc8a5fcc8980f7e379cb039d"
+  }
+}

@@ -1,0 +1,11 @@
+2026-10-14T20:56:01.7570817Z panic: strings: negative Repeat count
+2026-10-14T20:56:01.7570976Z
+2026-10-14T20:56:01.7571073Z goroutine 1 [running]:
+2026-10-14T20:56:01.7571411Z strings.Repeat({0x5a90fc8?, 0xa001306c170?}, 0x1b7c0ad?)
+2026-10-14T20:56:01.7572106Z 	strings/strings.go:609 +0x56b
+2026-10-14T20:56:01.7572335Z main.main()
+2026-10-14T20:56:01.7572666Z 	github.com/maximhq/bifrost/transports/bifrost-http/main.go:119 +0x9a
+2026-10-14T20:56:01.8950161Z ##[error]Process completed with exit code 7.
+2026-10-14T20:56:01.9007013Z ##[group]Run python3 - <<'PYRESULT'
+2026-10-14T20:56:01.9007474Z [36;1mpython3 - <<'PYRESULT'[0m
+2026-10-14T20:56:01.9007749Z [36;1mimport hashlib, json, os, subprocess[0m

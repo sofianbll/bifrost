@@ -1,0 +1,349 @@
+{
+  "files": [
+    {
+      "path": "A/provenance.json",
+      "artifact_file_sha256": "11987ce7f7677ff5caff556bcd9316ecf041dae074ead1159df6cde769c2b25e",
+      "sanitized_file_sha256": "11987ce7f7677ff5caff556bcd9316ecf041dae074ead1159df6cde769c2b25e"
+    },
+    {
+      "path": "A/mcp-all.xml",
+      "artifact_file_sha256": "e3d071bffc0233892d315a7f493577f4258f8f9fbe5fff55aadeed90a00441a0",
+      "sanitized_file_sha256": "29363affd34080de75d54e7197f6f9db94cf83a4a3517cde397f7d16c299cea6"
+    },
+    {
+      "path": "B/provenance.json",
+      "artifact_file_sha256": "7dffb9fd173d8a892bb7802484a8bcd4ab97d840add2d3103fd29c3eda0cb242",
+      "sanitized_file_sha256": "7dffb9fd173d8a892bb7802484a8bcd4ab97d840add2d3103fd29c3eda0cb242"
+    },
+    {
+      "path": "B/mcp-all.xml",
+      "artifact_file_sha256": "cec5a9ea5254304259d4650c540c0e861abc72ad4d4503f6587cac71913348f6",
+      "sanitized_file_sha256": "235efd6250d55dceb12449fac3af8a65d61f9aefd504bd8e462e6c2ee8afa9ea"
+    },
+    {
+      "path": "C/apps/debug-aggregate.png",
+      "artifact_file_sha256": "ffa3f3e1e42046ed27a36627de7b6957a8c7476ed4cd3d3cc075902f98713b69",
+      "sanitized_file_sha256": "ffa3f3e1e42046ed27a36627de7b6957a8c7476ed4cd3d3cc075902f98713b69"
+    },
+    {
+      "path": "C/apps/debug-direct-codemode.png",
+      "artifact_file_sha256": "07824885f5ddcdb075b6f60d51aaa7496407d07ef70d4b67cf6d0bdca87f9e74",
+      "sanitized_file_sha256": "07824885f5ddcdb075b6f60d51aaa7496407d07ef70d4b67cf6d0bdca87f9e74"
+    },
+    {
+      "path": "C/apps/debug-direct.png",
+      "artifact_file_sha256": "385c103e9222df3a8797ee868950f8c5ea260698b5c495fb46628c222c342813",
+      "sanitized_file_sha256": "385c103e9222df3a8797ee868950f8c5ea260698b5c495fb46628c222c342813"
+    },
+    {
+      "path": "C/apps/debug-virtual.png",
+      "artifact_file_sha256": "8c209cf2066dda989f010562bdbfd8ce8c22eaf35a9b25e8bba7c94ebcadbf44",
+      "sanitized_file_sha256": "8c209cf2066dda989f010562bdbfd8ce8c22eaf35a9b25e8bba7c94ebcadbf44"
+    },
+    {
+      "path": "C/apps/excalidraw-aggregate.png",
+      "artifact_file_sha256": "a74c1a0a3c2e8d7e276f50e34b17bb9b9c677b403bcfdd39370e241941332ee1",
+      "sanitized_file_sha256": "a74c1a0a3c2e8d7e276f50e34b17bb9b9c677b403bcfdd39370e241941332ee1"
+    },
+    {
+      "path": "C/apps/excalidraw-comparison/corrected-direct/excalidraw-checkpoint-after.png",
+      "artifact_file_sha256": "2f9de097830461628f18e7eaf826390ede52e6c3307e3823599283069d7bfe19",
+      "sanitized_file_sha256": "2f9de097830461628f18e7eaf826390ede52e6c3307e3823599283069d7bfe19"
+    },
+    {
+      "path": "C/apps/excalidraw-comparison/corrected-direct/excalidraw-checkpoint-before.png",
+      "artifact_file_sha256": "8b3a956e0002821c60f2407444a452a046e2c0ca6d2bafd1ca7b3cf858dc577f",
+      "sanitized_file_sha256": "8b3a956e0002821c60f2407444a452a046e2c0ca6d2bafd1ca7b3cf858dc577f"
+    },
+    {
+      "path": "C/apps/excalidraw-comparison/corrected-direct/excalidraw-checkpoint-offset.png",
+      "artifact_file_sha256": "e35509e1e21b848b4444d3c36d8c89d5895223733e1560de7f760844b168e979",
+      "sanitized_file_sha256": "e35509e1e21b848b4444d3c36d8c89d5895223733e1560de7f760844b168e979"
+    },
+    {
+      "path": "C/apps/excalidraw-comparison/corrected-direct/excalidraw-checkpoint-report.json",
+      "artifact_file_sha256": "deb67e87a38bd823580cf7d51c704060163d533e56e212bfd01c866ff074d80b",
+      "sanitized_file_sha256": "deb67e87a38bd823580cf7d51c704060163d533e56e212bfd01c866ff074d80b"
+    },
+    {
+      "path": "C/apps/excalidraw-comparison/corrected-direct/excalidraw-checkpoint-scene.json",
+      "artifact_file_sha256": "74887eefb38c7d1fe395ce2afbad52c647c638de453184fdf199d70e3f2c2f46",
+      "sanitized_file_sha256": "74887eefb38c7d1fe395ce2afbad52c647c638de453184fdf199d70e3f2c2f46"
+    },
+    {
+      "path": "C/apps/excalidraw-comparison/corrected-direct/excalidraw-progressive-1.png",
+      "artifact_file_sha256": "937e4817f5cc236cae2985c97c2a73b3e298785cba9ed168c8c26b26080b27ac",
+      "sanitized_file_sha256": "937e4817f5cc236cae2985c97c2a73b3e298785cba9ed168c8c26b26080b27ac"
+    },
+    {
+      "path": "C/apps/excalidraw-comparison/corrected-direct/excalidraw-progressive-2.png",
+      "artifact_file_sha256": "717493dce50f4ba6f15b606fa5e6718717b2bc78ab3cb2db0bb067d40c9c0240",
+      "sanitized_file_sha256": "717493dce50f4ba6f15b606fa5e6718717b2bc78ab3cb2db0bb067d40c9c0240"
+    },
+    {
+      "path": "C/apps/excalidraw-comparison/corrected-gateway/excalidraw-checkpoint-after.png",
+      "artifact_file_sha256": "c9a40cfb56e18439357db006eca2b575e87a2742d727150fb8c1d6c920bbfe45",
+      "sanitized_file_sha256": "c9a40cfb56e18439357db006eca2b575e87a2742d727150fb8c1d6c920bbfe45"
+    },
+    {
+      "path": "C/apps/excalidraw-comparison/corrected-gateway/excalidraw-checkpoint-before.png",
+      "artifact_file_sha256": "8b3a956e0002821c60f2407444a452a046e2c0ca6d2bafd1ca7b3cf858dc577f",
+      "sanitized_file_sha256": "8b3a956e0002821c60f2407444a452a046e2c0ca6d2bafd1ca7b3cf858dc577f"
+    },
+    {
+      "path": "C/apps/excalidraw-comparison/corrected-gateway/excalidraw-checkpoint-offset.png",
+      "artifact_file_sha256": "e35509e1e21b848b4444d3c36d8c89d5895223733e1560de7f760844b168e979",
+      "sanitized_file_sha256": "e35509e1e21b848b4444d3c36d8c89d5895223733e1560de7f760844b168e979"
+    },
+    {
+      "path": "C/apps/excalidraw-comparison/corrected-gateway/excalidraw-checkpoint-report.json",
+      "artifact_file_sha256": "5a4460fcdc72745d0960175df69ac879084a9c52c562a2b8b8b08f39e670938c",
+      "sanitized_file_sha256": "5a4460fcdc72745d0960175df69ac879084a9c52c562a2b8b8b08f39e670938c"
+    },
+    {
+      "path": "C/apps/excalidraw-comparison/corrected-gateway/excalidraw-checkpoint-scene.json",
+      "artifact_file_sha256": "385b6badea871dfe62b95066d6cbc0030930e53deb42cb40e5fbc19d92a39248",
+      "sanitized_file_sha256": "385b6badea871dfe62b95066d6cbc0030930e53deb42cb40e5fbc19d92a39248"
+    },
+    {
+      "path": "C/apps/excalidraw-comparison/corrected-gateway/excalidraw-progressive-1.png",
+      "artifact_file_sha256": "0efd6f472779fd2591dd0bdd5a7974cb27b90f1243c1a3313e66e796fefc60f9",
+      "sanitized_file_sha256": "0efd6f472779fd2591dd0bdd5a7974cb27b90f1243c1a3313e66e796fefc60f9"
+    },
+    {
+      "path": "C/apps/excalidraw-comparison/corrected-gateway/excalidraw-progressive-2.png",
+      "artifact_file_sha256": "790cde6028e457720ae091eaec26c748a7fb3038e5d20dadeafdeba92b4f6fe1",
+      "sanitized_file_sha256": "790cde6028e457720ae091eaec26c748a7fb3038e5d20dadeafdeba92b4f6fe1"
+    },
+    {
+      "path": "C/apps/excalidraw-comparison/official-direct/excalidraw-checkpoint-after.png",
+      "artifact_file_sha256": "a34dbf31c9d81213b540b3ad6913859692b1e25e7c957576705ead82feba03c3",
+      "sanitized_file_sha256": "a34dbf31c9d81213b540b3ad6913859692b1e25e7c957576705ead82feba03c3"
+    },
+    {
+      "path": "C/apps/excalidraw-comparison/official-direct/excalidraw-checkpoint-before.png",
+      "artifact_file_sha256": "8b3a956e0002821c60f2407444a452a046e2c0ca6d2bafd1ca7b3cf858dc577f",
+      "sanitized_file_sha256": "8b3a956e0002821c60f2407444a452a046e2c0ca6d2bafd1ca7b3cf858dc577f"
+    },
+    {
+      "path": "C/apps/excalidraw-comparison/official-direct/excalidraw-checkpoint-offset.png",
+      "artifact_file_sha256": "e35509e1e21b848b4444d3c36d8c89d5895223733e1560de7f760844b168e979",
+      "sanitized_file_sha256": "e35509e1e21b848b4444d3c36d8c89d5895223733e1560de7f760844b168e979"
+    },
+    {
+      "path": "C/apps/excalidraw-comparison/official-direct/excalidraw-checkpoint-report.json",
+      "artifact_file_sha256": "10fc332edf3f19351f5cc224098e2ed0236495902db2987bdef56e432fd226e1",
+      "sanitized_file_sha256": "10fc332edf3f19351f5cc224098e2ed0236495902db2987bdef56e432fd226e1"
+    },
+    {
+      "path": "C/apps/excalidraw-comparison/official-direct/excalidraw-checkpoint-scene.json",
+      "artifact_file_sha256": "b862c5b672f75a2c5a76836ad298b7d460197e350c8715e2c7cabd9dd59419da",
+      "sanitized_file_sha256": "b862c5b672f75a2c5a76836ad298b7d460197e350c8715e2c7cabd9dd59419da"
+    },
+    {
+      "path": "C/apps/excalidraw-comparison/official-direct/excalidraw-progressive-1.png",
+      "artifact_file_sha256": "65fb84cc4a09cdc6b703c089627dd779b0a66ffa0b4631c9007985f82f8bf269",
+      "sanitized_file_sha256": "65fb84cc4a09cdc6b703c089627dd779b0a66ffa0b4631c9007985f82f8bf269"
+    },
+    {
+      "path": "C/apps/excalidraw-comparison/official-direct/excalidraw-progressive-2.png",
+      "artifact_file_sha256": "7ec1db883be4d55eeec373f29d53d6cc630daab655ba1fe79d6bc8cb70cf50a7",
+      "sanitized_file_sha256": "7ec1db883be4d55eeec373f29d53d6cc630daab655ba1fe79d6bc8cb70cf50a7"
+    },
+    {
+      "path": "C/apps/excalidraw-comparison/official-gateway/excalidraw-checkpoint-after.png",
+      "artifact_file_sha256": "a97ebd59bd06b65ef49d87519a73208c091f90615ec83a9e83e7f18cc93e05d4",
+      "sanitized_file_sha256": "a97ebd59bd06b65ef49d87519a73208c091f90615ec83a9e83e7f18cc93e05d4"
+    },
+    {
+      "path": "C/apps/excalidraw-comparison/official-gateway/excalidraw-checkpoint-before.png",
+      "artifact_file_sha256": "8b3a956e0002821c60f2407444a452a046e2c0ca6d2bafd1ca7b3cf858dc577f",
+      "sanitized_file_sha256": "8b3a956e0002821c60f2407444a452a046e2c0ca6d2bafd1ca7b3cf858dc577f"
+    },
+    {
+      "path": "C/apps/excalidraw-comparison/official-gateway/excalidraw-checkpoint-offset.png",
+      "artifact_file_sha256": "e35509e1e21b848b4444d3c36d8c89d5895223733e1560de7f760844b168e979",
+      "sanitized_file_sha256": "e35509e1e21b848b4444d3c36d8c89d5895223733e1560de7f760844b168e979"
+    },
+    {
+      "path": "C/apps/excalidraw-comparison/official-gateway/excalidraw-checkpoint-report.json",
+      "artifact_file_sha256": "199f9b9afa656ffd1acab30f22bb636361eaf033a45a2da08e65bc26b3338223",
+      "sanitized_file_sha256": "199f9b9afa656ffd1acab30f22bb636361eaf033a45a2da08e65bc26b3338223"
+    },
+    {
+      "path": "C/apps/excalidraw-comparison/official-gateway/excalidraw-checkpoint-scene.json",
+      "artifact_file_sha256": "c13e69a0cf59fe14f0eeaeb3dc99ed2cfbff9f4732209d6d1ce156647031275d",
+      "sanitized_file_sha256": "c13e69a0cf59fe14f0eeaeb3dc99ed2cfbff9f4732209d6d1ce156647031275d"
+    },
+    {
+      "path": "C/apps/excalidraw-comparison/official-gateway/excalidraw-progressive-1.png",
+      "artifact_file_sha256": "e5aa416890fb59679961db8caab120e5276f010a14ce43a68a5848f7377f1395",
+      "sanitized_file_sha256": "e5aa416890fb59679961db8caab120e5276f010a14ce43a68a5848f7377f1395"
+    },
+    {
+      "path": "C/apps/excalidraw-comparison/official-gateway/excalidraw-progressive-2.png",
+      "artifact_file_sha256": "2539496301daaacc43224f23b5c4e8e48c6024313369d591e199957502673bdb",
+      "sanitized_file_sha256": "2539496301daaacc43224f23b5c4e8e48c6024313369d591e199957502673bdb"
+    },
+    {
+      "path": "C/apps/excalidraw-comparison/report.json",
+      "artifact_file_sha256": "32a1ded35b0dc982afe31b0886e97af34bc7bb89bdb5a57438305b59f9f8b2b4",
+      "sanitized_file_sha256": "32a1ded35b0dc982afe31b0886e97af34bc7bb89bdb5a57438305b59f9f8b2b4"
+    },
+    {
+      "path": "C/apps/excalidraw-direct-codemode.png",
+      "artifact_file_sha256": "d75af4a702db752821f61d7eeca66464d589e144d63e077bf385e7c2ec3a875e",
+      "sanitized_file_sha256": "d75af4a702db752821f61d7eeca66464d589e144d63e077bf385e7c2ec3a875e"
+    },
+    {
+      "path": "C/apps/excalidraw-direct.png",
+      "artifact_file_sha256": "7ce288b28c52d46bd03392a098342fc13c8c391bbc706b8399977bd7373f359d",
+      "sanitized_file_sha256": "7ce288b28c52d46bd03392a098342fc13c8c391bbc706b8399977bd7373f359d"
+    },
+    {
+      "path": "C/apps/excalidraw-virtual.png",
+      "artifact_file_sha256": "e00a3a945659f8d1a1dc3624091b0963cd73634cd4d9a74375618445fb49822e",
+      "sanitized_file_sha256": "e00a3a945659f8d1a1dc3624091b0963cd73634cd4d9a74375618445fb49822e"
+    },
+    {
+      "path": "C/apps/four-connections.png",
+      "artifact_file_sha256": "cfd760639ef841dc85ffdd2212f2b6b64fedb73e975325227e81a57eca8047ec",
+      "sanitized_file_sha256": "cfd760639ef841dc85ffdd2212f2b6b64fedb73e975325227e81a57eca8047ec"
+    },
+    {
+      "path": "C/apps/mcp-apps-qualification.json",
+      "artifact_file_sha256": "9eb5fd4ca5535e8ea150aad725dba488ed3a22ec20958fe6a0bb58a10e341c91",
+      "sanitized_file_sha256": "9eb5fd4ca5535e8ea150aad725dba488ed3a22ec20958fe6a0bb58a10e341c91"
+    },
+    {
+      "path": "C/apps/monitor-aggregate.png",
+      "artifact_file_sha256": "0395b86c3f5c613e27c727e67b89d127e749be5320e3943214869ea8161b9339",
+      "sanitized_file_sha256": "0395b86c3f5c613e27c727e67b89d127e749be5320e3943214869ea8161b9339"
+    },
+    {
+      "path": "C/apps/monitor-direct-codemode.png",
+      "artifact_file_sha256": "1b79dfe3583bc6612e5740d54949fd18ffaeda44ecea6ae77aa7b4e5242b1116",
+      "sanitized_file_sha256": "1b79dfe3583bc6612e5740d54949fd18ffaeda44ecea6ae77aa7b4e5242b1116"
+    },
+    {
+      "path": "C/apps/monitor-direct.png",
+      "artifact_file_sha256": "5a6af763d38389a9efa3986d86496e8ab3baea6deaa27000c33b5b197d7ded54",
+      "sanitized_file_sha256": "5a6af763d38389a9efa3986d86496e8ab3baea6deaa27000c33b5b197d7ded54"
+    },
+    {
+      "path": "C/apps/monitor-virtual.png",
+      "artifact_file_sha256": "68266aa65e0e4a7df0b1c9d0629dd198608b7f31f9876a6edc2d45576ef2e502",
+      "sanitized_file_sha256": "68266aa65e0e4a7df0b1c9d0629dd198608b7f31f9876a6edc2d45576ef2e502"
+    },
+    {
+      "path": "C/apps/pdf-aggregate.png",
+      "artifact_file_sha256": "6a9ec383385d79c55f7cda664899bde4a062b4fd3c47f710264a192d122ca29a",
+      "sanitized_file_sha256": "6a9ec383385d79c55f7cda664899bde4a062b4fd3c47f710264a192d122ca29a"
+    },
+    {
+      "path": "C/apps/pdf-direct-codemode.png",
+      "artifact_file_sha256": "90069d745801d4c284d7fefd6728246036bae9b75b2e9296611646073142f8aa",
+      "sanitized_file_sha256": "90069d745801d4c284d7fefd6728246036bae9b75b2e9296611646073142f8aa"
+    },
+    {
+      "path": "C/apps/pdf-direct.png",
+      "artifact_file_sha256": "c85ac7b5082ee1ccc040883ef4b8b27e82a48c01be3e805b2c4eda0b3db88d9a",
+      "sanitized_file_sha256": "c85ac7b5082ee1ccc040883ef4b8b27e82a48c01be3e805b2c4eda0b3db88d9a"
+    },
+    {
+      "path": "C/apps/pdf-virtual.png",
+      "artifact_file_sha256": "6a9ec383385d79c55f7cda664899bde4a062b4fd3c47f710264a192d122ca29a",
+      "sanitized_file_sha256": "6a9ec383385d79c55f7cda664899bde4a062b4fd3c47f710264a192d122ca29a"
+    },
+    {
+      "path": "C/apps/render-report.json",
+      "artifact_file_sha256": "52bb970359ceb2710e29d861a04420bc2fca671280da36770211dfe022fb6c9a",
+      "sanitized_file_sha256": "4885a59f6ff76988b051c3fe7b59d243e98e4356b9507e450ac2e284911bae7a"
+    },
+    {
+      "path": "C/initialization/delayed/report.json",
+      "artifact_file_sha256": "9ef6a2beca95eade484cfcc9028bdcdf6b9a492a849ceecdc9bc4e549d86f641",
+      "sanitized_file_sha256": "9ef6a2beca95eade484cfcc9028bdcdf6b9a492a849ceecdc9bc4e549d86f641"
+    },
+    {
+      "path": "C/initialization/delayed/view.png",
+      "artifact_file_sha256": "42a2ed8f71a2ca3bdf98b42578718a365001f9b734f2c78af8c52210abdfb1d6",
+      "sanitized_file_sha256": "42a2ed8f71a2ca3bdf98b42578718a365001f9b734f2c78af8c52210abdfb1d6"
+    },
+    {
+      "path": "C/initialization/immediate/report.json",
+      "artifact_file_sha256": "83e22240ea68d50b99a2ea307604fe8197c52c6058bbcabd7dd8ad6ceb601e96",
+      "sanitized_file_sha256": "83e22240ea68d50b99a2ea307604fe8197c52c6058bbcabd7dd8ad6ceb601e96"
+    },
+    {
+      "path": "C/initialization/immediate/view.png",
+      "artifact_file_sha256": "a4d16c5a8bb22779e54abf66410f880faa404d3efce61872d1e20e6683f7e591",
+      "sanitized_file_sha256": "a4d16c5a8bb22779e54abf66410f880faa404d3efce61872d1e20e6683f7e591"
+    },
+    {
+      "path": "C/normalizer/after.png",
+      "artifact_file_sha256": "9b110b5d0eb84b6eed31d01f266b0c069bf0812a636195800f9f1bf4546a8530",
+      "sanitized_file_sha256": "9b110b5d0eb84b6eed31d01f266b0c069bf0812a636195800f9f1bf4546a8530"
+    },
+    {
+      "path": "C/normalizer/before.png",
+      "artifact_file_sha256": "0f6676a5b09a0a0fa978acbd07588f1dba9b554d21d80ac9cb487c02dc005330",
+      "sanitized_file_sha256": "0f6676a5b09a0a0fa978acbd07588f1dba9b554d21d80ac9cb487c02dc005330"
+    },
+    {
+      "path": "C/normalizer/report.json",
+      "artifact_file_sha256": "1fe808cf3d4371f74ccc829ed50928b684bd9df26f38fc27c5453052e471ffce",
+      "sanitized_file_sha256": "1fe808cf3d4371f74ccc829ed50928b684bd9df26f38fc27c5453052e471ffce"
+    },
+    {
+      "path": "C/provenance.json",
+      "artifact_file_sha256": "17a862cf08a22f18173db63c8ea1dcba4606491d7b5ded613958f42206d80586",
+      "sanitized_file_sha256": "17a862cf08a22f18173db63c8ea1dcba4606491d7b5ded613958f42206d80586"
+    },
+    {
+      "path": "C/wire/codemode-errors-comparison.json",
+      "artifact_file_sha256": "c1eb5494056218adb058ffe08f0468463dc9576f0898edd84fb25bf3a4299c13",
+      "sanitized_file_sha256": "c1eb5494056218adb058ffe08f0468463dc9576f0898edd84fb25bf3a4299c13"
+    },
+    {
+      "path": "C/wire/codemode-errors-newman-report.json",
+      "artifact_file_sha256": "fbca10f12c55c89a6e882d89f1b9ac3c38e590ed5b1ddee2de95b0b190e5551d",
+      "sanitized_file_sha256": "fbca10f12c55c89a6e882d89f1b9ac3c38e590ed5b1ddee2de95b0b190e5551d"
+    },
+    {
+      "path": "C/wire/mcp-apps-comparison.json",
+      "artifact_file_sha256": "d43ffe36027c515c2b9f4c4719d5102bfbac2910832ffdf82b4824eace911759",
+      "sanitized_file_sha256": "d43ffe36027c515c2b9f4c4719d5102bfbac2910832ffdf82b4824eace911759"
+    },
+    {
+      "path": "C/wire/mcp-apps-newman-report.json",
+      "artifact_file_sha256": "b52b6aa97ed057059d1cef7ba97b8546ded302e3fe1698c69fc1d71a23da27c9",
+      "sanitized_file_sha256": "b52b6aa97ed057059d1cef7ba97b8546ded302e3fe1698c69fc1d71a23da27c9"
+    },
+    {
+      "path": "C/wire/stock-codemode-errors-newman-report.json",
+      "artifact_file_sha256": "f587b443443069d9527db3da2a59bf390aa8e467c1d5310b2c787586ab4d41c8",
+      "sanitized_file_sha256": "f587b443443069d9527db3da2a59bf390aa8e467c1d5310b2c787586ab4d41c8"
+    },
+    {
+      "path": "C/wire/stock-mcp-apps-newman-report.json",
+      "artifact_file_sha256": "c6fb283c61cdeef029969ef5218f9bf330ea565e5b1617ca6cfdc3f3ba2beb5e",
+      "sanitized_file_sha256": "c6fb283c61cdeef029969ef5218f9bf330ea565e5b1617ca6cfdc3f3ba2beb5e"
+    },
+    {
+      "path": "C/mcp-all.xml",
+      "artifact_file_sha256": "a5930464dc6e8711c5699524a817506d1293ea32ce9a6943d8359918081cab0a",
+      "sanitized_file_sha256": "52b64487c5ef3d23a2bf709d096af1c3bce2242d625e275f036b7bb8829c47e8"
+    }
+  ],
+  "redactions": [
+    "fixture authorization values",
+    "setup token"
+  ],
+  "omitted": [
+    "standalone console logs",
+    "embedded console/hostLogs",
+    "JUnit stdout/stderr"
+  ],
+  "publication": "not_authorized; local_only"
+}
