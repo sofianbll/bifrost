@@ -4,6 +4,7 @@ package mcp
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -292,7 +293,7 @@ func (m *ToolsManager) getAvailableTools(ctx *schemas.BifrostContext, includeApp
 				}
 				seenToolNames[tool.Function.Name] = true
 				schemas.AppendToContextList(ctx, schemas.BifrostContextKeyMCPAddedTools, tool.Function.Name)
-				if !client.ExecutionConfig.IsCodeModeClient {
+				if !client.ExecutionConfig.IsCodeModeClient || (includeAppOnly && tool.MCPApp != nil) {
 					availableTools = append(availableTools, tool)
 				}
 			}
@@ -711,7 +712,12 @@ func (m *ToolsManager) ExecuteTool(
 	now := time.Now()
 
 	// Execute the tool in Chat format (internal execution format)
-	chatResult, clientName, originalToolName, err := m.executeToolInternal(ctx, toolCall, clientConn, executionConfig, toolNameMapping)
+	var nativeAppResult json.RawMessage
+	var nativeAppResultPtr *json.RawMessage
+	if request.NativeMCPAppResult {
+		nativeAppResultPtr = &nativeAppResult
+	}
+	chatResult, clientName, originalToolName, err := m.executeToolInternal(ctx, toolCall, clientConn, executionConfig, toolNameMapping, nativeAppResultPtr)
 	if err != nil {
 		return nil, err
 	}
@@ -727,10 +733,16 @@ func (m *ToolsManager) ExecuteTool(
 	// Return result in the appropriate format
 	switch request.RequestType {
 	case schemas.MCPRequestTypeChatToolCall:
-		return &schemas.BifrostMCPResponse{
+		response := &schemas.BifrostMCPResponse{
 			ChatMessage: chatResult,
 			ExtraFields: extraFields,
-		}, nil
+		}
+		if len(nativeAppResult) > 0 {
+			response.NativeMCPAppResult = nativeAppResult
+			response.NativeAppResultHash = sha256.Sum256(nativeAppResult)
+			response.NativeAppMessageHash = hashMCPAppMessage(chatResult)
+		}
+		return response, nil
 	case schemas.MCPRequestTypeResponsesToolCall:
 		// Validate chatResult is not nil before conversion
 		if chatResult == nil {
@@ -758,6 +770,7 @@ func (m *ToolsManager) executeToolInternal(
 	clientConn *client.Client,
 	executionConfig *schemas.MCPClientConfig,
 	toolNameMapping map[string]string,
+	nativeAppResult *json.RawMessage,
 ) (*schemas.ChatMessage, string, string, error) {
 	toolName := *toolCall.Function.Name
 
@@ -877,6 +890,7 @@ func (m *ToolsManager) executeToolInternal(
 			retryResponse, recovered, budgetExhausted := m.attemptCallFailureRecovery(recoveryCtx, toolName, callRequest, executionConfig, toolExecutionTimeout)
 			recoveryExhaustedBudget = budgetExhausted
 			if recovered {
+				captureNativeMCPAppResult(nativeAppResult, retryResponse)
 				responseText := extractTextFromMCPResponse(retryResponse, toolName)
 				// Mirrors the non-retry success path below: the retry's own
 				// IsError is the upstream server reporting a failed execution
@@ -905,6 +919,7 @@ func (m *ToolsManager) executeToolInternal(
 	}
 
 	// Extract text from MCP response
+	captureNativeMCPAppResult(nativeAppResult, toolResponse)
 	responseText := extractTextFromMCPResponse(toolResponse, toolName)
 
 	// Create tool response message. toolResponse.IsError is the server reporting a
@@ -913,6 +928,15 @@ func (m *ToolsManager) executeToolInternal(
 	// the same reason extractTextFromMCPResponse checks it above.
 	isToolError := toolResponse != nil && toolResponse.IsError
 	return createToolResponseMessage(*toolCall, responseText, isToolError), executionConfig.Name, sanitizedToolName, nil
+}
+
+func captureNativeMCPAppResult(destination *json.RawMessage, result *mcp.CallToolResult) {
+	if destination == nil || result == nil {
+		return
+	}
+	if encoded, err := json.Marshal(result); err == nil {
+		*destination = encoded
+	}
 }
 
 // attemptCallFailureRecovery reacts to a live tool call that failed for a

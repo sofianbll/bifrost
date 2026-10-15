@@ -21,6 +21,8 @@ import (
 	"github.com/maximhq/bifrost/core/schemas"
 )
 
+const maxCachedMCPAppDefinitionBytes = 256 << 10
+
 // computeToolsHash returns a stable content hash of a tool map + name
 // mapping, used to gate the tools-change funnel (SetClientTools,
 // connectToMCPClient, writeBackTools) to genuine changes only — a
@@ -1024,8 +1026,13 @@ func convertMCPToolToBifrostSchema(mcpTool *mcp.Tool, logger schemas.Logger) sch
 	var appMetadata *schemas.MCPAppToolMetadata
 	if mcpTool.Meta != nil {
 		if rawDefinition, err := json.Marshal(mcpTool); err == nil {
-			resourceURI, visibility := mcpToolUIProperties(rawDefinition)
-			appMetadata = &schemas.MCPAppToolMetadata{RawDefinition: rawDefinition, ResourceURI: resourceURI, Visibility: visibility}
+			resourceURI, visibility, modernURI, legacyURI := mcpToolUIProperties(rawDefinition)
+			if resourceURI != "" || len(visibility) > 0 {
+				if len(rawDefinition) > maxCachedMCPAppDefinitionBytes {
+					rawDefinition = nil
+				}
+				appMetadata = &schemas.MCPAppToolMetadata{RawDefinition: rawDefinition, ResourceURI: resourceURI, Visibility: visibility, ModernURI: modernURI, LegacyURI: legacyURI}
+			}
 		}
 	}
 
@@ -1046,7 +1053,7 @@ func convertMCPToolToBifrostSchema(mcpTool *mcp.Tool, logger schemas.Logger) sch
 	}
 }
 
-func mcpToolUIProperties(rawDefinition []byte) (string, []string) {
+func mcpToolUIProperties(rawDefinition []byte) (string, []string, bool, bool) {
 	var definition struct {
 		Meta struct {
 			UI struct {
@@ -1057,12 +1064,14 @@ func mcpToolUIProperties(rawDefinition []byte) (string, []string) {
 		} `json:"_meta"`
 	}
 	if json.Unmarshal(rawDefinition, &definition) != nil {
-		return "", nil
+		return "", nil, false, false
 	}
-	if definition.Meta.UI.ResourceURI != "" {
-		return definition.Meta.UI.ResourceURI, definition.Meta.UI.Visibility
+	modern := definition.Meta.UI.ResourceURI != ""
+	legacy := definition.Meta.LegacyResourceURI != ""
+	if modern {
+		return definition.Meta.UI.ResourceURI, definition.Meta.UI.Visibility, modern, legacy
 	}
-	return definition.Meta.LegacyResourceURI, definition.Meta.UI.Visibility
+	return definition.Meta.LegacyResourceURI, definition.Meta.UI.Visibility, modern, legacy
 }
 
 // extractTextFromMCPResponse extracts text content from an MCP tool response.

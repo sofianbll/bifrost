@@ -490,6 +490,14 @@ func (m *MCPManager) runListToolsWithHooks(ctx context.Context, conn *client.Cli
 		// Surface empty maps rather than nil to mirror the underlying list_tools contract.
 		return make(map[string]schemas.ChatTool), make(map[string]string), nil
 	}
+	// Retain source identity alongside app metadata after PostHooks have had their
+	// chance to redact or replace the discovered catalog.
+	for name, tool := range resp.Tools {
+		if tool.MCPApp != nil {
+			tool.MCPApp.SourceClient = clientName
+			resp.Tools[name] = tool
+		}
+	}
 	return resp.Tools, resp.ToolNameMapping, nil
 }
 

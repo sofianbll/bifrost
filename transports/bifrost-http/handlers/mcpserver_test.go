@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/maximhq/bifrost/core/schemas"
 	"github.com/maximhq/bifrost/framework/configstore"
 	"github.com/maximhq/bifrost/transports/v2/bifrost-http/lib"
@@ -337,15 +338,102 @@ func BenchmarkMCPToolCallResponse(b *testing.B) {
 	}
 }
 
-type mcpAppsToolManager struct{ tools []schemas.ChatTool }
+type mcpAppsToolManager struct {
+	tools        []schemas.ChatTool
+	nativeResult json.RawMessage
+	message      *schemas.ChatMessage
+}
 
 func (m *mcpAppsToolManager) GetAvailableMCPTools(context.Context) []schemas.ChatTool { return m.tools }
 func (m *mcpAppsToolManager) GetMCPServerInstructions(context.Context) string         { return "" }
 func (m *mcpAppsToolManager) ExecuteChatMCPTool(context.Context, *schemas.ChatAssistantMessageToolCall) (*schemas.ChatMessage, *schemas.BifrostError) {
-	return &schemas.ChatMessage{}, nil
+	return m.message, nil
 }
 func (m *mcpAppsToolManager) ExecuteResponsesMCPTool(context.Context, *schemas.ResponsesToolMessage) (*schemas.ResponsesMessage, *schemas.BifrostError) {
 	return nil, nil
+}
+func (m *mcpAppsToolManager) ExecuteMCPAppTool(_ *schemas.BifrostContext, _ *schemas.ChatAssistantMessageToolCall) (*schemas.ChatMessage, json.RawMessage, *schemas.BifrostError) {
+	return m.message, m.nativeResult, nil
+}
+func (*mcpAppsToolManager) ReadMCPAppResource(_ *schemas.BifrostContext, _, upstreamURI string) (*mcp.ReadResourceResult, error) {
+	return &mcp.ReadResourceResult{Contents: []mcp.ResourceContents{mcp.TextResourceContents{URI: upstreamURI, MIMEType: "text/html;profile=mcp-app", Text: "<html>app</html>"}}}, nil
+}
+
+type hiddenMCPToolManager struct{ *mcpAppsToolManager }
+
+func (*hiddenMCPToolManager) GetAvailableMCPTools(context.Context) []schemas.ChatTool { return nil }
+
+func TestCallToolRefusesHiddenToolWithoutDisclosingItsName(t *testing.T) {
+	tool := schemas.ChatTool{Type: schemas.ChatToolTypeFunction, Function: &schemas.ChatToolFunction{Name: "private-client-secret_tool", Parameters: &schemas.ToolFunctionParameters{Type: "object", Properties: schemas.NewOrderedMapFromPairs()}}, MCPApp: &schemas.MCPAppToolMetadata{SourceClient: "private-client", Visibility: []string{"app"}}}
+	tm := &hiddenMCPToolManager{mcpAppsToolManager: &mcpAppsToolManager{tools: []schemas.ChatTool{tool}}}
+	h := &MCPServerHandler{toolManager: tm, config: &lib.Config{ClientConfig: &configstore.ClientConfig{}}}
+	h.mcpServer.Store(h.buildServer([]schemas.ChatTool{tool}))
+	response := h.server().HandleMessage(context.Background(), []byte(`{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"private-client-secret_tool","arguments":{}}}`))
+	require.NotNil(t, response)
+	encoded, err := json.Marshal(response)
+	require.NoError(t, err)
+	assert.NotContains(t, string(encoded), "private-client-secret_tool")
+	assert.Contains(t, string(encoded), "tool is unavailable")
+}
+
+func TestCallToolPreservesNativeMCPAppResultAndUsesEffectiveFallback(t *testing.T) {
+	appTool := schemas.ChatTool{
+		Type: schemas.ChatToolTypeFunction,
+		Function: &schemas.ChatToolFunction{
+			Name:       "app-client-open_view",
+			Parameters: &schemas.ToolFunctionParameters{Type: "object", Properties: schemas.NewOrderedMapFromPairs()},
+		},
+		MCPApp: &schemas.MCPAppToolMetadata{ResourceURI: "ui://shared/view", SourceClient: "client", ModernURI: true},
+	}
+	for _, test := range []struct {
+		name       string
+		native     string
+		message    *schemas.ChatMessage
+		wantText   string
+		wantNative bool
+	}{
+		{
+			name:       "native result",
+			native:     `{"content":[{"type":"text","text":"native app output"}],"structuredContent":{"ok":true},"_meta":{"trace":"kept"},"isError":true}`,
+			wantText:   "native app output",
+			wantNative: true,
+		},
+		{
+			name:     "effective post hook fallback",
+			message:  &schemas.ChatMessage{Content: &schemas.ChatMessageContent{ContentStr: schemas.Ptr("redacted output")}, ChatToolMessage: &schemas.ChatToolMessage{IsError: schemas.Ptr(true)}},
+			wantText: "redacted output",
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			tm := &mcpAppsToolManager{tools: []schemas.ChatTool{appTool}, nativeResult: json.RawMessage(test.native), message: test.message}
+			h := &MCPServerHandler{toolManager: tm, config: &lib.Config{ClientConfig: &configstore.ClientConfig{}}}
+			h.mcpServer.Store(h.buildServer(tm.tools))
+			response := h.server().HandleMessage(context.Background(), []byte(`{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"app-client-open_view","arguments":{}}}`))
+			require.NotNil(t, response)
+			encoded, err := json.Marshal(response)
+			require.NoError(t, err)
+			var envelope struct {
+				Result struct {
+					Content []struct {
+						Text string `json:"text"`
+					} `json:"content"`
+					Structured map[string]any `json:"structuredContent"`
+					Meta       map[string]any `json:"_meta"`
+					IsError    bool           `json:"isError"`
+				} `json:"result"`
+			}
+			require.NoError(t, json.Unmarshal(encoded, &envelope))
+			require.NotEmpty(t, envelope.Result.Content)
+			assert.Equal(t, test.wantText, envelope.Result.Content[0].Text)
+			if test.wantNative {
+				assert.Equal(t, map[string]any{"ok": true}, envelope.Result.Structured)
+				assert.Equal(t, map[string]any{"trace": "kept"}, envelope.Result.Meta)
+				assert.True(t, envelope.Result.IsError)
+			} else {
+				assert.True(t, envelope.Result.IsError)
+			}
+		})
+	}
 }
 
 func TestToolsListPreservesAndQualifiesMCPAppMetadata(t *testing.T) {
@@ -359,6 +447,9 @@ func TestToolsListPreservesAndQualifiesMCPAppMetadata(t *testing.T) {
 			RawDefinition: []byte(`{"name":"open_view","inputSchema":{"type":"object","properties":{}},"_meta":{"ui":{"resourceUri":"ui://shared/view","visibility":["app"]},"ui/resourceUri":"ui://shared/view"}}`),
 			ResourceURI:   "ui://shared/view",
 			Visibility:    []string{"app"},
+			SourceClient:  "mcp_apps_fixture",
+			ModernURI:     true,
+			LegacyURI:     true,
 		},
 	}
 	tm := &mcpAppsToolManager{tools: []schemas.ChatTool{appTool}}
@@ -384,7 +475,54 @@ func TestToolsListPreservesAndQualifiesMCPAppMetadata(t *testing.T) {
 	require.NoError(t, json.Unmarshal(ctx.Response.Body(), &response))
 	require.Len(t, response.Result.Tools, 1)
 	resourceURI := response.Result.Tools[0].Meta.UI.ResourceURI
-	assert.Contains(t, resourceURI, "bifrost-mcp-app://", "the source-qualified gateway URI must be advertised to the App")
+	assert.Equal(t, "ui://bifrost/bWNwX2FwcHNfZml4dHVyZQ/dWk6Ly9zaGFyZWQvdmlldw", resourceURI, "the source-qualified gateway URI must be advertised to the App")
 	assert.Equal(t, resourceURI, response.Result.Tools[0].Meta.LegacyURI, "modern and legacy aliases must resolve to the same gateway resource")
 	assert.Equal(t, []string{"app"}, response.Result.Tools[0].Meta.UI.Visibility)
+}
+
+func TestResourcesListAndReadAreSourceQualified(t *testing.T) {
+	const upstreamURI = "ui://shared/view"
+	tools := []schemas.ChatTool{
+		{Type: schemas.ChatToolTypeFunction, Function: &schemas.ChatToolFunction{Name: "first-open_view"}, MCPApp: &schemas.MCPAppToolMetadata{SourceClient: "first", ResourceURI: upstreamURI, ModernURI: true}},
+		{Type: schemas.ChatToolTypeFunction, Function: &schemas.ChatToolFunction{Name: "second-open_view"}, MCPApp: &schemas.MCPAppToolMetadata{SourceClient: "second", ResourceURI: upstreamURI, ModernURI: true}},
+	}
+	tm := &mcpAppsToolManager{tools: tools}
+	h := &MCPServerHandler{toolManager: tm, config: &lib.Config{ClientConfig: &configstore.ClientConfig{}}}
+	h.mcpServer.Store(h.buildServer(tools))
+	list := h.server().HandleMessage(context.Background(), []byte(`{"jsonrpc":"2.0","id":7,"method":"resources/list","params":{}}`))
+	require.NotNil(t, list)
+	listJSON, err := json.Marshal(list)
+	require.NoError(t, err)
+	var listed struct {
+		Result struct {
+			Resources []struct {
+				URI  string `json:"uri"`
+				MIME string `json:"mimeType"`
+			} `json:"resources"`
+		} `json:"result"`
+	}
+	require.NoError(t, json.Unmarshal(listJSON, &listed))
+	require.Len(t, listed.Result.Resources, 2)
+	firstURI := mcpAppGatewayURI("first", upstreamURI)
+	secondURI := mcpAppGatewayURI("second", upstreamURI)
+	assert.NotEqual(t, firstURI, secondURI)
+	assert.ElementsMatch(t, []string{firstURI, secondURI}, []string{listed.Result.Resources[0].URI, listed.Result.Resources[1].URI})
+	assert.Equal(t, "text/html;profile=mcp-app", listed.Result.Resources[0].MIME)
+
+	read := h.server().HandleMessage(context.Background(), []byte(`{"jsonrpc":"2.0","id":8,"method":"resources/read","params":{"uri":"`+firstURI+`"}}`))
+	require.NotNil(t, read)
+	readJSON, err := json.Marshal(read)
+	require.NoError(t, err)
+	var readEnvelope struct {
+		Result struct {
+			Contents []struct {
+				URI  string `json:"uri"`
+				Text string `json:"text"`
+			} `json:"contents"`
+		} `json:"result"`
+	}
+	require.NoError(t, json.Unmarshal(readJSON, &readEnvelope))
+	require.Len(t, readEnvelope.Result.Contents, 1)
+	assert.Equal(t, firstURI, readEnvelope.Result.Contents[0].URI)
+	assert.Equal(t, "<html>app</html>", readEnvelope.Result.Contents[0].Text)
 }

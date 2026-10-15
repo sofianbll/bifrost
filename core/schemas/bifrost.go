@@ -1250,8 +1250,9 @@ func (br *BifrostRequest) SetRawRequestBody(rawRequestBody []byte) {
 type MCPRequestType string
 
 const (
-	MCPRequestTypePing      MCPRequestType = "ping"
-	MCPRequestTypeListTools MCPRequestType = "list_tools"
+	MCPRequestTypePing         MCPRequestType = "ping"
+	MCPRequestTypeListTools    MCPRequestType = "list_tools"
+	MCPRequestTypeReadResource MCPRequestType = "read_resource"
 
 	// [DEPRECATED] these will be replaced by MCPRequestTypeExecuteTool in the next major bump, but are kept for backward compatibility for now since some tools still rely on the old fields
 	MCPRequestTypeChatToolCall      MCPRequestType = "chat_tool_call"      // Chat API format
@@ -1305,11 +1306,13 @@ func (t MCPRequestType) OTelMethodName() string {
 //   - RequestType == MCPRequestTypeListTools  → BifrostMCPListToolsRequest
 //   - RequestType == MCPRequestTypeExecuteTool / MCPRequestTypeChatToolCall / MCPRequestTypeResponsesToolCall → BifrostMCPExecuteToolRequest
 type BifrostMCPRequest struct {
-	RequestType MCPRequestType
-	ClientName  string // MCP client this request targets (always set, regardless of request type)
+	RequestType        MCPRequestType
+	ClientName         string // MCP client this request targets (always set, regardless of request type)
+	NativeMCPAppResult bool   `json:"-"` // Preserve the complete upstream result for negotiated native Apps calls.
 
 	*BifrostMCPPingRequest
 	*BifrostMCPListToolsRequest
+	*BifrostMCPReadResourceRequest
 
 	// [DEPRECATED] these will be replaced by BifrostMCPExecuteToolRequest in the next major bump, but are kept for backward compatibility for now since some tools still rely on the old fields
 	*ChatAssistantMessageToolCall
@@ -1346,6 +1349,13 @@ type BifrostMCPPingRequest struct {
 type BifrostMCPListToolsRequest struct {
 }
 
+// BifrostMCPReadResourceRequest is the scoped resource operation seen by MCP hooks.
+// The source-qualified tool name and original URI stay inside the gateway boundary.
+type BifrostMCPReadResourceRequest struct {
+	ToolName string
+	URI      string
+}
+
 // Keeping the stub for now, will be used from the next major bump when we remove the old ChatToolCall and ResponsesToolMessage fields.
 // Note that the tool name and arguments are not standardized in this struct yet since they are still being pulled from the old fields for backward compatibility,
 // but they will be standardized in the future when we remove the old fields.
@@ -1354,6 +1364,9 @@ type BifrostMCPExecuteToolRequest struct {
 
 // GetToolName returns the tool name from the active MCP request variant.
 func (r *BifrostMCPRequest) GetToolName() string {
+	if r.BifrostMCPReadResourceRequest != nil {
+		return r.BifrostMCPReadResourceRequest.ToolName
+	}
 	if r.ChatAssistantMessageToolCall != nil {
 		if r.ChatAssistantMessageToolCall.Function.Name != nil {
 			return *r.ChatAssistantMessageToolCall.Function.Name
@@ -1821,8 +1834,12 @@ type BifrostMCPResponse struct {
 
 	// [DEPRECATED] back-compat fields for execute-tool requests; will move into
 	// BifrostMCPExecuteToolResponse in the next major bump.
-	ChatMessage      *ChatMessage
-	ResponsesMessage *ResponsesMessage
+	ChatMessage          *ChatMessage
+	ResponsesMessage     *ResponsesMessage
+	NativeMCPAppResult   json.RawMessage `json:"-"` // Upstream result for native Apps; never sent to providers.
+	MCPAppResourceResult json.RawMessage `json:"-"` // Effective resource result after MCP hooks.
+	NativeAppResultHash  [32]byte        `json:"-"`
+	NativeAppMessageHash [32]byte        `json:"-"`
 
 	// Empty stub today; will hold ChatMessage/ResponsesMessage in the next major bump.
 	*BifrostMCPExecuteToolResponse

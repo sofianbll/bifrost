@@ -489,6 +489,10 @@ type ChatTool struct {
 type MCPAppToolMetadata struct {
 	RawDefinition json.RawMessage `json:"rawDefinition,omitempty"`
 	ResourceURI   string          `json:"resourceUri,omitempty"`
+	Visibility    []string        `json:"visibility,omitempty"`
+	SourceClient  string          `json:"sourceClient,omitempty"`
+	ModernURI     bool            `json:"modernUri,omitempty"`
+	LegacyURI     bool            `json:"legacyUri,omitempty"`
 }
 
 // normalizeShape clears fields that don't belong to the ChatTool's active
