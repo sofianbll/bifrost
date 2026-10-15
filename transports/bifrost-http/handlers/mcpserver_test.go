@@ -123,6 +123,38 @@ func TestInitializeOmitsInstructionsWhenNoUpstreamAdvertisesAny(t *testing.T) {
 	assert.False(t, present)
 }
 
+func TestInitializeNegotiatesMCPAppsExtensionOnlyWhenRequested(t *testing.T) {
+	tm := &fakeInstructionsToolManager{}
+	h := &MCPServerHandler{
+		toolManager: tm,
+		config:      &lib.Config{ClientConfig: &configstore.ClientConfig{}},
+	}
+	h.mcpServer.Store(h.buildServer(nil))
+
+	raw := h.server().HandleMessage(context.Background(), []byte(`{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{"extensions":{"io.modelcontextprotocol/ui":{}}},"clientInfo":{"name":"apps-host","version":"1"}}}`))
+	require.NotNil(t, raw)
+	encoded, err := json.Marshal(raw)
+	require.NoError(t, err)
+	var response struct {
+		Result struct {
+			Capabilities map[string]json.RawMessage `json:"capabilities"`
+		} `json:"result"`
+	}
+	require.NoError(t, json.Unmarshal(encoded, &response))
+	require.Contains(t, response.Result.Capabilities, "extensions")
+	var extensions map[string]json.RawMessage
+	require.NoError(t, json.Unmarshal(response.Result.Capabilities["extensions"], &extensions))
+	assert.Contains(t, extensions, "io.modelcontextprotocol/ui")
+
+	raw = h.server().HandleMessage(context.Background(), []byte(`{"jsonrpc":"2.0","id":2,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"plain-host","version":"1"}}}`))
+	require.NotNil(t, raw)
+	encoded, err = json.Marshal(raw)
+	require.NoError(t, err)
+	response.Result.Capabilities = nil
+	require.NoError(t, json.Unmarshal(encoded, &response))
+	assert.NotContains(t, response.Result.Capabilities, "extensions")
+}
+
 // The hook must resolve against the per-request context — that is the whole reason it is a
 // hook rather than server.WithInstructions, which is fixed at construction. If the request's
 // narrowing did not reach the resolver, a caller scoped to one upstream would be handed every
