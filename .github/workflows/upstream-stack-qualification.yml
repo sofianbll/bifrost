@@ -163,6 +163,28 @@ jobs:
           BIFROST_STABLE_REFERENCE: ${{ env.STABLE_REFERENCE }}
           BIFROST_COMPARISON_MODE: ${{ env.COMPARISON_MODE }}
         run: .github/workflows/scripts/test-mcp-apps-fixture.sh --baseline "bifrost:stock-${{ github.run_id }}" "$REPORT_DIR"
+      - name: Verify integrated first-boot grants and same-store restart
+        id: firstboot-candidate
+        if: always() && steps.build-candidate.outcome == 'success'
+        continue-on-error: true
+        working-directory: candidate
+        env:
+          BIFROST_STOCK_SOURCE: ${{ env.STOCK_SOURCE }}
+          BIFROST_CANDIDATE_SOURCE: ${{ env.CANDIDATE_SOURCE }}
+          BIFROST_STABLE_REFERENCE: ${{ env.STABLE_REFERENCE }}
+          BIFROST_COMPARISON_MODE: strict
+          BIFROST_FIXTURE_SCOPES: firstboot-grants
+        run: .github/workflows/scripts/test-mcp-apps-fixture.sh "bifrost:candidate-${{ github.run_id }}" "$REPORT_DIR/firstboot-grants"
+      - name: Verify first-boot stock red and restart control
+        if: always() && steps.build-stock.outcome == 'success' && steps.firstboot-candidate.outcome != 'skipped'
+        working-directory: candidate
+        env:
+          BIFROST_STOCK_SOURCE: ${{ env.STOCK_SOURCE }}
+          BIFROST_CANDIDATE_SOURCE: ${{ env.CANDIDATE_SOURCE }}
+          BIFROST_STABLE_REFERENCE: ${{ env.STABLE_REFERENCE }}
+          BIFROST_COMPARISON_MODE: strict
+          BIFROST_FIXTURE_SCOPES: firstboot-grants
+        run: .github/workflows/scripts/test-mcp-apps-fixture.sh --baseline "bifrost:stock-${{ github.run_id }}" "$REPORT_DIR/firstboot-grants"
       - name: Preserve source identity and sanitized fixture reports
         if: always()
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
