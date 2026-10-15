@@ -22,6 +22,7 @@ import (
 )
 
 const maxCachedMCPAppDefinitionBytes = 256 << 10
+const maxCachedMCPAppMetadataBytes = 256 << 10
 
 // computeToolsHash returns a stable content hash of a tool map + name
 // mapping, used to gate the tools-change funnel (SetClientTools,
@@ -48,6 +49,43 @@ func computeToolsHash(tools map[string]schemas.ChatTool, toolNameMapping map[str
 	h.Write([]byte{0})
 	h.Write([]byte(instructions))
 	return hex.EncodeToString(h.Sum(nil))
+}
+
+func boundedMCPAppToolMetadata(rawDefinition []byte, resourceURI string, visibility []string, modernURI, legacyURI bool) *schemas.MCPAppToolMetadata {
+	metadata := &schemas.MCPAppToolMetadata{
+		RawDefinition: rawDefinition,
+		ResourceURI:   resourceURI,
+		Visibility:    visibility,
+		ModernURI:     modernURI,
+		LegacyURI:     legacyURI,
+	}
+	if len(metadata.RawDefinition) > maxCachedMCPAppDefinitionBytes || !mcpAppMetadataFitsCache(metadata) {
+		metadata.RawDefinition = nil
+	}
+	if mcpAppMetadataFitsCache(metadata) {
+		return metadata
+	}
+	resourceURI = metadata.ResourceURI
+	metadata.ResourceURI = ""
+	if mcpAppMetadataFitsCache(metadata) {
+		return metadata
+	}
+	metadata.ResourceURI = resourceURI
+
+	// A visibility list that exceeds the sidecar budget must not make an
+	// app-only tool appear model-visible. Preserve only the conservative App
+	// classification while keeping a small linked-resource URI when possible.
+	metadata.Visibility = []string{"app"}
+	if mcpAppMetadataFitsCache(metadata) {
+		return metadata
+	}
+	metadata.ResourceURI = ""
+	return metadata
+}
+
+func mcpAppMetadataFitsCache(metadata *schemas.MCPAppToolMetadata) bool {
+	encoded, err := schemas.MarshalSorted(metadata)
+	return err == nil && len(encoded) <= maxCachedMCPAppMetadataBytes
 }
 
 // RetryConfig defines the retry behavior with exponential backoff
@@ -1025,13 +1063,10 @@ func convertMCPToolToBifrostSchema(mcpTool *mcp.Tool, logger schemas.Logger) sch
 
 	var appMetadata *schemas.MCPAppToolMetadata
 	if mcpTool.Meta != nil {
-		if rawDefinition, err := json.Marshal(mcpTool); err == nil {
+		if rawDefinition, err := schemas.MarshalSorted(mcpTool); err == nil {
 			resourceURI, visibility, modernURI, legacyURI := mcpToolUIProperties(rawDefinition)
 			if resourceURI != "" || len(visibility) > 0 {
-				if len(rawDefinition) > maxCachedMCPAppDefinitionBytes {
-					rawDefinition = nil
-				}
-				appMetadata = &schemas.MCPAppToolMetadata{RawDefinition: rawDefinition, ResourceURI: resourceURI, Visibility: visibility, ModernURI: modernURI, LegacyURI: legacyURI}
+				appMetadata = boundedMCPAppToolMetadata(rawDefinition, resourceURI, visibility, modernURI, legacyURI)
 			}
 		}
 	}
