@@ -425,6 +425,13 @@ print("Found", len(titles), "videos")
 result = {"titles": titles, "count": len(titles)}
 ```
 
+Nested MCP tool responses are values inside the script, including responses whose
+protocol `isError` field is true. Inspect the returned text or dictionary and decide
+how the script should proceed; a leading `Error: ` in the text has no special meaning.
+Transport failures, sandbox failures, and output guardrail blocks still fail the
+`executeToolCode` call. The MCP gateway also preserves `isError` on its outer
+`tools/call` response so direct MCP clients can distinguish a failed Code Mode run.
+
 ---
 
 ## Binding Levels
