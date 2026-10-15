@@ -1,20 +1,21 @@
 ## Summary
 
-When `executeToolCode` fails, the MCP gateway currently turns its flagged Chat tool message into a successful text result. Forward that failure as MCP `isError` while keeping remote protocol-marked tool errors available to the script as values. Native Go handler exceptions retain the upstream runtime-failure behavior.
+When `executeToolCode` fails, the gateway turns its flagged Chat tool message into a successful text result. Forward that failure as MCP `isError` while keeping remote protocol-marked tool errors available to the script as values. Native Go exceptions retain upstream runtime-failure behavior.
 
 ```text
 remote MCP error result -> script value
 native Go exception / script failure -> MCP isError
 ```
 
+Affected packages: `core` and HTTP transport, including their changelogs. First contribution in the A → B → C stack, based on `transports/v2.2.6` (`8b4fce4f1709d66f9208d02f50552da522535f9e`). Candidate A: `f136c93fcf78f3db3df59974ae49cfc392412f51`.
+
 ## Evidence
 
-Based on `transports/v2.2.6` (`8b4fce4f1709d66f9208d02f50552da522535f9e`). [Integration CI 38181001842](https://github.com/sofianbll/bifrost/actions/runs/38181001842) qualifies commit `e1ca7961489c07d348fe19c95fc26a423dffb64a`; the three contribution branches also compile independently with identical stock UI assets.
-
-- **Before:** the named stock 2.2.6 wire assertion for script failure loses outer `isError`. Remote nested validation errors already remain script values upstream.
-- **After:** both exact error-server requests pass all six assertions. The comparator confirms the script-failure correction while preserving the existing green nested-error behavior.
-- Focused handler, Starlark and STDIO checks pass. Both architecture MCP suites pass 675 tests / 29 skipped / zero failures. New upstream invocation-time and pre-hook Code Mode authorization remain intact.
+- **Before:** pinned stock 2.2.6 loses outer `isError` on the script-failure wire assertion; remote nested validation errors already remain script values.
+- **After:** the [independent A/B/C campaign](https://github.com/sofianbll/bifrost/actions/runs/38715391307) builds A from its own immutable checkout on AMD64: Go/UI build, package/race checks, dynamic plugin and exact built-UI probes pass. Its MCP suite reports 675 passed, 29 skipped, zero failures/errors. Harness source is separately pinned at `1dcbd14d5875a14dc780f00fc2edd22cfaee66a8`.
+- Whole-stack wire evidence from C in that same campaign executes both error requests / six assertions. The strict stock comparator confirms the corrected script-failure behavior and the already-green nested-error invariant. This wire result belongs to C, not an isolated A HTTP run.
+- The [integrated fork campaign](https://github.com/sofianbll/bifrost/actions/runs/38715303556) independently qualifies `19362d86b2a3d17b699283c98f67861cbc6dc46c` on AMD64/ARM64. New invocation-time and pre-hook Code Mode authorization remain intact. No live-provider or native Codex check is claimed.
 
 ## Merge Danger
 
-**Door:** two-way. **Blast Radius:** Code Mode error reporting. No storage or public configuration schema change. Remote MCP error values and native Go exceptions intentionally retain distinct behavior.
+**Door:** two-way. **Blast Radius:** Code Mode error reporting. No storage or public configuration schema change. Remote MCP error values and native Go exceptions intentionally retain distinct behavior. The prepared source is qualified on the frozen 2.2.6 base; submitting it against a newer upstream target requires a separate compatibility check.

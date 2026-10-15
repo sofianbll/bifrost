@@ -53,6 +53,13 @@ function assertCheckpointFraming(before, after) {
   }
 }
 
+function assertProgressiveNotificationOrder(methods) {
+  assert.deepEqual(methods, [
+    "ui/notifications/tool-input-partial", "ui/notifications/tool-input-partial",
+    "ui/notifications/tool-input", "ui/notifications/tool-result",
+  ], "Initial App lifecycle must be partial, partial, final input, result exactly once");
+}
+
 function assertComparisonOutcome(evidence, version) {
   assert.ok(["official", "corrected"].includes(version), "Unknown comparison version");
   assert.ok(!evidence.error, "Comparison must complete; setup or callback errors are not expected failures");
@@ -257,13 +264,25 @@ async function selfCheck() {
   }
   assert.throws(() => assertComparisonOutcome({ ...knownFailure, error: "blank App" }, "official"), /must complete/);
   assert.throws(() => assertComparisonOutcome({ ...knownFailure, after: aligned }, "official"), /left\/up displacement/);
+  assertProgressiveNotificationOrder([
+    "ui/notifications/tool-input-partial", "ui/notifications/tool-input-partial",
+    "ui/notifications/tool-input", "ui/notifications/tool-result",
+  ]);
+  // Calibrate against the old after-result replay and missing/reordered/duplicate messages.
+  for (const order of [
+    ["tool-input", "tool-result", "tool-input-partial", "tool-input-partial", "tool-input"],
+    ["tool-input", "tool-input-partial", "tool-input-partial", "tool-input", "tool-result"],
+    ["tool-input-partial", "tool-input", "tool-result"],
+    ["tool-input-partial", "tool-input-partial", "tool-result", "tool-input"],
+    ["tool-input-partial", "tool-input-partial", "tool-input", "tool-input", "tool-result"],
+  ]) assert.throws(() => assertProgressiveNotificationOrder(order.map((method) => `ui/notifications/${method}`)), /Initial App lifecycle/);
   await checkProxyCleanup();
   assert.equal(await portAvailable(0), true);
   const occupied = createTcpServer();
   const occupiedPort = await listen(occupied);
   try { assert.equal(await portAvailable(occupiedPort), false); }
   finally { await new Promise((resolvePromise) => occupied.close(resolvePromise)); }
-  console.log("PASS renderer self-check (routes, JSON-RPC, redaction, bounded actions, SSE cleanup, ports, bound-label alignment, deliberate displacement, clipping, missing labels, invalid bounds and fixed framing and strict comparison outcomes); no host was launched");
+  console.log("PASS renderer self-check (routes, JSON-RPC, redaction, bounded actions, SSE cleanup, ports, bound-label alignment, deliberate displacement, clipping, missing labels, invalid bounds, fixed framing, strict comparison outcomes and initial partial/final/result order); no host was launched");
 }
 
 function classifyFailure(appId, error) {
@@ -519,6 +538,44 @@ async function pageLogs(browser, target, runCase, timeoutMs, secrets) {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   const page = await context.newPage();
   const logs = [];
+  const progressive = runCase.partialInput ? { validation: "initial_AppBridge_notifications", frames: [] } : undefined;
+  if (progressive) {
+    await context.addInitScript(({ camera, boxes }) => {
+      window.__bifrostToolNotifications = [];
+      window.addEventListener("message", (event) => {
+        if (event.source === window.parent && event.data?.jsonrpc === "2.0" &&
+          ["ui/notifications/tool-input-partial", "ui/notifications/tool-input", "ui/notifications/tool-result"].includes(event.data.method)) {
+          window.__bifrostToolNotifications.push(event.data.method);
+        }
+      });
+      if (window === window.top) window.__bifrostReplayPartialInput = async (bridge, input) => {
+        for (const count of [1, 2]) {
+          await bridge.sendToolInputPartial({ arguments: { ...input,
+            elements: JSON.stringify([camera, ...boxes.slice(0, count), { type: "rectangle" }]),
+          } });
+          await window.__bifrostAssertPartialFrame(count);
+        }
+      };
+    }, { camera: CHECKPOINT_CAMERA, boxes: CHECKPOINT_BOXES });
+    await page.exposeFunction("__bifrostAssertPartialFrame", async (count) => {
+      try {
+        const inner = page.frameLocator("iframe").frameLocator("iframe");
+        const svg = inner.locator(".svg-wrapper svg");
+        await svg.waitFor({ state: "visible", timeout: timeoutMs });
+        const expected = CHECKPOINT_BOXES.slice(0, count).map((box) => box.label.text);
+        await waitFor(async () => {
+          const labels = await svg.locator("text").allTextContents();
+          return expected.every((text) => labels.includes(text)) &&
+            CHECKPOINT_BOXES.slice(count).every((box) => !labels.includes(box.label.text));
+        }, timeoutMs, `Partial input did not render exactly ${count} bound labels`);
+        const order = await inner.locator("body").evaluate(() => window.__bifrostToolNotifications);
+        assert.deepEqual(order, Array(count).fill("ui/notifications/tool-input-partial"),
+          "Final input/result arrived before the intermediate render");
+        await svg.screenshot({ path: join(runCase.partialInput.outDir, `excalidraw-progressive-${count}.png`), animations: "disabled", timeout: timeoutMs });
+        progressive.frames.push({ labels: expected, notification: "ui/notifications/tool-input-partial", receivedOrder: order });
+      } catch (error) { progressive.error = redact(error.message, secrets); throw error; }
+    });
+  }
   page.on("console", (message) => logs.push({ type: message.type(), text: redact(message.text(), secrets) }));
   page.on("pageerror", (error) => logs.push({ type: "pageerror", text: redact(error.message, secrets) }));
   page.on("requestfailed", (request) => logs.push({ type: "requestfailed", text: redact(`${request.method()} ${request.url()}: ${request.failure()?.errorText ?? "unknown"}`, secrets) }));
@@ -558,7 +615,7 @@ async function pageLogs(browser, target, runCase, timeoutMs, secrets) {
     await callButton.click({ timeout: formTimeout });
     const iframe = page.locator("iframe").first();
     await iframe.waitFor({ state: "visible", timeout: formTimeout });
-    return { context, page, iframe, logs };
+    return { context, page, iframe, logs, progressive };
   } catch (error) {
     await context.close();
     throw error;
@@ -693,31 +750,19 @@ async function renderCheckpoint(browser, manifest, credentials, appId, outDir, s
   };
   try {
     target = await startHost(option("--host-dir", ""), [proxy.url]);
-    browserState = await pageLogs(browser, target, { tool: app.native_name, input: createInput }, timeoutMs, secrets);
+    browserState = await pageLogs(browser, target, { tool: app.native_name, input: createInput,
+      partialInput: replayPartialInput ? { outDir } : undefined }, timeoutMs, secrets);
     if (replayPartialInput) {
-      const inner = browserState.page.frameLocator("iframe").frameLocator("iframe");
-      const svg = inner.locator(".svg-wrapper svg");
-      await svg.waitFor({ state: "visible", timeout: timeoutMs });
-      await waitFor(async () => (await svg.locator("text").allTextContents()).includes("Excalidraw"), timeoutMs, "Initial App input did not render");
-      const notify = (method, elements) => browserState.page.frameLocator("iframe").locator("body").evaluate((body, message) => {
-        const appFrame = body.querySelector("iframe");
-        if (!appFrame?.contentWindow) throw new Error("Reference host sandbox has no App frame");
-        appFrame.contentWindow.postMessage(message, "*");
-      }, { jsonrpc: "2.0", method, params: { arguments: { elements: JSON.stringify(elements) } } });
-      evidence.progressive = { validation: "controlled_host_notifications_replay", frames: [] };
-      // Drive the real SDK from its parent frame; inspect rendered intermediate states, not a live model stream.
-      for (const count of [1, 2]) {
-        await notify("ui/notifications/tool-input-partial", [CHECKPOINT_CAMERA, ...CHECKPOINT_BOXES.slice(0, count), { type: "rectangle" }]);
-        const expected = CHECKPOINT_BOXES.slice(0, count).map((box) => box.label.text);
-        await waitFor(async () => {
-          const labels = await svg.locator("text").allTextContents();
-          return expected.every((text) => labels.includes(text)) &&
-            CHECKPOINT_BOXES.slice(count).every((box) => !labels.includes(box.label.text));
-        }, timeoutMs, `Partial input did not render exactly ${count} bound labels`);
-        await svg.screenshot({ path: join(outDir, `excalidraw-progressive-${count}.png`), animations: "disabled", timeout: timeoutMs });
-        evidence.progressive.frames.push({ labels: expected, notification: "ui/notifications/tool-input-partial" });
-      }
-      await notify("ui/notifications/tool-input", [CHECKPOINT_CAMERA, ...CHECKPOINT_BOXES]);
+      evidence.progressive = browserState.progressive;
+      const body = browserState.page.frameLocator("iframe").frameLocator("iframe").locator("body");
+      await waitFor(async () => {
+        if (evidence.progressive.error) fail(evidence.progressive.error);
+        const order = await body.evaluate(() => window.__bifrostToolNotifications ?? []);
+        return order.includes("ui/notifications/tool-result");
+      }, timeoutMs, "Initial AppBridge input/result did not complete after partial renders");
+      evidence.progressive.receivedOrder = await body.evaluate(() => window.__bifrostToolNotifications);
+      assert.equal(evidence.progressive.frames.length, 2, "Both intermediate renders must precede the final input");
+      assertProgressiveNotificationOrder(evidence.progressive.receivedOrder);
       evidence.checks.progressiveInput = true;
     }
     const before = await capture("before");
@@ -879,7 +924,8 @@ async function renderExcalidrawComparison(browser, manifest, profiles, outDir, s
   results.push(equivalence);
   await writeFile(join(directory, "report.json"), redact(JSON.stringify({
     validation: "automated_reference_host", codexVerification: "not_run", testedGateway: manifest.gateway,
-    referenceHost: { repository: HOST_REPOSITORY, commit: HOST_COMMIT, version: HOST_VERSION },
+    referenceHost: { repository: HOST_REPOSITORY, commit: HOST_COMMIT, version: HOST_VERSION,
+      adaptation: JSON.parse(await readFile(join(option("--host-dir", ""), ".bifrost-reference-host.json"), "utf8")).adaptation },
     browser: browser.version(), camera: CHECKPOINT_CAMERA, results,
     passed: results.every((result) => result.status === "passed"),
   }, null, 2), secrets) + "\n", { mode: 0o600 });
@@ -937,6 +983,12 @@ async function main() {
   const hostRoot = resolve(hostDir);
   const hostReceipt = JSON.parse(await readFile(join(hostRoot, ".bifrost-reference-host.json"), "utf8").catch(() => "null"));
   if (hostReceipt?.repository !== `${HOST_REPOSITORY}.git` || hostReceipt.version !== HOST_VERSION || hostReceipt.commit !== HOST_COMMIT) fail("Reference host was not bootstrapped from the pinned official commit");
+  const adaptation = hostReceipt.adaptation;
+  assert.equal(adaptation?.sourceFile, "examples/basic-host/src/implementation.ts", "Missing controlled host input seam");
+  const source = execFileSync("git", ["show", `${HOST_COMMIT}:${adaptation.sourceFile}`], { cwd: hostDir });
+  assert.equal(createHash("sha256").update(source).digest("hex"), adaptation.sourceSha256);
+  assert.equal(createHash("sha256").update(await readFile(join(hostDir, adaptation.sourceFile))).digest("hex"), adaptation.adaptedSha256);
+
   const manifest = JSON.parse(await readFile(resolve(manifestPath), "utf8"));
   if (typeof manifest.base_url !== "string" || !manifest.apps || !manifest.routes || typeof manifest.credentials_file !== "string") fail("Qualification manifest must include base_url, apps, routes and credentials_file");
   const expectedApps = ["excalidraw", "pdf", "debug", "monitor"];
@@ -991,7 +1043,7 @@ async function main() {
       sha256: createHash("sha256").update(await readFile(new URL(import.meta.url))).digest("hex"),
     },
     browser: { version: browser.version(), channel: process.env.PLAYWRIGHT_CHANNEL ?? "chromium" },
-    referenceHost: { repository: HOST_REPOSITORY, version: HOST_VERSION, commit: HOST_COMMIT },
+    referenceHost: { repository: HOST_REPOSITORY, version: HOST_VERSION, commit: HOST_COMMIT, adaptation },
     runtimeSeconds: Math.round((performance.now() - started) / 1000),
     results,
     passed: results.filter((result) => result.status === "passed").length,
