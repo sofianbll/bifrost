@@ -275150,6 +275150,60 @@
       ]
     },
     {
+      "name": "146. First-boot Virtual MCP grants (firstboot-grants)",
+      "description": "Runs before any setup-token postseed on a disposable fresh config store. Confirms a file-declared virtual key can invoke the second non-CodeMode fixture source through its file-declared Virtual MCP route.",
+      "item": [
+        {
+          "name": "MCP Apps fixture firstboot grants invokes second callback (firstboot-grants)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var text = pm.response.text() || '';",
+                  "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
+                  "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(200); });",
+                  "pm.test('file-declared grant invokes the second fixture source', function () { var result=body.result||{}; var content=result.content||[]; pm.expect(content.length,text).to.be.greaterThan(0); pm.expect(content[0].text,text).to.include('second:save_state'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-mcp-apps-full"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"mcp_apps_fixture_second-save_state\",\"arguments\":{}}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp/mcp-apps-full-virtual",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp",
+                "mcp-apps-full-virtual"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "144. Code Mode error semantics (codemode-errors)",
       "description": "Pins Code Mode error handling through the MCP wire using the local error-test-server profile. A protocol-marked nested tool error remains a script value; a Starlark execution failure marks the outer executeToolCode result as an error.",
       "item": [
