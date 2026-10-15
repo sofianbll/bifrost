@@ -154,6 +154,7 @@ func TestStdioResourceReturnsExecutablePinnedHostFixture(t *testing.T) {
 	}
 	for _, want := range []string{
 		`data-testid="mcp-app-fixture"`,
+		`data-testid="tool-partial-input"`,
 		`data-save-tool="mcp_apps_fixture-save_state"`,
 		`data-read-tool="mcp_apps_fixture-read_state"`,
 		`http://localhost:8080/mcp-app-fixture.js`,

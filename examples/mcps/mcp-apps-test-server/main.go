@@ -29,9 +29,10 @@ const fixtureViewHTML = `<!doctype html>
     <title>Bifrost MCP Apps fixture</title>
   </head>
   <body>
-    <main data-testid="mcp-app-fixture" data-status="loading" data-save-tool="SAVE_STATE_TOOL" data-read-tool="READ_STATE_TOOL">
+    <main data-testid="mcp-app-fixture" data-status="loading" data-notification-order="[]" data-save-tool="SAVE_STATE_TOOL" data-read-tool="READ_STATE_TOOL">
       <h1>MCP Apps fixture</h1>
       <output data-testid="fixture-status" aria-live="polite">Waiting for host</output>
+      <pre data-testid="tool-partial-input">No partial input received</pre>
       <pre data-testid="tool-input">No input received</pre>
       <pre data-testid="tool-result">No result received</pre>
       <label>Saved state <input data-testid="state-input" value="first-state"></label>
