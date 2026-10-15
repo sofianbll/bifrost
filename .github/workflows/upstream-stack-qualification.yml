@@ -36,7 +36,7 @@ jobs:
     env:
       CANDIDATE_COMMIT: ${{ matrix.commit }}
       CANDIDATE_LAYER: ${{ matrix.layer }}
-      HARNESS_COMMIT: 36ef6a9c941c6aa98f2aa587bd7eaf595d8b7937
+      HARNESS_COMMIT: b653d004dc47a9beacf64879458ffa4f15af49f9
     steps:
       - name: Checkout pinned fork harness
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
