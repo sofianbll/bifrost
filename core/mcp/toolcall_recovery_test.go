@@ -192,6 +192,35 @@ func TestExecuteTool_DeadSession_SalvagesTheCallForARetryableTool(t *testing.T) 
 	assert.NotSame(t, before.Conn, after.Conn)
 }
 
+// BenchmarkExecuteChatToolNoApps records the regular MCP execution path with
+// a real local streamable HTTP server and no App metadata. The connection is
+// established before timing; each iteration measures one ordinary tool call.
+func BenchmarkExecuteChatToolNoApps(b *testing.B) {
+	s := server.NewMCPServer("ordinary-tool-benchmark", "1.0.0", server.WithToolCapabilities(true))
+	s.AddTool(mcpgo.NewTool("echo", mcpgo.WithReadOnlyHintAnnotation(true)), func(context.Context, mcpgo.CallToolRequest) (*mcpgo.CallToolResult, error) {
+		return mcpgo.NewToolResultText("ok"), nil
+	})
+	httpServer := httptest.NewServer(server.NewStreamableHTTPServer(s))
+	b.Cleanup(httpServer.Close)
+
+	manager := NewMCPManager(context.Background(), schemas.MCPConfig{}, nil, &MockLogger{}, nil)
+	b.Cleanup(func() { _ = manager.Cleanup() })
+	config := newRecoveryClientConfig("client-ordinary-benchmark", "ordinary-client", httpServer.URL)
+	if err := manager.connectToMCPClient(context.Background(), config); err != nil {
+		b.Fatal(err)
+	}
+	toolName := "ordinary-client-echo"
+	toolCall := &schemas.ChatAssistantMessageToolCall{Function: schemas.ChatAssistantMessageToolCallFunction{Name: &toolName, Arguments: "{}"}}
+	ctx := schemas.NewBifrostContext(context.Background(), schemas.NoDeadline)
+	b.ReportAllocs()
+	b.ResetTimer()
+	for b.Loop() {
+		if _, bErr := manager.ExecuteChatTool(ctx, toolCall); bErr != nil {
+			b.Fatal(bErr)
+		}
+	}
+}
+
 // TestExecuteTool_DeadSession_HealsEvenWhenTheRetryIsSuppressed covers the
 // other side of the safety gate. A tool with no annotations is treated as
 // destructive and non-idempotent (MCP's own defaults, and
