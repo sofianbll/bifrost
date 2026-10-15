@@ -154,23 +154,66 @@ BASELINE_ALLOWED_STOCK_FAILURES = {
 DEFAULT_SCOPES = ("mcp-apps", "codemode-errors")
 VALID_APP_SCOPES = {"mcp-apps", "codemode-errors"}
 FIRSTBOOT_SCOPE = "firstboot-grants"
-FIRSTBOOT_REQUEST = "MCP Apps fixture firstboot grants invokes second callback (firstboot-grants)"
-FIRSTBOOT_FOLDER = "146. First-boot Virtual MCP grants"
-FIRSTBOOT_VIRTUAL_MCP = "mcp-apps-full-virtual"
-FIRSTBOOT_VIRTUAL_KEY = "vk-mcp-apps-full"
+FIRSTBOOT_STANDALONE_SCOPE = "firstboot-grants-standalone"
+FIRSTBOOT_CONTRACTS = {
+    FIRSTBOOT_SCOPE: {
+        "scope": FIRSTBOOT_SCOPE,
+        "request": "MCP Apps fixture firstboot grants invokes second callback (firstboot-grants)",
+        "folder": "146. First-boot Virtual MCP grants (firstboot-grants)",
+        "client": "mcp_apps_fixture",
+        "clients": FIXTURE_NAMES[:3],
+        "virtual_mcp": "mcp-apps-full-virtual",
+        "virtual_key_id": "vk-mcp-apps-full",
+        "virtual_key_value": KEYS["full"],
+        "tool": "save_state",
+        "discovery_clients": ("mcp_apps_fixture_second",),
+        "custom_assertion": "file-declared grant invokes the second fixture source",
+    },
+    FIRSTBOOT_STANDALONE_SCOPE: {
+        "scope": FIRSTBOOT_STANDALONE_SCOPE,
+        "request": "stdio fixture firstboot grant invokes string_transform (firstboot-grants-standalone)",
+        "folder": "251. First-boot Virtual MCP grants (firstboot-grants-standalone)",
+        "client": "firstboot_grants_fixture",
+        "clients": ("firstboot_grants_fixture",),
+        "virtual_mcp": "firstboot-grants-fixture",
+        "virtual_key_id": "vk-firstboot-grants-fixture",
+        "virtual_key_value": "sk-bf-firstboot-grants-fixture",
+        "tool": "string_transform",
+        "request_tool": "firstboot_grants_fixture-string_transform",
+        "discovery_clients": ("firstboot_grants_fixture",),
+        "custom_assertion": "file-declared grant invokes the stdio fixture tool",
+    },
+}
 FIRSTBOOT_STATUS_ASSERTION = "Status code is 200"
 FIRSTBOOT_HTTP_ASSERTION = "HTTP status is exact"
-FIRSTBOOT_CALLBACK_ASSERTION = "file-declared grant invokes the second fixture source"
 FIRSTBOOT_CONTENT_ASSERTION = "Response has content (text or tool_use)"
+
+
+def firstboot_assertions(contract, status):
+    expected = {FIRSTBOOT_STATUS_ASSERTION, FIRSTBOOT_HTTP_ASSERTION, contract["custom_assertion"]}
+    if status == 200:
+        expected.add(FIRSTBOOT_CONTENT_ASSERTION)
+    elif status != 403:
+        raise RuntimeError(f"{contract['scope']}: unexpected HTTP status for assertion inventory: {status}")
+    return expected
+
+
+def firstboot_failure_assertions(contract):
+    return {FIRSTBOOT_STATUS_ASSERTION, FIRSTBOOT_HTTP_ASSERTION, contract["custom_assertion"]}
+
+
+_SHARED_FIRSTBOOT = FIRSTBOOT_CONTRACTS[FIRSTBOOT_SCOPE]
+FIRSTBOOT_REQUEST = _SHARED_FIRSTBOOT["request"]
+FIRSTBOOT_FOLDER = _SHARED_FIRSTBOOT["folder"]
+FIRSTBOOT_VIRTUAL_MCP = _SHARED_FIRSTBOOT["virtual_mcp"]
+FIRSTBOOT_VIRTUAL_KEY = _SHARED_FIRSTBOOT["virtual_key_id"]
+FIRSTBOOT_CALLBACK_ASSERTION = _SHARED_FIRSTBOOT["custom_assertion"]
 FIRSTBOOT_ASSERTIONS = {
-    "firstboot": {FIRSTBOOT_STATUS_ASSERTION, FIRSTBOOT_HTTP_ASSERTION, FIRSTBOOT_CALLBACK_ASSERTION},
-    "firstboot-green": {FIRSTBOOT_STATUS_ASSERTION, FIRSTBOOT_HTTP_ASSERTION, FIRSTBOOT_CALLBACK_ASSERTION,
-                        FIRSTBOOT_CONTENT_ASSERTION},
-    "restart": {FIRSTBOOT_STATUS_ASSERTION, FIRSTBOOT_HTTP_ASSERTION, FIRSTBOOT_CALLBACK_ASSERTION,
-                 FIRSTBOOT_CONTENT_ASSERTION},
+    "firstboot": firstboot_assertions(_SHARED_FIRSTBOOT, 403),
+    "firstboot-green": firstboot_assertions(_SHARED_FIRSTBOOT, 200),
+    "restart": firstboot_assertions(_SHARED_FIRSTBOOT, 200),
 }
-FIRSTBOOT_EXPECTED_FAILURES = {FIRSTBOOT_STATUS_ASSERTION, FIRSTBOOT_HTTP_ASSERTION,
-                               FIRSTBOOT_CALLBACK_ASSERTION}
+FIRSTBOOT_EXPECTED_FAILURES = firstboot_failure_assertions(_SHARED_FIRSTBOOT)
 
 
 def parse_scopes(value=None):
@@ -182,10 +225,11 @@ def parse_scopes(value=None):
     parts = raw.split(",")
     if any(not part for part in parts) or len(parts) != len(set(parts)):
         raise RuntimeError("BIFROST_FIXTURE_SCOPES contains an empty or duplicate scope")
-    if FIRSTBOOT_SCOPE in parts:
-        if parts != [FIRSTBOOT_SCOPE]:
-            raise RuntimeError("firstboot-grants must run as an exclusive fixture scope")
-        return (FIRSTBOOT_SCOPE,)
+    firstboot_scopes = set(parts) & set(FIRSTBOOT_CONTRACTS)
+    if firstboot_scopes:
+        if len(parts) != 1:
+            raise RuntimeError("firstboot-grants scopes must run exclusively")
+        return (parts[0],)
     unknown = sorted(set(parts) - VALID_APP_SCOPES)
     if unknown:
         raise RuntimeError("unknown BIFROST_FIXTURE_SCOPES: " + ", ".join(unknown))
@@ -193,8 +237,9 @@ def parse_scopes(value=None):
 
 
 def feature_selections(scopes):
-    if tuple(scopes) == (FIRSTBOOT_SCOPE,):
-        return ((FIRSTBOOT_SCOPE, 1, ["--feature", FIRSTBOOT_SCOPE, "--folder", FIRSTBOOT_FOLDER]),)
+    if len(scopes) == 1 and scopes[0] in FIRSTBOOT_CONTRACTS:
+        contract = FIRSTBOOT_CONTRACTS[scopes[0]]
+        return ((scopes[0], 1, ["--feature", scopes[0], "--folder", contract["folder"]]),)
     selected = []
     for feature, count in (("mcp-apps", 39), ("codemode-errors", 3)):
         if feature not in scopes:
@@ -207,7 +252,7 @@ def feature_selections(scopes):
 
 
 def setup_policy(scopes):
-    if tuple(scopes) == (FIRSTBOOT_SCOPE,):
+    if len(scopes) == 1 and scopes[0] in FIRSTBOOT_CONTRACTS:
         return "file-declared-read-only"
     if "mcp-apps" in scopes:
         return "postseed-app-fixture-vmcps"
@@ -215,8 +260,8 @@ def setup_policy(scopes):
 
 
 def expected_fixture_client_count(scopes):
-    if tuple(scopes) == (FIRSTBOOT_SCOPE,):
-        return 3
+    if len(scopes) == 1 and scopes[0] in FIRSTBOOT_CONTRACTS:
+        return len(FIRSTBOOT_CONTRACTS[scopes[0]]["clients"])
     if "mcp-apps" in scopes:
         return 3 + int("codemode-errors" in scopes)
     return 1
@@ -226,6 +271,16 @@ def setup_virtual_key_attachments(url, scopes):
     if setup_policy(scopes) != "postseed-app-fixture-vmcps":
         return []
     return seed_virtual_key_attachments(url)
+
+
+def is_firstboot_scope(scopes):
+    return len(scopes) == 1 and scopes[0] in FIRSTBOOT_CONTRACTS
+
+
+def firstboot_contract(scopes):
+    if not is_firstboot_scope(scopes):
+        raise RuntimeError(f"invalid first-boot fixture scope: {scopes}")
+    return FIRSTBOOT_CONTRACTS[scopes[0]]
 
 
 def require_same_container(before, after):
@@ -250,12 +305,13 @@ def firstboot_comparison_classification(phase, candidate_gate):
 
 def build_config(scopes=None):
     scopes = tuple(scopes or DEFAULT_SCOPES)
-    firstboot = scopes == (FIRSTBOOT_SCOPE,)
+    firstboot = is_firstboot_scope(scopes)
+    contract = firstboot_contract(scopes) if firstboot else None
     apps_scope = firstboot or "mcp-apps" in scopes
     codemode_scope = not firstboot and "codemode-errors" in scopes
     profile = json.loads((ROOT / "tests/integrations/python/config.json").read_text())
     if firstboot:
-        wanted_clients = FIXTURE_NAMES[:3]
+        wanted_clients = contract["clients"]
     elif apps_scope:
         wanted_clients = FIXTURE_NAMES[:3] + (("errorTestServer",) if codemode_scope else ())
     else:
@@ -264,12 +320,19 @@ def build_config(scopes=None):
     if {entry["name"] for entry in clients} != set(wanted_clients):
         raise RuntimeError("shared profile is missing a fixture client after stack integration")
     for entry in clients:
-        binary = "error-test-server" if entry["name"] == "errorTestServer" else "mcp-apps-test-server"
-        args = [] if binary == "error-test-server" else entry["stdio_config"]["args"]
+        if entry["name"] == "errorTestServer":
+            binary = "error-test-server"
+            args = []
+        elif entry["name"] == "firstboot_grants_fixture":
+            binary = "go-test-server"
+            args = entry["stdio_config"].get("args", [])
+        else:
+            binary = "mcp-apps-test-server"
+            args = entry["stdio_config"]["args"]
         entry["stdio_config"] = {"command": f"/repo/examples/mcps/{binary}/bin/{binary}", "args": args}
         entry["allow_by_default"] = False
     if firstboot:
-        wanted_vmcps = (FIRSTBOOT_VIRTUAL_MCP,)
+        wanted_vmcps = (contract["virtual_mcp"],)
     elif apps_scope:
         wanted_vmcps = ("mcp-apps-full-virtual", "mcp-apps-limited-virtual")
     else:
@@ -277,11 +340,11 @@ def build_config(scopes=None):
     virtual_mcps = [entry for entry in profile["mcp"]["virtual_mcps"]
                     if entry["endpoint_slug"] in wanted_vmcps]
     if firstboot:
-        # B's isolated first-boot case must exercise the same-file declaration.
-        # Its declared attachment is never recreated through the setup API.
-        if len(virtual_mcps) != 1 or virtual_mcps[0].get("virtual_key_ids") != [FIRSTBOOT_VIRTUAL_KEY]:
-            raise RuntimeError("shared profile lacks the exact first-boot Virtual MCP grant")
-        wanted_key_values = {KEYS["full"]}
+        # Each first-boot case exercises its own same-file VMCP declaration; no
+        # setup API attachment recreates either declaration after startup.
+        if len(virtual_mcps) != 1 or virtual_mcps[0].get("virtual_key_ids") != [contract["virtual_key_id"]]:
+            raise RuntimeError(f"shared profile lacks the exact {contract['scope']} Virtual MCP grant")
+        wanted_key_values = {contract["virtual_key_value"]}
     else:
         # Defer Virtual MCP grants until after the disposable gateway has loaded
         # file-declared keys; this isolates native relay qualification from #24's
@@ -343,66 +406,82 @@ def validate_collection(path, feature, expected):
     return len(requests)
 
 
-def firstboot_phase_result(report, phase, return_code, attachment_snapshot):
-    if phase not in FIRSTBOOT_ASSERTIONS:
-        raise RuntimeError(f"unknown firstboot-grants phase: {phase}")
-    by_name = executions_by_name(report, f"firstboot-grants {phase}")
-    if set(by_name) != {FIRSTBOOT_REQUEST}:
-        raise RuntimeError(f"firstboot-grants {phase}: expected the single first-boot request")
-    execution = by_name[FIRSTBOOT_REQUEST]
-    status = execution.get("response", {}).get("code")
-    if phase == "firstboot" and status not in (200, 403):
-        raise RuntimeError(f"firstboot-grants firstboot: unexpected HTTP status for assertion inventory: {status}")
-    assertion_contract = (FIRSTBOOT_ASSERTIONS["firstboot-green"]
-                          if phase == "firstboot" and status == 200 else FIRSTBOOT_ASSERTIONS[phase])
+def firstboot_phase_result(report, phase, return_code, attachment_snapshot, contract=None):
+    contract = contract or _SHARED_FIRSTBOOT
+    if phase not in ("firstboot", "restart"):
+        raise RuntimeError(f"{contract['scope']}: unknown firstboot-grants phase: {phase}")
+    by_name = executions_by_name(report, f"{contract['scope']} {phase}")
+    if set(by_name) != {contract["request"]}:
+        raise RuntimeError(f"{contract['scope']} {phase}: expected the single first-boot request")
+    execution = by_name[contract["request"]]
+    response = execution.get("response")
+    if not isinstance(response, dict):
+        raise RuntimeError(f"{contract['scope']} {phase}: Newman response is malformed")
+    status = response.get("code")
+    if type(status) is not int or not 100 <= status <= 599:
+        raise RuntimeError(f"{contract['scope']} {phase}: Newman response status is malformed")
+    assertion_contract = firstboot_assertions(contract, status)
     assertion_results = execution.get("assertions")
     if not isinstance(assertion_results, list) or not assertion_results:
-        raise RuntimeError(f"firstboot-grants {phase}: Newman report has no assertion results")
+        raise RuntimeError(f"{contract['scope']} {phase}: Newman report has no assertion results")
     assertion_names = []
     failures = []
     for item in assertion_results:
-        if not isinstance(item, dict) or not isinstance(item.get("assertion"), str):
-            raise RuntimeError(f"firstboot-grants {phase}: Newman assertion results are malformed")
+        if not isinstance(item, dict) or not isinstance(item.get("assertion"), str) \
+                or not item["assertion"].strip():
+            raise RuntimeError(f"{contract['scope']} {phase}: Newman assertion results are malformed")
         if item.get("skipped", False) is not False:
-            raise RuntimeError(f"firstboot-grants {phase}: Newman assertion was skipped or has malformed skip state")
+            raise RuntimeError(f"{contract['scope']} {phase}: Newman assertion was skipped or has malformed skip state")
         error = item.get("error")
-        if error is not None and (not isinstance(error, dict) or not isinstance(error.get("name"), str)):
-            raise RuntimeError(f"firstboot-grants {phase}: Newman assertion error is malformed")
+        if error is not None and (not isinstance(error, dict) or not isinstance(error.get("name"), str)
+                                  or not error["name"].strip()):
+            raise RuntimeError(f"{contract['scope']} {phase}: Newman assertion error is malformed")
         assertion_names.append(item["assertion"])
         if error is not None:
             failures.append(item["assertion"])
     if len(assertion_names) != len(set(assertion_names)):
-        raise RuntimeError(f"firstboot-grants {phase}: Newman assertion results are duplicated")
+        raise RuntimeError(f"{contract['scope']} {phase}: Newman assertion results are duplicated")
     if set(assertion_names) != assertion_contract:
-        raise RuntimeError(f"firstboot-grants {phase}: Newman assertion set differs from the pinned fixture contract "
+        raise RuntimeError(f"{contract['scope']} {phase}: Newman assertion set differs from the pinned fixture contract "
                            f"(expected={sorted(assertion_contract)}, got={sorted(assertion_names)})")
+    if not isinstance(attachment_snapshot, dict):
+        raise RuntimeError(f"{contract['scope']} {phase}: setup API attachment snapshot is malformed")
     ids = attachment_snapshot.get("virtual_key_ids")
-    if not isinstance(ids, list) or any(not isinstance(item, str) for item in ids):
-        raise RuntimeError(f"firstboot-grants {phase}: setup API attachment snapshot is malformed")
+    if not isinstance(ids, list) or any(not isinstance(item, str) or not item for item in ids) \
+            or len(ids) != len(set(ids)):
+        raise RuntimeError(f"{contract['scope']} {phase}: setup API attachment snapshot is malformed")
+    if type(return_code) is not int:
+        raise RuntimeError(f"{contract['scope']} {phase}: Newman exit code is malformed")
     return {"phase": phase, "http_status": status, "newman_exit_code": return_code,
             "stored_virtual_key_ids": ids, "assertions": assertion_names,
             "failed_assertions": failures,
-            "request": FIRSTBOOT_REQUEST}
+            "request": contract["request"]}
 
 
-def validate_firstboot_phase(result, phase, mode, baseline):
-    if phase not in FIRSTBOOT_ASSERTIONS or mode not in ("characterize", "strict"):
+def validate_firstboot_phase(result, phase, mode, baseline, contract=None):
+    contract = contract or _SHARED_FIRSTBOOT
+    if phase not in ("firstboot", "restart") or mode not in ("characterize", "strict"):
         raise RuntimeError(f"firstboot-grants received an invalid phase or comparison mode: {phase}/{mode}")
-    expected_attached = [FIRSTBOOT_VIRTUAL_KEY]
+    if (not isinstance(result, dict) or type(result.get("http_status")) is not int
+            or type(result.get("newman_exit_code")) is not int
+            or not isinstance(result.get("stored_virtual_key_ids"), list)
+            or not isinstance(result.get("failed_assertions"), list)):
+        raise RuntimeError(f"{contract['scope']} {phase}: phase result is malformed")
+    expected_attached = [contract["virtual_key_id"]]
     if mode == "strict" and not baseline:
         if result["http_status"] != 200 or result["stored_virtual_key_ids"] != expected_attached \
                 or result["newman_exit_code"] != 0 or result["failed_assertions"]:
-            raise RuntimeError(f"firstboot-grants {phase}: strict candidate did not pass with exactly one persisted grant")
+            raise RuntimeError(f"{contract['scope']} {phase}: strict candidate did not pass with exactly one persisted grant")
         return "candidate-green"
     if phase == "firstboot":
         if result["http_status"] != 403 or result["stored_virtual_key_ids"] != [] \
                 or result["newman_exit_code"] == 0 \
-                or set(result["failed_assertions"]) != FIRSTBOOT_EXPECTED_FAILURES:
-            raise RuntimeError("firstboot-grants firstboot: expected the stock missing-grant 403 with zero stored attachments")
+                or set(result["failed_assertions"]) != firstboot_failure_assertions(contract):
+            raise RuntimeError(f"{contract['scope']} firstboot: expected the stock missing-grant 403 with zero stored attachments")
         return "expected-stock-red"
     if result["http_status"] != 200 or result["stored_virtual_key_ids"] != expected_attached \
             or result["newman_exit_code"] != 0 or result["failed_assertions"]:
-        raise RuntimeError("firstboot-grants restart: expected a green restart control with exactly one stored attachment")
+        raise RuntimeError(f"{contract['scope']} restart: expected a green restart control with exactly one stored attachment")
     return "restart-green-control"
 
 
@@ -518,10 +597,14 @@ def redact(value):
     return value
 
 
-def write_failure_report(report_dir, error):
+def write_failure_report(report_dir, error, filename="fixture-error.json"):
     report_dir.mkdir(parents=True, exist_ok=True)
     details = {"error_type": type(error).__name__, "message": redact(str(error))}
-    (report_dir / "fixture-error.json").write_text(json.dumps(details, indent=2) + "\n")
+    (report_dir / filename).write_text(json.dumps(details, indent=2) + "\n")
+
+
+def failure_report_filename(args):
+    return "stock-fixture-error.json" if len(args) == 3 and args[0] == "--baseline" else "fixture-error.json"
 
 
 def self_check():
@@ -556,7 +639,9 @@ def self_check():
     assert parse_scopes("codemode-errors") == ("codemode-errors",)
     assert parse_scopes("mcp-apps") == ("mcp-apps",)
     assert parse_scopes("firstboot-grants") == (FIRSTBOOT_SCOPE,)
-    for invalid_scopes in ("", "mcp-apps,", "mcp-apps,mcp-apps", "unknown", "firstboot-grants,mcp-apps"):
+    assert parse_scopes(FIRSTBOOT_STANDALONE_SCOPE) == (FIRSTBOOT_STANDALONE_SCOPE,)
+    for invalid_scopes in ("", "mcp-apps,", "mcp-apps,mcp-apps", "unknown", "firstboot-grants,mcp-apps",
+                           f"{FIRSTBOOT_SCOPE},{FIRSTBOOT_STANDALONE_SCOPE}"):
         try:
             parse_scopes(invalid_scopes)
         except RuntimeError:
@@ -566,19 +651,23 @@ def self_check():
     assert setup_policy(DEFAULT_SCOPES) == "postseed-app-fixture-vmcps"
     assert setup_policy(("codemode-errors",)) == "none"
     assert setup_policy((FIRSTBOOT_SCOPE,)) == "file-declared-read-only"
+    assert setup_policy((FIRSTBOOT_STANDALONE_SCOPE,)) == "file-declared-read-only"
     assert expected_fixture_client_count(DEFAULT_SCOPES) == 4
     assert expected_fixture_client_count((FIRSTBOOT_SCOPE,)) == 3
+    assert expected_fixture_client_count((FIRSTBOOT_STANDALONE_SCOPE,)) == 1
     assert expected_fixture_client_count(("mcp-apps",)) == 3
     assert expected_fixture_client_count(("codemode-errors",)) == 1
     assert [entry[0:2] for entry in feature_selections(DEFAULT_SCOPES)] == [("mcp-apps", 39), ("codemode-errors", 3)]
     assert [entry[0:2] for entry in feature_selections(("codemode-errors",))] == [("codemode-errors", 3)]
     assert feature_selections((FIRSTBOOT_SCOPE,))[0][0:2] == (FIRSTBOOT_SCOPE, 1)
+    assert feature_selections((FIRSTBOOT_STANDALONE_SCOPE,))[0][0:2] == (FIRSTBOOT_STANDALONE_SCOPE, 1)
     assert require_same_container("same-disposable-container", "same-disposable-container")
     saved_seed = globals().get("seed_virtual_key_attachments")
     try:
         globals()["seed_virtual_key_attachments"] = lambda url: (_ for _ in ()).throw(
             AssertionError("firstboot/code-only mode must never postseed a virtual key"))
         assert setup_virtual_key_attachments("http://fixture.invalid", (FIRSTBOOT_SCOPE,)) == []
+        assert setup_virtual_key_attachments("http://fixture.invalid", (FIRSTBOOT_STANDALONE_SCOPE,)) == []
         assert setup_virtual_key_attachments("http://fixture.invalid", ("codemode-errors",)) == []
     finally:
         if saved_seed is not None:
@@ -609,6 +698,23 @@ def self_check():
     assert firstboot_vmcp[0]["virtual_key_ids"] == [FIRSTBOOT_VIRTUAL_KEY]
     assert [key["id"] for key in firstboot_config["governance"]["virtual_keys"]] == [FIRSTBOOT_VIRTUAL_KEY]
     assert "setup-token API" not in json.dumps(firstboot_config)
+    standalone = FIRSTBOOT_CONTRACTS[FIRSTBOOT_STANDALONE_SCOPE]
+    standalone_config = build_config((FIRSTBOOT_STANDALONE_SCOPE,))
+    assert standalone_config["providers"] == {}
+    assert [client["name"] for client in standalone_config["mcp"]["client_configs"]] == [standalone["client"]]
+    standalone_client = standalone_config["mcp"]["client_configs"][0]
+    assert standalone_client["stdio_config"] == {"command": "/repo/examples/mcps/go-test-server/bin/go-test-server",
+                                                    "args": []}
+    assert standalone_config["mcp"]["virtual_mcps"] == [{
+        **next(item for item in json.loads((ROOT / "tests/integrations/python/config.json").read_text())["mcp"]["virtual_mcps"]
+               if item["endpoint_slug"] == standalone["virtual_mcp"]),
+    }]
+    standalone_vmcp = standalone_config["mcp"]["virtual_mcps"][0]
+    assert standalone_vmcp["virtual_key_ids"] == [standalone["virtual_key_id"]]
+    assert standalone_vmcp["tools"] == [{"mcp_client_name": standalone["client"], "tool_names": [standalone["tool"]]}]
+    standalone_keys = standalone_config["governance"]["virtual_keys"]
+    assert len(standalone_keys) == 1 and standalone_keys[0]["id"] == standalone["virtual_key_id"]
+    assert standalone_keys[0]["value"] == standalone["virtual_key_value"]
     codemode_config = build_config(("codemode-errors",))
     assert [client["name"] for client in codemode_config["mcp"]["client_configs"]] == ["errorTestServer"]
     assert codemode_config["mcp"]["virtual_mcps"] == []
@@ -688,13 +794,70 @@ def self_check():
             pass
         else:
             raise AssertionError("strict firstboot candidate gate accepted a failed state or report")
+    standalone_stock_failures = firstboot_failure_assertions(standalone)
+    standalone_stock_report = {"run": {"executions": [{"item": {"name": standalone["request"]},
+        "response": {"code": 403},
+        "assertions": [{"assertion": assertion, "skipped": False, "error": {"name": "AssertionError"}}
+                       for assertion in sorted(standalone_stock_failures)]}]}}
+    standalone_snapshot = {"endpoint_slug": standalone["virtual_mcp"], "virtual_mcp_id": "standalone-vmcp-id",
+                           "virtual_key_ids": []}
+    standalone_stock = firstboot_phase_result(standalone_stock_report, "firstboot", 1,
+                                              standalone_snapshot, standalone)
+    assert set(standalone_stock["failed_assertions"]) == standalone_stock_failures
+    assert validate_firstboot_phase(standalone_stock, "firstboot", "characterize", True,
+                                    standalone) == "expected-stock-red"
+    standalone_green_report = {"run": {"executions": [{"item": {"name": standalone["request"]},
+        "response": {"code": 200},
+        "assertions": [{"assertion": assertion, "skipped": False}
+                       for assertion in sorted(firstboot_assertions(standalone, 200))]}]}}
+    standalone_green_snapshot = {**standalone_snapshot, "virtual_key_ids": [standalone["virtual_key_id"]]}
+    standalone_green = firstboot_phase_result(standalone_green_report, "firstboot", 0,
+                                              standalone_green_snapshot, standalone)
+    assert validate_firstboot_phase(standalone_green, "firstboot", "strict", False,
+                                    standalone) == "candidate-green"
+    assert validate_firstboot_phase(standalone_green, "restart", "strict", False,
+                                    standalone) == "candidate-green"
+    contaminated = json.loads(json.dumps(standalone_stock_report))
+    contaminated["run"]["executions"][0]["assertions"].append(
+        {"assertion": "unrelated assertion", "skipped": False, "error": {"name": "AssertionError"}})
+    try:
+        firstboot_phase_result(contaminated, "firstboot", 1, standalone_snapshot, standalone)
+    except RuntimeError:
+        pass
+    else:
+        raise AssertionError("standalone stock gate accepted an unrelated failed assertion")
     source_path = Path(os.environ.get("BIFROST_TEST_COLLECTION_SOURCE",
                                     ROOT / "tests/e2e/api/collections/provider-harness.json"))
     if not source_path.is_file():
         raise RuntimeError(f"offline collection source is missing: {source_path}")
     source_data = json.loads(source_path.read_text())
-    if FIRSTBOOT_REQUEST not in {item.get("name") for item in items_in(source_data.get("item", []))}:
-        raise RuntimeError("offline collection source lacks the independent firstboot-grants request")
+    source_request_names = {item.get("name") for item in items_in(source_data.get("item", []))}
+    if any(contract["request"] not in source_request_names for contract in FIRSTBOOT_CONTRACTS.values()):
+        raise RuntimeError("offline collection source lacks a firstboot-grants contract request")
+    standalone_items = [item for item in items_in(source_data.get("item", []))
+                        if item.get("name") == standalone["request"]]
+    if len(standalone_items) != 1:
+        raise RuntimeError("offline collection source lacks the unique standalone firstboot request")
+    try:
+        standalone_call = json.loads(standalone_items[0]["request"]["body"]["raw"])
+    except (KeyError, TypeError, json.JSONDecodeError) as error:
+        raise RuntimeError("standalone firstboot request is not a literal JSON-RPC tools/call") from error
+    if (standalone_call.get("method") != "tools/call"
+            or standalone_call.get("params", {}).get("name") != standalone["request_tool"]):
+        raise RuntimeError("standalone firstboot request does not call its canonical namespaced fixture tool")
+    def immediate_parent_name(items, request_name):
+        for item in items:
+            if item.get("name") == request_name and isinstance(item.get("request"), dict):
+                return None
+            children = item.get("item") if isinstance(item, dict) else None
+            if isinstance(children, list):
+                found = immediate_parent_name(children, request_name)
+                if found is not ...:
+                    return item.get("name") if found is None else found
+        return ...
+    for contract in FIRSTBOOT_CONTRACTS.values():
+        if immediate_parent_name(source_data.get("item", []), contract["request"]) != contract["folder"]:
+            raise RuntimeError(f"{contract['scope']} harness folder must exactly match its Make/Newman folder argument")
     with tempfile.TemporaryDirectory(prefix="bifrost-fixture-filter-check-") as temp:
         temp = Path(temp)
         augmented = temp / "augmented.json"
@@ -706,8 +869,11 @@ def self_check():
             ("apps-all", ["--feature", "mcp-apps"], 40),
             ("apps-default", ["--feature", "mcp-apps", "--exclude-feature-any", FIRSTBOOT_SCOPE], 39),
             ("codemode-errors", ["--feature", "codemode-errors"], 3),
-            ("firstboot-feature", ["--feature", FIRSTBOOT_SCOPE], 1),
-            ("firstboot-folder", ["--feature", FIRSTBOOT_SCOPE, "--folder", FIRSTBOOT_FOLDER], 1),
+            ("firstboot-feature-family", ["--feature", FIRSTBOOT_SCOPE], 2),
+            ("firstboot-feature", ["--feature", FIRSTBOOT_SCOPE, "--folder", FIRSTBOOT_FOLDER], 1),
+            ("firstboot-standalone-feature", ["--feature", FIRSTBOOT_STANDALONE_SCOPE], 1),
+            ("firstboot-standalone-folder", ["--feature", FIRSTBOOT_STANDALONE_SCOPE,
+                                             "--folder", FIRSTBOOT_CONTRACTS[FIRSTBOOT_STANDALONE_SCOPE]["folder"]], 1),
         )
         for name, selectors, expected_count in selections:
             filtered = temp / f"{name}.json"
@@ -842,12 +1008,18 @@ def self_check():
                    "body": f"token {SETUP_TOKEN} sk-bf-example"})
     assert safe == {"Authorization": "<redacted>", "body": "token <redacted> <redacted>"}
     with tempfile.TemporaryDirectory() as temp:
+        assert failure_report_filename(["--baseline", "stock-image", "reports"]) == "stock-fixture-error.json"
+        assert failure_report_filename(["candidate-image", "reports"]) == "fixture-error.json"
         write_failure_report(Path(temp), RuntimeError(f"Authorization: Bearer sk-bf-example; {SETUP_TOKEN}"))
         failure = json.loads((Path(temp) / "fixture-error.json").read_text())
         assert failure["error_type"] == "RuntimeError"
         assert "sk-bf-example" not in failure["message"]
         assert SETUP_TOKEN not in failure["message"] and "<redacted>" in failure["message"]
-    saved_health, saved_rpc = wait_health, rpc
+        write_failure_report(Path(temp), RuntimeError("stock Newman report missing"), "stock-fixture-error.json")
+        assert "stock Newman report missing" in json.loads(
+            (Path(temp) / "stock-fixture-error.json").read_text())["message"]
+        assert "stock Newman report missing" not in (Path(temp) / "fixture-error.json").read_text()
+    saved_health, saved_rpc, saved_setup_request = wait_health, rpc, setup_request
     saved_sleep, saved_clock = time.sleep, time.monotonic
     try:
         globals()["wait_health"] = lambda url: None
@@ -877,8 +1049,36 @@ def self_check():
             assert "stock aggregate tool catalog incomplete" in str(error)
         else:
             raise AssertionError("stock readiness accepted a permanently incomplete catalog")
+        time.monotonic = saved_clock
+        for contract in FIRSTBOOT_CONTRACTS.values():
+            client_name = contract["discovery_clients"][0]
+            unrelated = {"config": {"name": "unrelated_client"}, "state": "error", "tools": []}
+            needed = {"config": {"name": client_name}, "state": "healthy",
+                      "tools": [{"name": contract["tool"]}]}
+            setup_calls = []
+            def fake_setup_request(url, path, method):
+                assert (path, method) == ("/api/mcp/clients", "GET")
+                setup_calls.append(path)
+                return 200, {"clients": [unrelated, needed]}
+            globals()["setup_request"] = fake_setup_request
+            ready_firstboot_fixture_catalog("http://fixture.invalid", contract)
+            assert setup_calls and set(setup_calls) == {"/api/mcp/clients"}
+            missing_tool = {**needed, "tools": [{"name": "unrelated_tool"}]}
+            readiness_clock = iter((0, 0, 181))
+            time.monotonic = lambda: next(readiness_clock)
+            globals()["setup_request"] = lambda *args: (200, {"clients": [unrelated, missing_tool]})
+            try:
+                ready_firstboot_fixture_catalog("http://fixture.invalid", contract)
+            except RuntimeError as error:
+                assert client_name in str(error)
+                assert "unrelated_tool" in str(error) and contract["tool"] in str(error)
+            else:
+                raise AssertionError(f"{contract['scope']} readiness accepted a source missing its requested tool")
+            time.monotonic = saved_clock
+        globals()["setup_request"] = saved_setup_request
     finally:
         globals()["wait_health"], globals()["rpc"] = saved_health, saved_rpc
+        globals()["setup_request"] = saved_setup_request
         time.sleep, time.monotonic = saved_sleep, saved_clock
     print("PASS fixture CI self-check (source identities, config scope, route/name guards, observed classification, URI seeds, report redaction, catalog readiness)")
 
@@ -945,19 +1145,19 @@ def seed_virtual_key_attachments(url):
     raise RuntimeError("could not seed disposable fixture Virtual MCP grants: " + last_error)
 
 
-def wait_file_declared_virtual_mcp(url):
+def wait_file_declared_virtual_mcp(url, contract):
     deadline = time.monotonic() + 180
-    last_error = "setup API has not exposed the file-declared fixture Virtual MCP"
+    last_error = f"setup API has not exposed the {contract['scope']} file-declared Virtual MCP"
     while time.monotonic() < deadline:
         try:
             status, body = setup_request(url, "/api/mcp/virtual-mcps", "GET")
             virtual_mcps = {item["endpoint_slug"]: item for item in body.get("virtual_mcps", [])}
-            definition = virtual_mcps.get(FIRSTBOOT_VIRTUAL_MCP)
+            definition = virtual_mcps.get(contract["virtual_mcp"])
             if status == 200 and definition:
                 ids = definition.get("virtual_key_ids", [])
                 if not isinstance(ids, list):
                     raise RuntimeError("setup API returned malformed virtual_key_ids")
-                return {"endpoint_slug": FIRSTBOOT_VIRTUAL_MCP, "virtual_mcp_id": definition["id"],
+                return {"endpoint_slug": contract["virtual_mcp"], "virtual_mcp_id": definition["id"],
                         "virtual_key_ids": ids}
             last_error = f"setup API HTTP {status}; visible Virtual MCPs={sorted(virtual_mcps)}"
         except (OSError, urllib.error.URLError, KeyError, ValueError) as error:
@@ -1016,31 +1216,50 @@ def ready_codemode_errors(url):
     raise RuntimeError("Code Mode error fixture catalog incomplete after 180 seconds")
 
 
-def ready_firstboot_fixture_catalog(url):
+def ready_firstboot_fixture_catalog(url, contract, diagnostic_path=None):
     wait_health(url)
     deadline = time.monotonic() + 180
-    required = {
-        "/mcp/mcp-apps-fixture": "executeToolCode",
-        "/mcp/mcp-apps-fixture-second": "mcp_apps_fixture_second-save_state",
-        "/mcp/mcp-apps-fixture-modern": "mcp_apps_fixture_modern-open_view",
-    }
-    last = {}
+    last = {"setup_api_status": None, "clients": {}}
     while time.monotonic() < deadline:
         try:
-            last = {}
-            for path, required_name in required.items():
-                status, body = rpc(url, path, "tools/list", {}, KEYS["full"])
-                names = {tool.get("name", "") for tool in body.get("result", {}).get("tools", [])}
-                last[path] = sorted(names)
-                if status != 200 or required_name not in names:
-                    break
+            status, body = setup_request(url, "/api/mcp/clients", "GET")
+            clients = body.get("clients") if isinstance(body, dict) else None
+            if not isinstance(clients, list):
+                last = {"setup_api_status": status, "required_tool": contract["tool"],
+                        "error": "response omitted the clients array", "clients": {}}
             else:
-                print("PASS first-boot fixture source catalogs are ready", flush=True)
-                return
-        except (OSError, urllib.error.URLError):
-            pass
+                by_name = {}
+                for client in clients:
+                    if not isinstance(client, dict):
+                        continue
+                    config = client.get("config")
+                    name = config.get("name") if isinstance(config, dict) else None
+                    if isinstance(name, str):
+                        tools = client.get("tools")
+                        tool_names = sorted(tool.get("name", "") for tool in tools
+                                            if isinstance(tool, dict) and isinstance(tool.get("name"), str)) \
+                            if isinstance(tools, list) else []
+                        by_name[name] = {"state": client.get("state"),
+                                         "tool_count": len(tool_names), "tool_names": tool_names,
+                                         "last_failure": redact(client.get("last_failure"))}
+                selected = {name: by_name.get(name) for name in contract["discovery_clients"]}
+                last = {"setup_api_status": status, "required_tool": contract["tool"], "clients": selected}
+                if status == 200 and all(info and info["state"] == "healthy"
+                                         and contract["tool"] in info["tool_names"]
+                                         for info in selected.values()):
+                    if diagnostic_path:
+                        diagnostic_path.write_text(json.dumps(redact({**last, "ready": True}), indent=2) + "\n")
+                    print(f"PASS {contract['scope']} file-declared source discovery is ready", flush=True)
+                    return
+        except (OSError, urllib.error.URLError, ValueError, TypeError) as error:
+            last = {"setup_api_status": None,
+                    "required_tool": contract["tool"],
+                    "error": f"{type(error).__name__}: {error}", "clients": {}}
+        if diagnostic_path:
+            diagnostic_path.write_text(json.dumps(redact({**last, "ready": False}), indent=2) + "\n")
         time.sleep(1)
-    raise RuntimeError("first-boot fixture source catalog incomplete after 180 seconds: " + json.dumps(last))
+    raise RuntimeError(f"{contract['scope']} file-declared source discovery incomplete after 180 seconds: "
+                       + json.dumps(last))
 
 
 def ready(url, scopes=DEFAULT_SCOPES):
@@ -1110,32 +1329,42 @@ def container_identity(container, app_dir, env):
 
 
 def run_firstboot_harness_phase(root, temp, report_dir, base_url, app_dir, source_args,
-                                env, baseline, phase):
+                                env, baseline, phase, contract):
     command = ["make", "run-provider-harness-test", "CI=1", "PARALLEL=0",
-               f"FEATURE={FIRSTBOOT_SCOPE}", f'FOLDER={FIRSTBOOT_FOLDER}',
+               f"FEATURE={contract['scope']}", f'FOLDER={contract["folder"]}',
                f"BASE_URL={base_url}", f"APP_DIR={app_dir}", "HARNESS_MAX_REQUESTS=1",
                *source_args]
-    log = temp / f"firstboot-grants-{phase}.log"
+    stem = f"{contract['scope']}-{phase}"
+    log = temp / f"{stem}.log"
     (root / "tmp/newman-report.json").unlink(missing_ok=True)
     (root / "tmp/harness-failures.md").unlink(missing_ok=True)
+    (root / "tmp/newman-cli.log").unlink(missing_ok=True)
     rc = run(command, root, env, log)
-    raw_report = temp / f"raw-firstboot-grants-{phase}-newman-report.json"
-    raw_failures = temp / f"raw-firstboot-grants-{phase}-harness-failures.md"
+    raw_report = temp / f"raw-{stem}-newman-report.json"
+    raw_failures = temp / f"raw-{stem}-harness-failures.md"
+    raw_cli = temp / f"raw-{stem}-newman-cli.log"
+    raw_filtered = temp / f"raw-{stem}-filtered-collection.json"
     if (root / "tmp/newman-report.json").is_file():
         shutil.copy2(root / "tmp/newman-report.json", raw_report)
     if (root / "tmp/harness-failures.md").is_file():
         shutil.copy2(root / "tmp/harness-failures.md", raw_failures)
+    if (root / "tmp/newman-cli.log").is_file():
+        shutil.copy2(root / "tmp/newman-cli.log", raw_cli)
+    if (root / "tmp/harness-filtered.json").is_file():
+        shutil.copy2(root / "tmp/harness-filtered.json", raw_filtered)
     prefix = "stock-" if baseline else ""
-    stem = f"{prefix}firstboot-grants-{phase}"
-    archive_report(log, report_dir / f"{stem}-runner.log")
-    archive_report(root / "tmp/harness-quiet.log", report_dir / f"{stem}-harness.log")
-    report_ok = archive_report(raw_report, report_dir / f"{stem}-newman-report.json")
-    archive_report(raw_failures, report_dir / f"{stem}-harness-failures.md")
-    (report_dir / f"{stem}-exit-code.txt").write_text(str(rc) + "\n")
+    artifact_stem = f"{prefix}{stem}"
+    archive_report(log, report_dir / f"{artifact_stem}-runner.log")
+    archive_report(root / "tmp/harness-quiet.log", report_dir / f"{artifact_stem}-harness.log")
+    archive_report(raw_cli, report_dir / f"{artifact_stem}-newman-cli.log")
+    archive_report(raw_filtered, report_dir / f"{artifact_stem}-filtered-collection.json")
+    report_ok = archive_report(raw_report, report_dir / f"{artifact_stem}-newman-report.json")
+    archive_report(raw_failures, report_dir / f"{artifact_stem}-harness-failures.md")
+    (report_dir / f"{artifact_stem}-exit-code.txt").write_text(str(rc) + "\n")
     if not report_ok:
-        raise RuntimeError(f"firstboot-grants {phase}: Make target produced no Newman JSON report")
+        raise RuntimeError(f"{contract['scope']} {phase}: Make target produced no Newman JSON report")
     data = json.loads(raw_report.read_text())
-    validate_executions(data, f"firstboot-grants {phase}", 1, [FIRSTBOOT_REQUEST])
+    validate_executions(data, f"{contract['scope']} {phase}", 1, [contract["request"]])
     return data, rc
 
 
@@ -1144,7 +1373,8 @@ def main(args):
         self_check()
         return 0
     scopes = parse_scopes()
-    firstboot = scopes == (FIRSTBOOT_SCOPE,)
+    firstboot = is_firstboot_scope(scopes)
+    contract = firstboot_contract(scopes) if firstboot else None
     baseline = args[0] == "--baseline" if args else False
     if baseline and len(args) == 3:
         stock_image, report_dir_arg = args[1], args[2]
@@ -1179,8 +1409,10 @@ def main(args):
     source = ROOT / "tests/e2e/api/collections/provider-harness.json"
     augment = ROOT / "tests/e2e/api/runners/augment-provider-harness.mjs"
     filter_script = ROOT / "tests/e2e/api/runners/filter-collection.mjs"
-    modules = ((ROOT / "examples/mcps/mcp-apps-test-server", "mcp-apps-test-server"),
-               (ROOT / "examples/mcps/error-test-server", "error-test-server"))
+    modules = (((ROOT / "examples/mcps/go-test-server", "go-test-server"),) if firstboot and
+               scopes == (FIRSTBOOT_STANDALONE_SCOPE,) else
+               ((ROOT / "examples/mcps/mcp-apps-test-server", "mcp-apps-test-server"),
+                (ROOT / "examples/mcps/error-test-server", "error-test-server")))
     for module, _ in modules:
         if not (module / "go.mod").is_file():
             raise RuntimeError(f"fixture source missing after merge: {module.relative_to(ROOT)}")
@@ -1227,7 +1459,7 @@ def main(args):
             expected_names[feature] = names
             count = len(list(requests_in(filtered_data.get("item", []))))
             counts[feature] = validate_collection(filtered, feature, expected)
-        expected_scope_counts = ({FIRSTBOOT_SCOPE: 1} if firstboot else
+        expected_scope_counts = ({scopes[0]: 1} if firstboot else
                                  {feature: expected for feature, expected in (("mcp-apps", 39), ("codemode-errors", 3))
                                   if feature in scopes})
         if counts != expected_scope_counts:
@@ -1269,7 +1501,6 @@ def main(args):
             port = int(port_line.rsplit(":", 1)[1])
             base_url = f"http://127.0.0.1:{port}"
             if firstboot:
-                ready_firstboot_fixture_catalog(base_url)
                 observations = {}
                 container_ids = {}
                 classifications = {}
@@ -1279,37 +1510,40 @@ def main(args):
                         subprocess.check_output(["docker", "restart", container], text=True, env=env)
                         container_ids["after_restart"] = container_identity(container, app_dir, env)
                         require_same_container(container_ids["before_restart"], container_ids["after_restart"])
-                        ready_firstboot_fixture_catalog(base_url)
-                    snapshot = wait_file_declared_virtual_mcp(base_url)
+                    prefix = "stock-" if baseline else ""
+                    readiness_path = report_dir / f"{prefix}{contract['scope']}-{phase}-source-discovery.json"
+                    ready_firstboot_fixture_catalog(base_url, contract, readiness_path)
+                    snapshot = wait_file_declared_virtual_mcp(base_url, contract)
+                    phase_stem = f"{contract['scope']}-{phase}"
                     observation_path = report_dir / (("stock-" if baseline else "") +
-                                                     f"firstboot-grants-{phase}-setup.json")
+                                                     f"{phase_stem}-setup.json")
                     observation_path.write_text(json.dumps({"phase": phase, "setup_api_read_only": True,
                                                             "virtual_mcp": snapshot,
                                                             "container_id": container_identity(container, app_dir, env),
                                                             "app_dir": str(app_dir.resolve()),
                                                             "source_identities": source_identities}, indent=2) + "\n")
                     report_data, rc = run_firstboot_harness_phase(
-                        ROOT, temp, report_dir, base_url, app_dir, make_source_args, env, baseline, phase)
-                    result = firstboot_phase_result(report_data, phase, rc, snapshot)
-                    classifications[phase] = validate_firstboot_phase(result, phase, mode, baseline)
+                        ROOT, temp, report_dir, base_url, app_dir, make_source_args, env, baseline, phase, contract)
+                    result = firstboot_phase_result(report_data, phase, rc, snapshot, contract)
+                    classifications[phase] = validate_firstboot_phase(result, phase, mode, baseline, contract)
                     observations[phase] = result
-                    result_path = report_dir / f"firstboot-grants-{phase}-observation.json"
+                    result_path = report_dir / f"{phase_stem}-observation.json"
                     if not baseline:
                         result_path.write_text(json.dumps({**result, "classification": classifications[phase],
                                                            "source_identities": source_identities}, indent=2) + "\n")
-                        print(f"PASS firstboot-grants {phase}: {classifications[phase]}", flush=True)
+                        print(f"PASS {contract['scope']} {phase}: {classifications[phase]}", flush=True)
                     else:
-                        candidate_report_path = report_dir / f"firstboot-grants-{phase}-observation.json"
-                        candidate_setup_path = report_dir / f"firstboot-grants-{phase}-setup.json"
+                        candidate_report_path = report_dir / f"{phase_stem}-observation.json"
+                        candidate_setup_path = report_dir / f"{phase_stem}-setup.json"
                         if not candidate_report_path.is_file() or not candidate_setup_path.is_file():
-                            raise RuntimeError(f"firstboot-grants {phase}: candidate phase artifact is missing")
+                            raise RuntimeError(f"{contract['scope']} {phase}: candidate phase artifact is missing")
                         candidate_result = json.loads(candidate_report_path.read_text())
                         candidate_setup = json.loads(candidate_setup_path.read_text())
                         candidate_snapshot = candidate_setup["virtual_mcp"]
                         if candidate_result.get("source_identities") != source_identities \
                                 or candidate_setup.get("source_identities") != source_identities:
-                            raise RuntimeError(f"firstboot-grants {phase}: candidate artifacts have different pinned source identities")
-                        candidate_class = validate_firstboot_phase(candidate_result, phase, mode, False)
+                            raise RuntimeError(f"{contract['scope']} {phase}: candidate artifacts have different pinned source identities")
+                        candidate_class = validate_firstboot_phase(candidate_result, phase, mode, False, contract)
                         candidate_result_state = {"http_status": candidate_result["http_status"],
                                                   "stored_virtual_key_ids": candidate_result["stored_virtual_key_ids"],
                                                   "assertions": candidate_result["assertions"],
@@ -1324,26 +1558,26 @@ def main(args):
                                             "stock_virtual_mcp_id": snapshot["virtual_mcp_id"],
                                             "candidate_virtual_mcp_id": candidate_snapshot["virtual_mcp_id"],
                                             "candidate_gate": candidate_class}
-                        (report_dir / f"firstboot-grants-{phase}-comparison.json").write_text(
+                        (report_dir / f"{phase_stem}-comparison.json").write_text(
                             json.dumps(phase_comparison, indent=2) + "\n")
-                        print(f"PASS firstboot-grants {phase} source comparison: {expected_class}", flush=True)
-                (report_dir / (("stock-" if baseline else "") + "firstboot-grants-phases.json")).write_text(
+                        print(f"PASS {contract['scope']} {phase} source comparison: {expected_class}", flush=True)
+                (report_dir / (("stock-" if baseline else "") + f"{contract['scope']}-phases.json")).write_text(
                     json.dumps({"phases": observations, "classifications": classifications,
                                 "same_container_across_restart": bool(container_ids) and
                                 container_ids["before_restart"] == container_ids["after_restart"],
                                 "container_ids": container_ids,
                                 "source_identities": source_identities}, indent=2) + "\n")
                 if baseline:
-                    phases = {phase: json.loads((report_dir / f"firstboot-grants-{phase}-comparison.json").read_text())
+                    phases = {phase: json.loads((report_dir / f"{contract['scope']}-{phase}-comparison.json").read_text())
                               for phase in ("firstboot", "restart")}
                     strict_pass = (mode == "strict" and phases["firstboot"]["classification"] == "fixed"
                                    and phases["restart"]["classification"] == "green-control")
-                    overall = {"scope": FIRSTBOOT_SCOPE, "mode": mode, "phases": phases,
+                    overall = {"scope": contract["scope"], "mode": mode, "phases": phases,
                                "strict_pass": strict_pass,
                                "classification_note": "Read-only setup API state and the exact one-request Newman response are classified per boot phase."}
-                    (report_dir / "firstboot-grants-comparison.json").write_text(json.dumps(overall, indent=2) + "\n")
+                    (report_dir / f"{contract['scope']}-comparison.json").write_text(json.dumps(overall, indent=2) + "\n")
                     if mode == "strict" and not strict_pass:
-                        raise RuntimeError("firstboot-grants strict comparison did not fix first boot while preserving restart control")
+                        raise RuntimeError(f"{contract['scope']} strict comparison did not fix first boot while preserving restart control")
                 return 0
             setup_mode = setup_policy(scopes)
             attachments = setup_virtual_key_attachments(base_url, scopes)
@@ -1366,7 +1600,7 @@ def main(args):
                 command = ["make", "run-provider-harness-test", "CI=1", "PARALLEL=0",
                            f"FEATURE={feature}", f"BASE_URL={base_url}", f"APP_DIR={app_dir}",
                            f"HARNESS_MAX_REQUESTS={cap}",
-                           *( [f"EXCLUDE_FEATURE_ANY={FIRSTBOOT_SCOPE}"] if feature == "mcp-apps" else []),
+                           *([f"EXCLUDE_FEATURE_ANY={FIRSTBOOT_SCOPE}"] if feature == "mcp-apps" else []),
                            *make_source_args]
                 log = temp / f"{feature}.log"
                 (ROOT / "tmp/newman-report.json").unlink(missing_ok=True)
@@ -1461,7 +1695,7 @@ if __name__ == "__main__":
             report_arg = None
         if report_arg:
             try:
-                write_failure_report(Path(report_arg).resolve(), error)
+                write_failure_report(Path(report_arg).resolve(), error, failure_report_filename(sys.argv[1:]))
             except OSError:
                 print("fixture CI could not write the redacted failure report", file=sys.stderr)
         print(f"fixture CI failed: {error}", file=sys.stderr)
