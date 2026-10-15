@@ -14,13 +14,28 @@ import (
 	"github.com/maximhq/bifrost/core/schemas"
 )
 
-// BenchmarkCodeModeNestedProtocolError exercises executeToolCode through its
-// real MCP client boundary with a protocol-marked error value.
-func BenchmarkCodeModeNestedProtocolError(b *testing.B) {
+// BenchmarkCodeModeNestedToolResponse exercises executeToolCode through its
+// real MCP client boundary for the normal result and protocol error value paths.
+func BenchmarkCodeModeNestedToolResponse(b *testing.B) {
+	for _, tc := range []struct {
+		name    string
+		text    string
+		isError bool
+	}{
+		{name: "success", text: "42"},
+		{name: "protocol_error_value", text: "Error: remote rejected", isError: true},
+	} {
+		b.Run(tc.name, func(b *testing.B) {
+			benchmarkCodeModeNestedToolResponse(b, tc.text, tc.isError)
+		})
+	}
+}
+
+func benchmarkCodeModeNestedToolResponse(b *testing.B, text string, isError bool) {
 	remote := mcpserver.NewMCPServer("remote", "test", mcpserver.WithToolCapabilities(true))
 	remote.AddTool(mcpgo.NewTool("lookup"), func(context.Context, mcpgo.CallToolRequest) (*mcpgo.CallToolResult, error) {
-		return &mcpgo.CallToolResult{IsError: true, Content: []mcpgo.Content{
-			mcpgo.TextContent{Type: "text", Text: "Error: remote rejected"},
+		return &mcpgo.CallToolResult{IsError: isError, Content: []mcpgo.Content{
+			mcpgo.TextContent{Type: "text", Text: text},
 		}}, nil
 	})
 	conn, err := client.NewInProcessClient(remote)
@@ -46,7 +61,7 @@ func BenchmarkCodeModeNestedProtocolError(b *testing.B) {
 	manager := &protocolErrorClientManager{
 		testClientManager: &testClientManager{
 			clients: map[string]*schemas.MCPClientState{"server": state},
-			tools: map[string][]schemas.ChatTool{"server": {{Function: &schemas.ChatToolFunction{Name: "lookup"}}}},
+			tools:   map[string][]schemas.ChatTool{"server": {{Function: &schemas.ChatToolFunction{Name: "lookup"}}}},
 		},
 		conn: conn,
 	}
