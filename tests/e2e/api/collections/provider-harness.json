@@ -273319,7 +273319,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"string_transform\",\"arguments\":{\"input\":\"firstboot-grant-204\",\"operation\":\"uppercase\"}}}"
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"firstboot_grants_fixture-string_transform\",\"arguments\":{\"input\":\"firstboot-grant-204\",\"operation\":\"uppercase\"}}}"
             },
             "url": {
               "raw": "{{baseUrl}}/mcp/firstboot-grants-fixture",
