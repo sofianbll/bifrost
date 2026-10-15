@@ -8,6 +8,7 @@ import (
 	"github.com/maximhq/bifrost/core/schemas"
 	"github.com/maximhq/bifrost/framework/configstore"
 	"github.com/maximhq/bifrost/transports/v2/bifrost-http/lib"
+	"github.com/valyala/fasthttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -131,27 +132,30 @@ func TestInitializeNegotiatesMCPAppsExtensionOnlyWhenRequested(t *testing.T) {
 	}
 	h.mcpServer.Store(h.buildServer(nil))
 
-	raw := h.server().HandleMessage(context.Background(), []byte(`{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{"extensions":{"io.modelcontextprotocol/ui":{}}},"clientInfo":{"name":"apps-host","version":"1"}}}`))
-	require.NotNil(t, raw)
-	encoded, err := json.Marshal(raw)
-	require.NoError(t, err)
+	requestBody := []byte(`{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{"extensions":{"io.modelcontextprotocol/ui":{}}},"clientInfo":{"name":"apps-host","version":"1"}}}`)
+	ctx := &fasthttp.RequestCtx{}
+	ctx.Request.SetBody(requestBody)
+	h.handleMCPServer(ctx)
 	var response struct {
 		Result struct {
 			Capabilities map[string]json.RawMessage `json:"capabilities"`
 		} `json:"result"`
 	}
-	require.NoError(t, json.Unmarshal(encoded, &response))
+	require.NoError(t, json.Unmarshal(ctx.Response.Body(), &response))
 	require.Contains(t, response.Result.Capabilities, "extensions")
 	var extensions map[string]json.RawMessage
 	require.NoError(t, json.Unmarshal(response.Result.Capabilities["extensions"], &extensions))
 	assert.Contains(t, extensions, "io.modelcontextprotocol/ui")
+	var uiSupport struct {
+		MIMETypes []string `json:"mimeTypes"`
+	}
+	require.NoError(t, json.Unmarshal(extensions["io.modelcontextprotocol/ui"], &uiSupport))
+	assert.Equal(t, []string{"text/html;profile=mcp-app"}, uiSupport.MIMETypes)
 
-	raw = h.server().HandleMessage(context.Background(), []byte(`{"jsonrpc":"2.0","id":2,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"plain-host","version":"1"}}}`))
-	require.NotNil(t, raw)
-	encoded, err = json.Marshal(raw)
-	require.NoError(t, err)
+	ctx.Request.SetBody([]byte(`{"jsonrpc":"2.0","id":2,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"plain-host","version":"1"}}}`))
+	h.handleMCPServer(ctx)
 	response.Result.Capabilities = nil
-	require.NoError(t, json.Unmarshal(encoded, &response))
+	require.NoError(t, json.Unmarshal(ctx.Response.Body(), &response))
 	assert.NotContains(t, response.Result.Capabilities, "extensions")
 }
 
