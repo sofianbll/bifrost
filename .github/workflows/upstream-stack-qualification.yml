@@ -23,16 +23,36 @@ concurrency:
 
 jobs:
   qualify:
+    name: MCP stack source qualification (${{ matrix.name }})
     if: github.repository == 'sofianbll/bifrost' && github.ref_type == 'branch'
     runs-on: ubuntu-24.04
     timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: integration
+            product_pin: integration
+            fixture_scopes: mcp-apps,codemode-errors
+            comparison_mode: characterize
+            extra_firstboot: true
+          - name: issue-23
+            product_pin: 439a3d338fef1c19327f1820e1c85fa444f952c8
+            fixture_scopes: codemode-errors
+            comparison_mode: strict
+            extra_firstboot: false
+          - name: issue-24
+            product_pin: 2a31dc4418aa5d4b2043d7995b829e94d521c6f4
+            fixture_scopes: firstboot-grants
+            comparison_mode: strict
+            extra_firstboot: false
     env:
       STOCK_SOURCE: 83258b776c68e1e3d2c1ca0d08a31c2e5811344f
       STABLE_REFERENCE: 9237ec06672406e437b3cb33fc793ffd0403b3ae
-      CANDIDATE_SOURCE: ${{ github.sha }}
-      # The first source-pinned run establishes actual unchanged-dev behavior.
-      # A later deliberate source/config change can request the strict candidate gate.
-      COMPARISON_MODE: ${{ inputs.comparison_mode || 'characterize' }}
+      DRIVER_SOURCE: ${{ github.sha }}
+      CANDIDATE_SOURCE: ${{ matrix.product_pin == 'integration' && github.sha || matrix.product_pin }}
+      FIXTURE_SCOPES: ${{ matrix.fixture_scopes }}
+      COMPARISON_MODE: ${{ matrix.name == 'integration' && (inputs.comparison_mode || 'characterize') || matrix.comparison_mode }}
     steps:
       - name: Checkout pinned stock source
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -46,19 +66,34 @@ jobs:
           ref: ${{ env.CANDIDATE_SOURCE }}
           path: candidate
           persist-credentials: false
+      - name: Checkout immutable harness source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ env.DRIVER_SOURCE }}
+          path: driver
+          persist-credentials: false
       - name: Verify exact source identities
         run: |
-          export REPORT_DIR="$RUNNER_TEMP/mcp-stack-qualification"
+          export REPORT_DIR="$RUNNER_TEMP/mcp-stack-${{ matrix.name }}"
           echo "REPORT_DIR=$REPORT_DIR" >> "$GITHUB_ENV"
           test "$(git -C stock rev-parse HEAD)" = "$STOCK_SOURCE"
           test "$(git -C candidate rev-parse HEAD)" = "$CANDIDATE_SOURCE"
+          test "$(git -C driver rev-parse HEAD)" = "$DRIVER_SOURCE"
+          test "$(git -C stock status --porcelain --untracked-files=no)" = ''
+          test "$(git -C candidate status --porcelain --untracked-files=no)" = ''
+          test "$(git -C driver status --porcelain --untracked-files=no)" = ''
           test ! -f candidate/.env
+          test ! -f driver/.env
           mkdir -p "$REPORT_DIR"
           cat > "$REPORT_DIR/source-identities.json" <<EOF
           {
             "stock_source": "$STOCK_SOURCE",
             "candidate_source": "$CANDIDATE_SOURCE",
+            "harness_source": "$DRIVER_SOURCE",
             "stable_release_reference": "$STABLE_REFERENCE",
+            "fixture_scopes": "$FIXTURE_SCOPES",
+            "candidate_tracked_status": "clean",
+            "harness_tracked_status": "clean",
             "comparison_mode": "$COMPARISON_MODE"
           }
           EOF
@@ -69,7 +104,7 @@ jobs:
         with:
           node-version: "25"
       - name: Install the existing API harness dependencies
-        run: npm ci --prefix candidate/tests/e2e
+        run: npm ci --prefix driver/tests/e2e
       - uses: step-security/setup-buildx-action@f931205d68723ad9589fd2a7e2ece238bf9de341 # v4.0.0
       - name: Build pinned stock image with its local modules
         id: build-stock
@@ -79,9 +114,9 @@ jobs:
           file: stock/transports/Dockerfile.local
           platforms: linux/amd64
           load: true
-          tags: bifrost:stock-${{ github.run_id }}
+          tags: bifrost:stock-${{ matrix.name }}-${{ github.run_id }}
           build-args: DYNAMIC=1
-      - name: Build candidate image with its local modules
+      - name: Build pinned product image with its local modules
         id: build-candidate
         uses: step-security/docker-build-push-action@846549baaf047e867d038826129a64d81df0f704 # v7.1.0
         with:
@@ -89,7 +124,7 @@ jobs:
           file: candidate/transports/Dockerfile.local
           platforms: linux/amd64
           load: true
-          tags: bifrost:candidate-${{ github.run_id }}
+          tags: bifrost:candidate-${{ matrix.name }}-${{ github.run_id }}
           build-args: DYNAMIC=1
       - name: Record compiled module and image identities
         run: |
@@ -99,8 +134,8 @@ jobs:
 
           report_dir = Path(os.environ['REPORT_DIR'])
           builds = [
-              ('stock', 'stock', f"bifrost:stock-{os.environ['GITHUB_RUN_ID']}", os.environ['STOCK_SOURCE']),
-              ('candidate', 'candidate', f"bifrost:candidate-{os.environ['GITHUB_RUN_ID']}", os.environ['CANDIDATE_SOURCE']),
+              ('stock', 'stock', f"bifrost:stock-{os.environ['MATRIX_NAME']}-{os.environ['GITHUB_RUN_ID']}", os.environ['STOCK_SOURCE']),
+              ('candidate', 'candidate', f"bifrost:candidate-{os.environ['MATRIX_NAME']}-{os.environ['GITHUB_RUN_ID']}", os.environ['CANDIDATE_SOURCE']),
           ]
           required_modules = {
               'github.com/maximhq/bifrost/transports/v2',
@@ -135,64 +170,68 @@ jobs:
                   f'checkout_head={git("rev-parse", "HEAD")}\ntracked_status=clean\n'
                   + info)
           PY
+        env:
+          MATRIX_NAME: ${{ matrix.name }}
       - name: Check comparator and fixture contracts
-        working-directory: candidate
+        working-directory: driver
         run: |
           .github/workflows/scripts/test-mcp-apps-fixture.sh --self-check
           python3 -m json.tool tests/integrations/python/config.json >/dev/null
           python3 -m json.tool tests/e2e/api/collections/provider-harness.json >/dev/null
-      - name: Run candidate fixture characterization
+      - name: Run pinned product fixture scope
         id: candidate-fixture
         continue-on-error: true
-        working-directory: candidate
+        working-directory: driver
         env:
           GITHUB_ACTIONS: "true"
           BIFROST_STOCK_SOURCE: ${{ env.STOCK_SOURCE }}
           BIFROST_CANDIDATE_SOURCE: ${{ env.CANDIDATE_SOURCE }}
           BIFROST_STABLE_REFERENCE: ${{ env.STABLE_REFERENCE }}
           BIFROST_COMPARISON_MODE: ${{ env.COMPARISON_MODE }}
-        run: .github/workflows/scripts/test-mcp-apps-fixture.sh "bifrost:candidate-${{ github.run_id }}" "$REPORT_DIR"
+          BIFROST_FIXTURE_SCOPES: ${{ env.FIXTURE_SCOPES }}
+        run: .github/workflows/scripts/test-mcp-apps-fixture.sh "bifrost:candidate-${{ matrix.name }}-${{ github.run_id }}" "$REPORT_DIR"
       - name: Run pinned stock fixtures and compare observed assertions
         id: stock-fixture
         if: always() && steps.build-stock.outcome == 'success' && steps.build-candidate.outcome == 'success' && steps.candidate-fixture.outcome != 'skipped'
-        working-directory: candidate
+        working-directory: driver
         env:
           GITHUB_ACTIONS: "true"
           BIFROST_STOCK_SOURCE: ${{ env.STOCK_SOURCE }}
           BIFROST_CANDIDATE_SOURCE: ${{ env.CANDIDATE_SOURCE }}
           BIFROST_STABLE_REFERENCE: ${{ env.STABLE_REFERENCE }}
           BIFROST_COMPARISON_MODE: ${{ env.COMPARISON_MODE }}
-        run: .github/workflows/scripts/test-mcp-apps-fixture.sh --baseline "bifrost:stock-${{ github.run_id }}" "$REPORT_DIR"
+          BIFROST_FIXTURE_SCOPES: ${{ env.FIXTURE_SCOPES }}
+        run: .github/workflows/scripts/test-mcp-apps-fixture.sh --baseline "bifrost:stock-${{ matrix.name }}-${{ github.run_id }}" "$REPORT_DIR"
       - name: Verify integrated first-boot grants and same-store restart
         id: firstboot-candidate
-        if: always() && steps.build-candidate.outcome == 'success'
+        if: always() && matrix.extra_firstboot && steps.build-candidate.outcome == 'success'
         continue-on-error: true
-        working-directory: candidate
+        working-directory: driver
         env:
           BIFROST_STOCK_SOURCE: ${{ env.STOCK_SOURCE }}
           BIFROST_CANDIDATE_SOURCE: ${{ env.CANDIDATE_SOURCE }}
           BIFROST_STABLE_REFERENCE: ${{ env.STABLE_REFERENCE }}
           BIFROST_COMPARISON_MODE: strict
           BIFROST_FIXTURE_SCOPES: firstboot-grants
-        run: .github/workflows/scripts/test-mcp-apps-fixture.sh "bifrost:candidate-${{ github.run_id }}" "$REPORT_DIR/firstboot-grants"
+        run: .github/workflows/scripts/test-mcp-apps-fixture.sh "bifrost:candidate-${{ matrix.name }}-${{ github.run_id }}" "$REPORT_DIR/firstboot-grants"
       - name: Verify first-boot stock red and restart control
-        if: always() && steps.build-stock.outcome == 'success' && steps.firstboot-candidate.outcome != 'skipped'
-        working-directory: candidate
+        if: always() && matrix.extra_firstboot && steps.build-stock.outcome == 'success' && steps.firstboot-candidate.outcome != 'skipped'
+        working-directory: driver
         env:
           BIFROST_STOCK_SOURCE: ${{ env.STOCK_SOURCE }}
           BIFROST_CANDIDATE_SOURCE: ${{ env.CANDIDATE_SOURCE }}
           BIFROST_STABLE_REFERENCE: ${{ env.STABLE_REFERENCE }}
           BIFROST_COMPARISON_MODE: strict
           BIFROST_FIXTURE_SCOPES: firstboot-grants
-        run: .github/workflows/scripts/test-mcp-apps-fixture.sh --baseline "bifrost:stock-${{ github.run_id }}" "$REPORT_DIR/firstboot-grants"
+        run: .github/workflows/scripts/test-mcp-apps-fixture.sh --baseline "bifrost:stock-${{ matrix.name }}-${{ github.run_id }}" "$REPORT_DIR/firstboot-grants"
       - name: Preserve source identity and sanitized fixture reports
         if: always()
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
-          name: mcp-stack-${{ github.sha }}
-          path: ${{ runner.temp }}/mcp-stack-qualification/
+          name: mcp-stack-${{ matrix.name }}-${{ github.sha }}
+          path: ${{ runner.temp }}/mcp-stack-${{ matrix.name }}/
           if-no-files-found: error
           retention-days: 14
       - name: Remove local qualification images
         if: always()
-        run: docker image rm -f "bifrost:stock-${{ github.run_id }}" "bifrost:candidate-${{ github.run_id }}" >/dev/null 2>&1 || true
+        run: docker image rm -f "bifrost:stock-${{ matrix.name }}-${{ github.run_id }}" "bifrost:candidate-${{ matrix.name }}-${{ github.run_id }}" >/dev/null 2>&1 || true
