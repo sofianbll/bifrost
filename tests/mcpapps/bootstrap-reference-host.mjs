@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { spawn } from "node:child_process";
+import { createHash } from "node:crypto";
 import { readFile, mkdir, readdir, writeFile } from "node:fs/promises";
 import { resolve, join } from "node:path";
 
@@ -38,6 +39,19 @@ if (manifest.version !== version) throw new Error(`Reference host version mismat
 // The workspace's dependency points at the repository-local SDK. Including the
 // root runs its pinned prepare/build step and makes that SDK available to Vite.
 await run("npm", ["ci", "--workspace=examples/basic-host", "--include-workspace-root=true"], directory);
+// The basic host sends complete input only. Add one opt-in test hook before it,
+// preserving the pinned SDK, initialization and original final-input/result path.
+const sourceFile = "examples/basic-host/src/implementation.ts";
+const source = await readFile(join(directory, sourceFile), "utf8");
+const marker = "appBridge.sendToolInput({ arguments: input });";
+if (source.split(marker).length !== 2) throw new Error("Pinned host input seam changed");
+const adapted = source.replace(marker, `const replayPartialInput = Reflect.get(window, "__bifrostReplayPartialInput");
+  if (typeof replayPartialInput === "function") await replayPartialInput(appBridge, input);
+  ${marker}`);
+await writeFile(join(directory, sourceFile), adapted);
+const sha256 = (text) => createHash("sha256").update(text).digest("hex");
+const adaptation = { sourceFile, sourceSha256: sha256(source), adaptedSha256: sha256(adapted),
+  purpose: "Opt-in real AppBridge partial-input hook before the original final input/result" };
 await run("npm", ["run", "build", "--workspace=examples/basic-host"], directory);
-await writeFile(join(directory, ".bifrost-reference-host.json"), JSON.stringify({ repository, version, commit }, null, 2) + "\n", { mode: 0o600 });
+await writeFile(join(directory, ".bifrost-reference-host.json"), JSON.stringify({ repository, version, commit, adaptation }, null, 2) + "\n", { mode: 0o600 });
 console.log(`Reference host ${version} built from ${commit}`);
