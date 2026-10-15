@@ -4,21 +4,28 @@ import type { CallToolResult } from "@modelcontextprotocol/client";
 const appRoot = document.querySelector<HTMLElement>("[data-testid='mcp-app-fixture']");
 const status = document.querySelector<HTMLElement>("[data-testid='fixture-status']");
 const inputView = document.querySelector<HTMLElement>("[data-testid='tool-input']");
+const partialInputView = document.querySelector<HTMLElement>("[data-testid='tool-partial-input']");
 const resultView = document.querySelector<HTMLElement>("[data-testid='tool-result']");
 const callbackView = document.querySelector<HTMLElement>("[data-testid='callback-result']");
 const stateInput = document.querySelector<HTMLInputElement>("[data-testid='state-input']");
 
-if (!appRoot || !status || !inputView || !resultView || !callbackView || !stateInput) {
+if (!appRoot || !status || !inputView || !partialInputView || !resultView || !callbackView || !stateInput) {
   throw new Error("MCP Apps fixture view is missing a required element");
 }
 const view = appRoot;
 const statusText = status;
 const inputElement = inputView;
+const partialInputElement = partialInputView;
 const resultElement = resultView;
 const callbackElement = callbackView;
 const stateElement = stateInput;
 
 const originalState = stateElement.value;
+const receivedNotificationOrder: string[] = [];
+function recordNotification(name: string): void {
+  receivedNotificationOrder.push(name);
+  view.dataset.notificationOrder = JSON.stringify(receivedNotificationOrder);
+}
 const saveStateTool = view.dataset.saveTool;
 const readStateTool = view.dataset.readTool;
 if (!saveStateTool || !readStateTool) {
@@ -31,12 +38,21 @@ function show(element: HTMLElement, value: unknown): void {
 }
 
 app.ontoolinput = (params) => {
+  recordNotification("input");
   show(inputElement, params.arguments);
   statusText.textContent = "Host input received";
   view.dataset.status = "input-received";
 };
 
+app.ontoolinputpartial = (params) => {
+  recordNotification("partial");
+  show(partialInputElement, params.arguments);
+  statusText.textContent = "Host partial input received";
+  view.dataset.status = "partial-input-received";
+};
+
 app.ontoolresult = (result: CallToolResult) => {
+  recordNotification("result");
   show(resultElement, {
     content: result.content,
     structuredContent: result.structuredContent,

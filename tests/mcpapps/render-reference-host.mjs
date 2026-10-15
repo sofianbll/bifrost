@@ -13,6 +13,10 @@ const bearer = process.env.BIFROST_FIXTURE_BEARER;
 const expectedInstance = process.env.BIFROST_FIXTURE_EXPECTED_INSTANCE;
 const fixtureClientName = process.env.BIFROST_FIXTURE_CLIENT_NAME;
 const candidateSource = process.env.BIFROST_CANDIDATE_SOURCE;
+const partialReplay = process.env.BIFROST_FIXTURE_PARTIAL_REPLAY === "true";
+if (process.env.BIFROST_FIXTURE_PARTIAL_REPLAY !== undefined && !["true", "false"].includes(process.env.BIFROST_FIXTURE_PARTIAL_REPLAY)) {
+  throw new Error("BIFROST_FIXTURE_PARTIAL_REPLAY must be true or false when provided");
+}
 if (!gatewayUrl || !bearer || !expectedInstance || !fixtureClientName || !candidateSource) {
   throw new Error("BIFROST_FIXTURE_SERVER_URL, BIFROST_FIXTURE_BEARER, BIFROST_FIXTURE_EXPECTED_INSTANCE, BIFROST_FIXTURE_CLIENT_NAME, and BIFROST_CANDIDATE_SOURCE are required");
 }
@@ -20,12 +24,29 @@ if (!/^sk-bf-mcp-apps-(full|limited|limited-no-app|denied)$/.test(bearer)) throw
 if (!/^[0-9a-f]{40}$/.test(candidateSource)) throw new Error("BIFROST_CANDIDATE_SOURCE must be an immutable commit SHA");
 if (!/^[A-Za-z0-9_-]+$/.test(fixtureClientName)) throw new Error("BIFROST_FIXTURE_CLIENT_NAME is invalid");
 
+function assertNotificationOrder(actual, partial) {
+  const expected = partial ? ["partial", "partial", "input", "result"] : ["input", "result"];
+  assert.deepEqual(actual, expected, "App SDK handlers must receive the expected host notification order");
+}
+
+const validOrders = [["input", "result"], ["partial", "partial", "input", "result"]];
+assertNotificationOrder(validOrders[0], false);
+assertNotificationOrder(validOrders[1], true);
+for (const invalid of [
+  ["partial", "input", "result"],
+  ["input", "partial", "partial", "result"],
+  ["partial", "partial", "result", "input"],
+]) {
+  assert.throws(() => assertNotificationOrder(invalid, true), /expected host notification order/,
+    `Order checker must reject missing or reordered notifications: ${JSON.stringify(invalid)}`);
+}
+
 const manifest = JSON.parse(await readFile(join(hostDirectory, ".bifrost-reference-host.json"), "utf8"));
 if (manifest.commit !== "82221c0c8ce7661efa6771c9d461511b1650495f" || manifest.version !== "2.0.3") {
   throw new Error("Reference host does not match the approved ext-apps source pin");
 }
-if (!manifest.hostFixtureAuthAdapter?.patchSha256 || !manifest.appBundle?.sha256) {
-  throw new Error("Reference host manifest is missing adapter or generated SDK artifact identity");
+if (!manifest.hostFixtureAuthAdapter?.patchSha256 || !manifest.controlledPartialReplay?.patchSha256 || !manifest.appBundle?.sha256) {
+  throw new Error("Reference host manifest is missing adapter, partial replay, or generated SDK artifact identity");
 }
 
 const require = createRequire(join(hostDirectory, "package.json"));
@@ -56,6 +77,7 @@ const host = spawn("./node_modules/.bin/tsx", ["examples/basic-host/serve.ts"], 
     SERVERS: JSON.stringify([serverUrl.href]),
     BIFROST_FIXTURE_SERVER_URL: serverUrl.href,
     BIFROST_FIXTURE_BEARER: bearer,
+    BIFROST_FIXTURE_PARTIAL_REPLAY: String(partialReplay),
   },
   stdio: ["ignore", "pipe", "pipe"],
 });
@@ -85,13 +107,34 @@ try {
   page.on("console", (message) => {
     if (message.type() === "error") pageErrors.push(redact(message.text()));
   });
-  await page.goto("http://localhost:8080/?tool=open_view", { waitUntil: "domcontentloaded" });
+  if (partialReplay) {
+    await page.exposeFunction("__bifrostWaitForPartialInput", async (message) => {
+      const appFrame = page.frameLocator("iframe").frameLocator("iframe");
+      await appFrame.getByTestId("tool-partial-input").getByText(`\"message\": \"${message}\"`, { exact: false }).waitFor();
+    });
+    await page.addInitScript((messages) => {
+      window.__bifrostReplayPartialInput = async (bridge, input) => {
+        for (const message of messages) {
+          await bridge.sendToolInputPartial({ arguments: { ...input, message } });
+          await window.__bifrostWaitForPartialInput(message);
+        }
+      };
+    }, ["partial-one", "partial-two"]);
+  }
+  const hostUrl = new URL("http://localhost:8080/");
+  hostUrl.searchParams.set("tool", `${fixtureClientName}-open_view`);
+  await page.goto(hostUrl.href, { waitUntil: "domcontentloaded" });
   await page.getByLabel("Input").fill('{"message":"host-input"}');
   await page.getByRole("button", { name: "Call Tool" }).click();
 
   const app = page.frameLocator("iframe").frameLocator("iframe");
   const inputView = app.getByTestId("tool-input");
+  const partialInputView = app.getByTestId("tool-partial-input");
+  const resultView = app.getByTestId("tool-result");
   await inputView.waitFor();
+  if (partialReplay) {
+    await partialInputView.getByText('"message": "partial-one"', { exact: false }).waitFor();
+  }
   let input;
   for (let attempt = 0; attempt < 100; attempt++) {
     try { input = JSON.parse(await inputView.textContent()); } catch {}
@@ -99,13 +142,26 @@ try {
     await delay(100);
   }
   assert.deepEqual(input, { message: "host-input" }, "Pinned host must deliver its full final input to the App SDK");
-  const result = JSON.parse(await app.getByTestId("tool-result").textContent());
+  let result;
+  for (let attempt = 0; attempt < 100; attempt++) {
+    try { result = JSON.parse(await resultView.textContent()); } catch {}
+    if (result?.structuredContent?.instance === expectedInstance) break;
+    await delay(100);
+  }
+  assert.equal(result?.structuredContent?.instance, expectedInstance, "App SDK must receive the native result");
   const native = result.structuredContent;
   assert.equal(native?.instance, expectedInstance, "App receives the expected source's native structured result");
   assert.equal(native?.message, "host-input");
-  assert.equal(result?.isError, false);
+  assert.notEqual(result?.isError, true, "A successful native result may omit isError or set it false");
   assert.equal(result?.meta?.fixture, expectedInstance);
   assert.equal(result?.content?.[0]?.text, JSON.stringify({ instance: expectedInstance, message: "host-input" }));
+  const appRoot = app.getByTestId("mcp-app-fixture");
+  const notificationOrder = JSON.parse(await appRoot.getAttribute("data-notification-order"));
+  assertNotificationOrder(notificationOrder, partialReplay);
+  if (partialReplay) {
+    assert.deepEqual(JSON.parse(await app.getByTestId("tool-partial-input").textContent()), { message: "partial-two" },
+      "The second controlled partial update must render before final input/result");
+  }
 
   const callbackResult = app.getByTestId("callback-result");
   const readState = async (expected) => {
@@ -142,6 +198,7 @@ try {
 
   console.log(JSON.stringify({
     evidenceLabel: "pinned reference host with fixture-auth adapter",
+    partialEvidenceLabel: partialReplay ? "controlled partial-input replay through pinned AppBridge; not live-model/native Codex streaming" : undefined,
     hostCommit: manifest.commit,
     hostFixtureAuthPatchSha256: manifest.hostFixtureAuthAdapter.patchSha256,
     appBundleSha256: manifest.appBundle.sha256,
@@ -152,6 +209,9 @@ try {
     checks: {
       sdkHandshakeAndViewRendered: true,
       fullInputDelivered: true,
+      controlledPartialInputDelivered: partialReplay,
+      notificationOrderChecked: true,
+      missingAndReorderedNotificationsRejected: true,
       nativeResultSourceAndPayload: true,
       saveReadChangeRestore: true,
       deliberateCorruptStateDetected: true,
