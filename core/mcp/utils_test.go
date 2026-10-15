@@ -3,6 +3,7 @@ package mcp
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/mark3labs/mcp-go/mcp"
@@ -138,6 +139,47 @@ func TestConvertMCPToolToBifrostSchema_PreservesMCPAppDefinition(t *testing.T) {
 			assert.NotContains(t, string(providerJSON), "ui://")
 		})
 	}
+}
+
+func TestConvertMCPToolToBifrostSchemaBoundsRetainedMCPAppMetadata(t *testing.T) {
+	largeURI := "ui://mcp-apps/" + strings.Repeat("x", maxCachedMCPAppDefinitionBytes)
+	tool := convertMCPToolToBifrostSchema(&mcp.Tool{
+		Name:        "open_view",
+		InputSchema: mcp.ToolInputSchema{Type: "object", Properties: map[string]any{}},
+		Meta: &mcp.Meta{AdditionalFields: map[string]any{
+			"ui": map[string]any{"resourceUri": largeURI, "visibility": []string{"app"}},
+		}},
+	}, defaultLogger)
+
+	require.NotNil(t, tool.MCPApp)
+	assert.Empty(t, tool.MCPApp.RawDefinition, "an over-budget raw definition must not be retained")
+	assert.Empty(t, tool.MCPApp.ResourceURI, "an over-budget resource URI must not remain in the cache sidecar")
+	assert.Equal(t, []string{"app"}, tool.MCPApp.Visibility, "oversized metadata must fail closed for model visibility")
+	metadataJSON, err := json.Marshal(tool.MCPApp)
+	require.NoError(t, err)
+	assert.LessOrEqual(t, len(metadataJSON), maxCachedMCPAppDefinitionBytes)
+
+	visibility := make([]string, maxCachedMCPAppDefinitionBytes/2)
+	for i := range visibility {
+		visibility[i] = "app"
+	}
+	tool = convertMCPToolToBifrostSchema(&mcp.Tool{
+		Name:        "open_view",
+		InputSchema: mcp.ToolInputSchema{Type: "object", Properties: map[string]any{}},
+		Meta: &mcp.Meta{AdditionalFields: map[string]any{
+			"ui": map[string]any{"resourceUri": "ui://mcp-apps/view", "visibility": visibility},
+		}},
+	}, defaultLogger)
+
+	require.NotNil(t, tool.MCPApp)
+	assert.Equal(t, "ui://mcp-apps/view", tool.MCPApp.ResourceURI, "small resource URIs remain available when visibility is normalized")
+	assert.Len(t, tool.MCPApp.Visibility, 1, "oversized visibility lists must collapse to one fail-closed classification")
+	if len(tool.MCPApp.Visibility) == 1 {
+		assert.Equal(t, "app", tool.MCPApp.Visibility[0])
+	}
+	metadataJSON, err = json.Marshal(tool.MCPApp)
+	require.NoError(t, err)
+	assert.LessOrEqual(t, len(metadataJSON), maxCachedMCPAppDefinitionBytes)
 }
 
 // TestConvertMCPToolToBifrostSchema_NilAnnotationsWhenAllZero verifies the nil guard:
