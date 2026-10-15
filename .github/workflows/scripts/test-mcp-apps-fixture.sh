@@ -61,6 +61,95 @@ BASELINE_INVARIANTS = {
     ),
 }
 
+# Exact stock-83258 failure pairs for observed behavior and the known unsupported
+# resource paths that will execute after URI seeding is fixed. Each entry records
+# why that pair may be red in characterization; unknown failures remain out of
+# scope, including a second failure on a listed request.
+BASELINE_ALLOWED_STOCK_FAILURES = {
+    "mcp-apps": {
+        ("MCP Apps fixture direct initialize negotiates UI", "UI extension negotiated"):
+            "stock initialize does not negotiate the MCP Apps UI extension",
+        ("MCP Apps fixture direct tools list preserves App metadata", "both URI fields and input schema survive discovery"):
+            "Code Mode exposes meta-tools instead of that source's native App tool",
+        ("MCP Apps fixture direct tools list preserves App metadata", "App-only callback is marked for host visibility"):
+            "Code Mode hides the source callback from the direct native catalog",
+        ("MCP Apps fixture direct resources list returns array", "Response has content (text or tool_use)"):
+            "stock returns JSON-RPC resources-not-supported for resources/list",
+        ("MCP Apps fixture direct resources list returns array", "resources/list returns array"):
+            "stock returns JSON-RPC resources-not-supported for resources/list",
+        ("MCP Apps fixture direct resources read returns HTML and CSP", "resource HTML MIME and CSP are relayed"):
+            "stock direct MCP resources/read is unsupported",
+        ("MCP Apps fixture direct resources read returns HTML and CSP", "Response has content (text or tool_use)"):
+            "stock direct MCP resources/read is unsupported",
+        ("MCP Apps fixture Virtual MCP full resource read", "Virtual MCP resource is readable with MIME and CSP"):
+            "stock Virtual MCP resources/read cannot relay this App resource",
+        ("MCP Apps fixture Virtual MCP full resource read", "Response has content (text or tool_use)"):
+            "stock Virtual MCP resources/read cannot relay this App resource",
+        ("MCP Apps fixture aggregate reads first source resource", "first resource routes to its own source"):
+            "stock aggregate resources/read cannot relay the first App resource",
+        ("MCP Apps fixture aggregate reads first source resource", "Response has content (text or tool_use)"):
+            "stock aggregate resources/read cannot relay the first App resource",
+        ("MCP Apps fixture aggregate reads second source resource", "second resource routes to its own source"):
+            "stock aggregate resources/read cannot relay the second App resource",
+        ("MCP Apps fixture aggregate reads second source resource", "Response has content (text or tool_use)"):
+            "stock aggregate resources/read cannot relay the second App resource",
+        ("MCP Apps fixture limited direct resource remains readable", "MCP Apps fixture limited direct resource remains readable"):
+            "stock direct resources/read is unsupported for the limited key too",
+        ("MCP Apps fixture limited direct resource remains readable", "Response has content (text or tool_use)"):
+            "stock direct resources/read is unsupported for the limited key too",
+        ("MCP Apps fixture limited key cannot read ungranted App resource", "resource linked to a disallowed App tool is refused"):
+            "stock resources/read unsupported error masks the grant-specific refusal",
+        ("MCP Apps fixture limited key cannot read ungranted App resource", "Response has content (text or tool_use)"):
+            "stock resources/read unsupported error masks the grant-specific refusal",
+        ("MCP Apps fixture direct structured tool result", "Response has content (text or tool_use)"):
+            "Code Mode hides the direct structured-result source tool",
+        ("MCP Apps fixture direct structured tool result", "content structuredContent metadata and success marker survive"):
+            "Code Mode hides the direct structured-result source tool",
+        ("MCP Apps fixture direct App callback remains callable", "Response has content (text or tool_use)"):
+            "Code Mode hides the direct App callback source tool",
+        ("MCP Apps fixture direct App callback remains callable", "App-only callback resolves on direct route"):
+            "Code Mode hides the direct App callback source tool",
+        ("MCP Apps fixture direct tool error marker", "Response has content (text or tool_use)"):
+            "Code Mode hides the direct tool-error source tool",
+        ("MCP Apps fixture direct tool error marker", "fixture tool error remains isError"):
+            "Code Mode hides the direct tool-error source tool",
+        ("MCP Apps fixture Virtual MCP full discovery", "Virtual MCP preserves both UI metadata fields"):
+            "stock Virtual MCP discovery omits the Code Mode source App tool",
+        ("MCP Apps fixture Virtual MCP limited discovery", "limited key sees only its allowed App tool"):
+            "stock limited catalog omits the direct App tool from its Code Mode source",
+        ("MCP Apps fixture aggregate discovery and namespaced UI URIs", "aggregate namespaces sources and marks callbacks app-only"):
+            "stock aggregate catalog omits the Code Mode source App tool and callback metadata",
+        ("MCP Apps fixture aggregate namespaced callback routes first", "Response has content (text or tool_use)"):
+            "stock aggregate catalog omits the Code Mode source callback",
+        ("MCP Apps fixture aggregate namespaced callback routes first", "namespaced callback reaches correct instance"):
+            "stock aggregate catalog omits the Code Mode source callback",
+        ("MCP Apps fixture aggregate structured result", "aggregate tool result keeps source identity and metadata"):
+            "stock aggregate catalog omits the Code Mode source structured-result tool",
+        ("MCP Apps fixture Code Mode client exposes native App metadata", "Code Mode preserves native App metadata and has no UI metadata itself"):
+            "stock Code Mode client filters out its source's native App tool",
+        ("MCP Apps fixture Code Mode direct App call preserves full result", "Response has content (text or tool_use)"):
+            "stock Code Mode client filters out its source's native App tool",
+        ("MCP Apps fixture Code Mode direct App call preserves full result", "native direct call retains App result contract"):
+            "stock Code Mode client filters out its source's native App tool",
+        ("MCP Apps fixture Code Mode script failure sets isError", "only sandbox script failure marks outer result isError"):
+            "stock returns a successful outer result for this Starlark parse failure",
+        ("MCP Apps fixture limited direct discovery", "MCP Apps fixture limited direct discovery"):
+            "stock limited direct catalog omits the permitted App tool",
+        ("MCP Apps fixture limited aggregate discovery", "MCP Apps fixture limited aggregate discovery"):
+            "stock limited aggregate catalog omits the permitted App tool",
+        ("MCP Apps fixture direct legacy-only metadata remains routable", "legacy-only URI is rewritten and modern field stays absent"):
+            "stock discovery drops the legacy-only UI metadata field",
+        ("MCP Apps fixture direct modern-only metadata remains routable", "modern-only URI is rewritten and legacy field stays absent"):
+            "stock discovery drops the modern-only UI metadata field",
+    },
+    "codemode-errors": {
+        ("Code Mode failed script sets outer isError (codemode-errors)", "Starlark execution failure marks the outer result as an error"):
+            "stock outer handler does not mark this script failure as isError",
+        ("Code Mode nested Error prefix remains a value (codemode-errors)", "Error: prefix payload stays a successful script value"):
+            "stock nested tool result with Error: prefix is interpreted as an error",
+    },
+}
+
 
 def build_config():
     profile = json.loads((ROOT / "tests/integrations/python/config.json").read_text())
@@ -159,6 +248,13 @@ def failed_assertion(execution, assertion_name):
     return matches[0].get("error") is not None
 
 
+def stock_failure_scope(feature, failures):
+    allowed = set(BASELINE_ALLOWED_STOCK_FAILURES.get(feature, {}))
+    unexpected = [failure for failure in failures
+                  if (failure.get("request"), failure.get("assertion")) not in allowed]
+    return not unexpected, unexpected
+
+
 def compare_reports(stock, candidate, feature, mode="characterize"):
     stock_items, candidate_items = executions_by_name(stock, feature + " stock"), executions_by_name(candidate, feature + " candidate")
     classifications = []
@@ -202,12 +298,13 @@ def contract_uri(client_name):
     return f"ui://bifrost/{enc(client_name)}/{enc(FIXTURE_RESOURCE_URI)}"
 
 
-def seed_stock_uris(collection_path):
+def seed_contract_uris(collection_path):
     collection = json.loads(collection_path.read_text())
     seeds = {"mcpAppsDirectUri": contract_uri("mcp_apps_fixture"),
              "mcpAppsVirtualUri": contract_uri("mcp_apps_fixture"),
              "mcpAppsAggUri1": contract_uri("mcp_apps_fixture"),
              "mcpAppsAggUri2": contract_uri("mcp_apps_fixture_second"),
+             "mcpAppsAggUri3": contract_uri("mcp_apps_fixture_modern"),
              "mcpAppsLegacyUri": contract_uri("mcp_apps_fixture_second"),
              "mcpAppsModernUri": contract_uri("mcp_apps_fixture_modern")}
     variables = {entry.get("key"): entry for entry in collection.get("variable", [])}
@@ -299,7 +396,9 @@ def self_check():
             raise AssertionError("execution identity guard accepted an unexecuted request")
     assert contract_uri("mcp_apps_fixture") == "ui://bifrost/bWNwX2FwcHNfZml4dHVyZQ/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw"
     assert contract_uri("mcp_apps_fixture_second") != contract_uri("mcp_apps_fixture")
+    assert contract_uri("mcp_apps_fixture_modern") != contract_uri("mcp_apps_fixture")
     assert contract_uri("mcp_apps_fixture_modern") != contract_uri("mcp_apps_fixture_second")
+    assert len({contract_uri(name) for name in FIXTURE_NAMES[:3]}) == 3
     def execution(name, checks=(), failed=(), extra_failed=()):
         return {"item": {"name": name}, "response": {"code": 200}, "assertions": [
             *({"assertion": assertion, "error": {"name": "AssertionError"}} for assertion in failed),
@@ -317,9 +416,11 @@ def self_check():
                 failed = [assertion] if case in fail_invariants else []
                 executions.append(execution(case, checks=[assertion], failed=failed))
         return {"run": {"executions": executions}}
-    stock_report = report({case for checks in BASELINE_SENTINELS.values() for case, _ in checks}, include_generic=True)
+    stock_report = report({case for checks in BASELINE_SENTINELS.values() for case, _ in checks})
     candidate_report = report()
     for feature in BASELINE_SENTINELS:
+        assert set(BASELINE_SENTINELS[feature]) <= set(BASELINE_ALLOWED_STOCK_FAILURES[feature]), \
+            f"{feature}: every named stock sentinel must have an explicit exact-pair rationale"
         subset = lambda source: {"run": {"executions": [e for e in source["run"]["executions"]
                                                           if any(e["item"]["name"] == case for case, _ in BASELINE_SENTINELS[feature] + BASELINE_INVARIANTS[feature])]}}
         expected = [case for case, _ in BASELINE_SENTINELS[feature] + BASELINE_INVARIANTS[feature]]
@@ -327,6 +428,12 @@ def self_check():
         validate_executions(subset(candidate_report), feature, len(expected), expected)
         classified = compare_reports(subset(stock_report), subset(candidate_report), feature)
         assert classified["fixed"] == [case for case, _ in BASELINE_SENTINELS[feature]]
+        in_scope, unexpected = stock_failure_scope(feature, classified["stock_failed_assertions"])
+        assert in_scope and not unexpected, "named stock sentinel assertions should be allowed red evidence"
+        expected_pair = next(iter(BASELINE_ALLOWED_STOCK_FAILURES[feature]))
+        expected_failure = {"request": expected_pair[0], "assertion": expected_pair[1]}
+        assert stock_failure_scope(feature, [expected_failure]) == (True, []), \
+            "explicitly classified exact stock behavior was rejected"
         unresolved = compare_reports(subset(stock_report), subset(stock_report), feature)
         assert unresolved["unresolved"] == [case for case, _ in BASELINE_SENTINELS[feature]]
         assert not compare_reports(subset(stock_report), subset(stock_report), feature, mode="strict")["strict_pass"]
@@ -340,6 +447,21 @@ def self_check():
             pass
         else:
             raise AssertionError("baseline comparator accepted a failing stock invariant")
+        unrelated_stock = json.loads(json.dumps(subset(candidate_report)))
+        sentinel_case = BASELINE_SENTINELS[feature][0][0]
+        executions_by_name(unrelated_stock, feature)[sentinel_case]["assertions"].append(
+            {"assertion": "unrelated stock assertion", "error": {"name": "AssertionError"}})
+        contaminated = compare_reports(unrelated_stock, subset(candidate_report), feature)
+        in_scope, unexpected = stock_failure_scope(feature, contaminated["stock_failed_assertions"])
+        assert not in_scope and unexpected == [{"request": sentinel_case, "assertion": "unrelated stock assertion"}], \
+            "baseline comparator accepted an unrelated failure on a sentinel request"
+        unrelated_candidate = json.loads(json.dumps(subset(candidate_report)))
+        executions_by_name(unrelated_candidate, feature)[sentinel_case]["assertions"].append(
+            {"assertion": "unrelated candidate assertion", "error": {"name": "AssertionError"}})
+        in_scope, unexpected = stock_failure_scope(
+            feature, compare_reports(subset(stock_report), unrelated_candidate, feature)["candidate_failed_assertions"])
+        assert not in_scope and unexpected == [{"request": sentinel_case, "assertion": "unrelated candidate assertion"}], \
+            "characterization comparator accepted an unrelated candidate failure"
     candidate_names = {case for case, _ in BASELINE_SENTINELS["codemode-errors"] + BASELINE_INVARIANTS["codemode-errors"]}
     candidate_subset = {"run": {"executions": [e for e in candidate_report["run"]["executions"]
                                               if e["item"]["name"] in candidate_names]}}
@@ -353,7 +475,7 @@ def self_check():
     with tempfile.TemporaryDirectory() as temp:
         collection_path = Path(temp) / "collection.json"
         collection_path.write_text(json.dumps({"item": [], "variable": []}))
-        seeds = seed_stock_uris(collection_path)
+        seeds = seed_contract_uris(collection_path)
         written = json.loads(collection_path.read_text())
         assert {entry["key"]: entry["value"] for entry in written["variable"]} == seeds
     safe = redact({"Authorization": "Bearer sk-bf-example",
@@ -372,8 +494,10 @@ def self_check():
         time.sleep = lambda seconds: None
         incomplete = {"result": {"tools": [{"name": "executeToolCode"}]}}
         complete = {"result": {"tools": [{"name": "executeToolCode"},
+                                            {"name": "mcp_apps_fixture_second-open_view"},
                                             {"name": "mcp_apps_fixture_second-save_state"},
-                                            {"name": "mcp_apps_fixture_modern-open_view"}]}}
+                                            {"name": "mcp_apps_fixture_modern-open_view"},
+                                            {"name": "mcp_apps_fixture_modern-save_state"}]}}
         for initial in ((200, incomplete), (503, complete)):
             replies = iter((initial, (200, complete)))
             calls = []
@@ -382,13 +506,13 @@ def self_check():
                 calls.append(path)
                 return next(replies)
             globals()["rpc"] = fake_rpc
-            ready_stock("http://fixture.invalid")
+            ready_characterization("http://fixture.invalid")
             assert len(calls) == 2, "stock readiness accepted an incomplete or failed catalog"
         clock = iter((0, 0, 181))
         time.monotonic = lambda: next(clock)
         globals()["rpc"] = lambda *args: (200, incomplete)
         try:
-            ready_stock("http://fixture.invalid")
+            ready_characterization("http://fixture.invalid")
         except RuntimeError as error:
             assert "stock aggregate tool catalog incomplete" in str(error)
         else:
@@ -474,18 +598,20 @@ def wait_health(url):
         raise RuntimeError("gateway /health did not become ready within 180 seconds")
 
 
-def ready_stock(url):
+def ready_characterization(url):
     wait_health(url)
-    # /health can succeed before the non-Code-Mode fixture is advertised.
+    # Characterization accepts the actual stock catalog, including stock's
+    # omission of direct tools from the Code-Mode fixture source.
     deadline = time.monotonic() + 180
     names = set()
+    required = {"executeToolCode", "mcp_apps_fixture_second-open_view", "mcp_apps_fixture_second-save_state",
+                "mcp_apps_fixture_modern-open_view", "mcp_apps_fixture_modern-save_state"}
     while time.monotonic() < deadline:
         try:
             status, body = rpc(url, "/mcp", "tools/list", {}, KEYS["full"])
             names = {tool.get("name", "") for tool in body.get("result", {}).get("tools", [])}
-            if status == 200 and {"executeToolCode", "mcp_apps_fixture_second-save_state",
-                                  "mcp_apps_fixture_modern-open_view"} <= names:
-                print("PASS stock health and MCP tool readiness", flush=True)
+            if status == 200 and required <= names:
+                print("PASS characterization health and stock-compatible MCP catalog readiness", flush=True)
                 return
         except (OSError, urllib.error.URLError):
             pass
@@ -516,6 +642,9 @@ def ready(url):
             raise RuntimeError(f"MCP tools/list readiness failed on {path} (HTTP {status}, tools={len(tools)})")
         if path == "/mcp" and "mcp_apps_fixture_second-open_view" not in names:
             raise RuntimeError("aggregate readiness did not expose the second fixture App")
+        if path == "/mcp" and not {"executeToolCode", "mcp_apps_fixture_second-save_state",
+                                    "mcp_apps_fixture_modern-open_view", "mcp_apps_fixture_modern-save_state"} <= names:
+            raise RuntimeError("aggregate catalog is incomplete for the configured fixture sources")
         if key == "limited" and (not any(name.endswith("open_view") for name in names)
                                   or any(name.endswith("fail_tool") for name in names)):
             raise RuntimeError("limited Virtual MCP readiness did not enforce its tool grant")
@@ -583,6 +712,8 @@ def main(args):
     for module, _ in modules:
         if not (module / "go.mod").is_file():
             raise RuntimeError(f"fixture source missing after merge: {module.relative_to(ROOT)}")
+        subprocess.run(["go", "test", "-count=1", "./..."], cwd=module,
+                       env={**os.environ, "GOWORK": "off"}, check=True)
     if not source.is_file() or not augment.is_file() or not filter_script.is_file():
         raise RuntimeError("MCP Apps harness cases or filter scripts are missing")
 
@@ -599,14 +730,13 @@ def main(args):
                "USE_INFISICAL": "0", "CI": "1",
                "BIFROST_SETUP_TOKEN": SETUP_TOKEN,
                "BIFROST_E2E_SETUP_TOKEN": SETUP_TOKEN}
-        harness_source = source
-        make_source_args = []
-        uri_seeds = {}
-        if baseline:
-            harness_source = temp / "stock-provider-harness.json"
-            shutil.copy2(source, harness_source)
-            uri_seeds = seed_stock_uris(harness_source)
-            make_source_args = [f"HARNESS_SOURCE_COLLECTION={harness_source}"]
+        harness_source = temp / ("stock-provider-harness.json" if baseline else "candidate-provider-harness.json")
+        shutil.copy2(source, harness_source)
+        # Seed known contract URIs independently of discovery assertions. A
+        # stock discovery failure must not make Newman skip later resource
+        # requests; those responses are separate evidence in the same run.
+        uri_seeds = seed_contract_uris(harness_source)
+        make_source_args = [f"HARNESS_SOURCE_COLLECTION={harness_source}"]
         augmented = temp / "augmented.json"
         subprocess.run(["node", str(augment), "--source", str(harness_source), "--out", str(augmented)],
                        cwd=ROOT, env=env, check=True)
@@ -664,7 +794,10 @@ def main(args):
             attachments = seed_virtual_key_attachments(base_url)
             setup_name = "stock-fixture-setup.json" if baseline else "fixture-setup.json"
             (report_dir / setup_name).write_text(json.dumps({"virtual_key_attachments": attachments}, indent=2) + "\n")
-            ready_stock(base_url) if baseline else ready(base_url)
+            if baseline or mode == "characterize":
+                ready_characterization(base_url)
+            else:
+                ready(base_url)
 
             pass_fail = 0
             runs = [("mcp-apps", 60)]
@@ -710,16 +843,30 @@ def main(args):
                                        "seeded_contract_uris": uri_seeds,
                                        "stock_exit_code": rc, "candidate_exit_code": int(candidate_rc),
                                        "classification_note": "Classification reflects observed named assertions; no stock-red result is assumed."})
-                    sentinel_names = {name for name, _ in BASELINE_SENTINELS[feature]}
-                    stock_failure_requests = {item["request"] for item in comparison["stock_failed_assertions"]}
-                    comparison["stock_failure_scope_valid"] = stock_failure_requests <= sentinel_names
+                    scope_valid, unrelated_stock_failures = stock_failure_scope(
+                        feature, comparison["stock_failed_assertions"])
+                    candidate_scope_valid, unrelated_candidate_failures = stock_failure_scope(
+                        feature, comparison["candidate_failed_assertions"])
+                    comparison["stock_failure_scope_valid"] = scope_valid
+                    comparison["unrelated_stock_failures"] = unrelated_stock_failures
+                    comparison["candidate_failure_scope_valid"] = candidate_scope_valid
+                    comparison["unrelated_candidate_failures"] = unrelated_candidate_failures
+                    comparison["allowed_stock_failure_rationales"] = [
+                        {"request": case, "assertion": assertion, "rationale": rationale}
+                        for (case, assertion), rationale in BASELINE_ALLOWED_STOCK_FAILURES[feature].items()]
                     comparison["strict_pass"] = (comparison["strict_pass"] and candidate_rc == "0"
                                                   and not comparison["candidate_failed_assertions"]
                                                   and comparison["stock_failure_scope_valid"]
-                                                  and (rc == 0 or bool(stock_failure_requests)))
+                                                  and comparison["candidate_failure_scope_valid"]
+                                                  and (rc == 0 or bool(comparison["stock_failed_assertions"])))
                     (report_dir / f"{feature}-comparison.json").write_text(json.dumps(comparison, indent=2) + "\n")
                     print(f"PASS {feature} source comparison ({mode}; unresolved={len(comparison['unresolved'])}, regressions={len(comparison['regressions'])})", flush=True)
-                    if mode == "strict" and not comparison["strict_pass"]:
+                    if (not scope_valid or not candidate_scope_valid
+                            or (rc != 0 and not comparison["stock_failed_assertions"])
+                            or (int(candidate_rc) != 0 and not comparison["candidate_failed_assertions"])):
+                        print(f"FAIL {feature} run had an unrelated assertion or an unclassified nonzero exit", flush=True)
+                        pass_fail = 1
+                    elif mode == "strict" and not comparison["strict_pass"]:
                         print(f"FAIL {feature} strict comparison; see {feature}-comparison.json", flush=True)
                         pass_fail = 1
                 elif rc:

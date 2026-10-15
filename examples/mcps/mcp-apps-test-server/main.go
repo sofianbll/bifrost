@@ -5,12 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sync"
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 )
 
 const resourceURI = "ui://mcp-apps-test-server/view.html"
+const maxSyntheticStateBytes = 256
 
 func main() {
 	instance := "fixture"
@@ -36,11 +38,38 @@ func main() {
 		message, _ := req.RequireString("message")
 		return result(instance, message), nil
 	})
+	savedState := ""
+	var savedStateMu sync.RWMutex
 	for _, name := range []string{"save_state", "read_state"} {
 		callback := name
-		t := mcp.NewTool(callback, mcp.WithDescription("MCP App callback"))
+		options := []mcp.ToolOption{mcp.WithDescription("MCP App callback")}
+		if callback == "save_state" {
+			options = append(options, mcp.WithString("state", mcp.Description("Synthetic state to retain for this fixture process; limited to 256 bytes")))
+		}
+		t := mcp.NewTool(callback, options...)
 		t.Meta = &mcp.Meta{AdditionalFields: map[string]any{"ui": map[string]any{"visibility": []string{"app"}}}}
-		s.AddTool(t, func(_ context.Context, _ mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		s.AddTool(t, func(_ context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			if callback == "save_state" {
+				if value, exists := req.GetArguments()["state"]; exists {
+					state, ok := value.(string)
+					if !ok {
+						return mcp.NewToolResultError("state must be a string"), nil
+					}
+					if len(state) > maxSyntheticStateBytes {
+						return mcp.NewToolResultError("state exceeds the 256-byte fixture limit"), nil
+					}
+					savedStateMu.Lock()
+					savedState = state
+					savedStateMu.Unlock()
+					return stateResult(instance, callback, state), nil
+				}
+			}
+			if callback == "read_state" {
+				savedStateMu.RLock()
+				state := savedState
+				savedStateMu.RUnlock()
+				return stateResult(instance, callback, state), nil
+			}
 			return mcp.NewToolResultText(instance + ":" + callback), nil
 		})
 	}
@@ -60,6 +89,16 @@ func main() {
 	if err := server.ServeStdio(s); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
+	}
+}
+
+func stateResult(instance, callback, state string) *mcp.CallToolResult {
+	return &mcp.CallToolResult{
+		Content: []mcp.Content{mcp.NewTextContent(instance + ":" + callback)},
+		StructuredContent: map[string]any{
+			"instance": instance,
+			"state":    state,
+		},
 	}
 }
 
