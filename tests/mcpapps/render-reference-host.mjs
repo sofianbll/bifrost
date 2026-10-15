@@ -45,12 +45,21 @@ const manifest = JSON.parse(await readFile(join(hostDirectory, ".bifrost-referen
 if (manifest.commit !== "82221c0c8ce7661efa6771c9d461511b1650495f" || manifest.version !== "2.0.3") {
   throw new Error("Reference host does not match the approved ext-apps source pin");
 }
-if (!manifest.hostFixtureAuthAdapter?.patchSha256 || !manifest.controlledPartialReplay?.patchSha256 || !manifest.appBundle?.sha256) {
-  throw new Error("Reference host manifest is missing adapter, partial replay, or generated SDK artifact identity");
+if (!manifest.hostFixtureAuthAdapter?.patchSha256 || !manifest.hostFixtureNegotiationAdapter?.patchSha256 ||
+    !manifest.controlledPartialReplay?.patchSha256 || !manifest.appBundle?.sha256) {
+  throw new Error("Reference host manifest is missing auth, negotiation, partial replay, or generated SDK artifact identity");
 }
 
 const require = createRequire(join(hostDirectory, "package.json"));
 const { chromium } = require("playwright");
+
+function jsonRpcMessages(bodyText) {
+  try { return [JSON.parse(bodyText)]; } catch {}
+  return bodyText.split(/\r?\n/).flatMap((line) => {
+    if (!line.startsWith("data:")) return [];
+    try { return [JSON.parse(line.slice(5).trim())]; } catch { return []; }
+  });
+}
 
 async function portAvailable(port) {
   const server = createServer();
@@ -100,12 +109,73 @@ try {
   }
   if (!ready) throw new Error(`Pinned host did not become ready: ${redact(hostOutput)}`);
 
+  const assetResponse = await fetch("http://localhost:8080/mcp-app-fixture.js", {
+    headers: { Origin: "http://localhost:8081" },
+  });
+  assert.equal(assetResponse.status, 200, "Pinned host must serve the SDK bundle from its public fixture asset route");
+  const assetAllowOrigin = assetResponse.headers.get("access-control-allow-origin");
+  assert.ok(assetAllowOrigin === "*" || assetAllowOrigin === "http://localhost:8081",
+    `SDK bundle CORS must allow sandbox origin http://localhost:8081; got ${assetAllowOrigin}`);
+
   browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH } : {}) });
   const page = await browser.newPage();
   const pageErrors = [];
+  let initializeEvidence;
+  let toolListEvidence;
+  const mcpNetworkEvents = [];
+  page.on("request", (request) => {
+    const requestUrl = new URL(request.url());
+    if (requestUrl.origin !== serverUrl.origin) return;
+    mcpNetworkEvents.push({ direction: "request", method: request.method(), path: requestUrl.pathname });
+    if (requestUrl.pathname !== serverUrl.pathname || request.method() !== "POST") return;
+    try {
+      const rpc = JSON.parse(request.postData() ?? "null");
+      mcpNetworkEvents.push({ direction: "request", method: rpc?.method, id: rpc?.id });
+      if (rpc?.method === "initialize") {
+        initializeEvidence = {
+          requestedProtocolVersion: rpc.params?.protocolVersion,
+          clientName: rpc.params?.clientInfo?.name,
+          uiMimeTypes: rpc.params?.capabilities?.extensions?.["io.modelcontextprotocol/ui"]?.mimeTypes ?? [],
+        };
+      }
+    } catch {}
+  });
+  page.on("response", async (response) => {
+    const responseUrl = new URL(response.url());
+    if (responseUrl.origin !== serverUrl.origin) return;
+    const responseHeaders = response.headers();
+    mcpNetworkEvents.push({
+      direction: "response", method: response.request().method(), path: responseUrl.pathname,
+      status: response.status(), contentType: responseHeaders["content-type"],
+      allowOrigin: responseHeaders["access-control-allow-origin"],
+      allowHeaders: responseHeaders["access-control-allow-headers"],
+    });
+    if (responseUrl.pathname !== serverUrl.pathname || response.request().method() !== "POST") return;
+    try {
+      const requestRpc = JSON.parse(response.request().postData() ?? "null");
+      if (requestRpc?.method === "initialize") {
+        const rpc = jsonRpcMessages(await response.text()).find((message) => message.id === requestRpc.id);
+        if (rpc?.result) {
+          initializeEvidence = {
+            ...initializeEvidence,
+            negotiatedProtocolVersion: rpc.result.protocolVersion,
+            serverInfo: rpc.result.serverInfo,
+          };
+        }
+      }
+      if (requestRpc?.method === "tools/list") {
+        const rpc = jsonRpcMessages(await response.text()).find((message) => message.id === requestRpc.id);
+        if (rpc?.result?.tools) toolListEvidence = rpc.result.tools.map((tool) => tool.name);
+      }
+    } catch {}
+  });
   page.on("pageerror", (error) => pageErrors.push(redact(error.message)));
   page.on("console", (message) => {
     if (message.type() === "error") pageErrors.push(redact(message.text()));
+  });
+  page.on("requestfailed", (request) => {
+    const requestUrl = new URL(request.url());
+    pageErrors.push(`requestfailed ${request.method()} ${requestUrl.origin}${requestUrl.pathname}: ${request.failure()?.errorText ?? "unknown"}`);
   });
   if (partialReplay) {
     await page.exposeFunction("__bifrostWaitForPartialInput", async (message) => {
@@ -122,10 +192,23 @@ try {
     }, ["partial-one", "partial-two"]);
   }
   const hostUrl = new URL("http://localhost:8080/");
-  hostUrl.searchParams.set("tool", `${fixtureClientName}-open_view`);
+  const expectedTool = `${fixtureClientName}-open_view`;
+  hostUrl.searchParams.set("tool", expectedTool);
   await page.goto(hostUrl.href, { waitUntil: "domcontentloaded" });
+  const toolSelect = page.getByLabel(/^Tool/);
+  await toolSelect.waitFor({ state: "visible" });
+  try {
+    await toolSelect.locator(`option[value="${expectedTool}"]`).waitFor({ state: "attached", timeout: 10000 });
+  } catch {
+    const availableTools = await toolSelect.locator("option").evaluateAll((options) => options.map((option) => option.value));
+    throw new Error(`Pinned host did not negotiate/select ${expectedTool}; exposed tools=${JSON.stringify(availableTools)}; initialize=${JSON.stringify(initializeEvidence)}; tools/list=${JSON.stringify(toolListEvidence)}; MCP network=${JSON.stringify(mcpNetworkEvents)}; browser errors=${JSON.stringify(pageErrors)}; host logs=${redact(hostOutput)}`);
+  }
+  assert.equal(await toolSelect.inputValue(), expectedTool, "Pinned host query must select the source-qualified App tool");
   await page.getByLabel("Input").fill('{"message":"host-input"}');
-  await page.getByRole("button", { name: "Call Tool" }).click();
+  const callButton = page.getByRole("button", { name: "Call Tool" });
+  await callButton.waitFor({ state: "visible" });
+  await callButton.waitFor({ state: "enabled", timeout: 10000 });
+  await callButton.click();
 
   const app = page.frameLocator("iframe").frameLocator("iframe");
   const inputView = app.getByTestId("tool-input");
@@ -149,6 +232,9 @@ try {
     await delay(100);
   }
   assert.equal(result?.structuredContent?.instance, expectedInstance, "App SDK must receive the native result");
+  assert.deepEqual(initializeEvidence?.uiMimeTypes, ["text/html;profile=mcp-app"], "Captured MCP initialize request must explicitly negotiate the App MIME type");
+  assert.ok(typeof initializeEvidence?.negotiatedProtocolVersion === "string", "Captured MCP initialize response must complete the pinned host session");
+  assert.ok(toolListEvidence?.includes(expectedTool), `Captured tools/list response must expose the selected App tool ${expectedTool}`);
   const native = result.structuredContent;
   assert.equal(native?.instance, expectedInstance, "App receives the expected source's native structured result");
   assert.equal(native?.message, "host-input");
@@ -201,6 +287,8 @@ try {
     partialEvidenceLabel: partialReplay ? "controlled partial-input replay through pinned AppBridge; not live-model/native Codex streaming" : undefined,
     hostCommit: manifest.commit,
     hostFixtureAuthPatchSha256: manifest.hostFixtureAuthAdapter.patchSha256,
+    hostFixtureNegotiationPatchSha256: manifest.hostFixtureNegotiationAdapter.patchSha256,
+    sdkBundleAccessControlAllowOrigin: assetAllowOrigin,
     appBundleSha256: manifest.appBundle.sha256,
     candidateSource,
     gatewayRoute: `${serverUrl.origin}${serverUrl.pathname}`,
@@ -208,6 +296,10 @@ try {
     fixtureClientName,
     checks: {
       sdkHandshakeAndViewRendered: true,
+      initializeRequestAndResponseCaptured: true,
+      uiMimeTypeNegotiated: initializeEvidence.uiMimeTypes[0],
+      negotiatedProtocolVersion: initializeEvidence.negotiatedProtocolVersion,
+      selectedToolInCapturedCatalog: expectedTool,
       fullInputDelivered: true,
       controlledPartialInputDelivered: partialReplay,
       notificationOrderChecked: true,
