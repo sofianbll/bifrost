@@ -218,6 +218,8 @@ Virtual MCPs are declared under `mcp.virtual_mcps`. They are reconciled into the
 
 When `source_of_truth` is `config.json` and `mcp.virtual_mcps` is present, it is authoritative for vMCPs: any stored vMCP absent from it is removed, and an explicit `"virtual_mcps": []` prunes them all. Omitting `mcp.virtual_mcps` leaves stored vMCPs unchanged. In `split` mode the file creates and updates vMCPs but never prunes runtime-managed ones.
 
+On startup, MCP clients are loaded before Virtual MCP definitions are reconciled, so tool references can resolve by client name. Governance virtual keys declared in the same file are persisted before Virtual MCP key attachments are reconciled. This is a one-time config-load ordering change; it adds no per-request work.
+
 <Note>
 `mcp.tool_groups` is the deprecated former name for this key and is kept for backward compatibility. It carries legacy attachment arrays (`team_ids`, `customer_ids`, `user_ids`, `provider_names`, `api_key_ids`) and does not expose `endpoint_slug`. Prefer `mcp.virtual_mcps` for new setups; when both keys are present, `mcp.virtual_mcps` wins and `mcp.tool_groups` is ignored.
 </Note>
