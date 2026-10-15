@@ -60,6 +60,16 @@
         },
         "tools_to_execute": ["*"],
         "tools_to_auto_execute": []
+      },
+      {
+        "name": "firstboot_grants_fixture",
+        "endpoint_slug": "firstboot-grants-source",
+        "connection_type": "stdio",
+        "stdio_config": {
+          "command": "../../examples/mcps/go-test-server/bin/go-test-server"
+        },
+        "tools_to_execute": ["string_transform"],
+        "tools_to_auto_execute": []
       }
     ],
     "virtual_mcps": [
@@ -81,6 +91,15 @@
           {"mcp_client_name": "mcp_apps_fixture", "tool_names": ["open_view"]}
         ],
         "virtual_key_ids": ["vk-mcp-apps-limited"]
+      },
+      {
+        "name": "First-boot grants fixture",
+        "endpoint_slug": "firstboot-grants-fixture",
+        "enabled": true,
+        "tools": [
+          {"mcp_client_name": "firstboot_grants_fixture", "tool_names": ["string_transform"]}
+        ],
+        "virtual_key_ids": ["vk-firstboot-grants-fixture"]
       }
     ]
   },
@@ -1637,6 +1656,16 @@
         "is_active": true,
         "mcp_configs": [],
         "provider_configs": []
+      },
+      {
+        "name": "First-boot grants fixture",
+        "id": "vk-firstboot-grants-fixture",
+        "value": "sk-bf-firstboot-grants-fixture",
+        "is_active": true,
+        "provider_configs": [],
+        "mcp_configs": [
+          {"mcp_client_name": "firstboot_grants_fixture", "tools_to_execute": ["string_transform"]}
+        ]
       }
     ]
   },
