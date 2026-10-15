@@ -33,7 +33,7 @@ import (
 // a genuine discovery result from being recorded).
 func computeToolsHash(tools map[string]schemas.ChatTool, toolNameMapping map[string]string, instructions string) string {
 	h := sha256.New()
-	if data, err := json.Marshal(tools); err == nil {
+	if data, err := schemas.MarshalMCPAppToolCache(tools); err == nil {
 		h.Write(data)
 	}
 	h.Write([]byte{0}) // separator so {"a":"b"} tools + {} mapping can't collide with {} tools + {"a":"b"} mapping
@@ -1021,6 +1021,14 @@ func convertMCPToolToBifrostSchema(mcpTool *mcp.Tool, logger schemas.Logger) sch
 		}
 	}
 
+	var appMetadata *schemas.MCPAppToolMetadata
+	if mcpTool.Meta != nil {
+		if rawDefinition, err := json.Marshal(mcpTool); err == nil {
+			resourceURI := mcpToolUIResourceURI(rawDefinition)
+			appMetadata = &schemas.MCPAppToolMetadata{RawDefinition: rawDefinition, ResourceURI: resourceURI}
+		}
+	}
+
 	return schemas.ChatTool{
 		Type: schemas.ChatToolTypeFunction,
 		Function: &schemas.ChatToolFunction{
@@ -1034,7 +1042,26 @@ func convertMCPToolToBifrostSchema(mcpTool *mcp.Tool, logger schemas.Logger) sch
 			},
 		},
 		Annotations: annotations,
+		MCPApp:      appMetadata,
 	}
+}
+
+func mcpToolUIResourceURI(rawDefinition []byte) string {
+	var definition struct {
+		Meta struct {
+			UI struct {
+				ResourceURI string `json:"resourceUri"`
+			} `json:"ui"`
+			LegacyResourceURI string `json:"ui/resourceUri"`
+		} `json:"_meta"`
+	}
+	if json.Unmarshal(rawDefinition, &definition) != nil {
+		return ""
+	}
+	if definition.Meta.UI.ResourceURI != "" {
+		return definition.Meta.UI.ResourceURI
+	}
+	return definition.Meta.LegacyResourceURI
 }
 
 // extractTextFromMCPResponse extracts text content from an MCP tool response.

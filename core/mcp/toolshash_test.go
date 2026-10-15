@@ -2,7 +2,6 @@ package mcp
 
 import (
 	"context"
-	"encoding/json"
 	"testing"
 
 	"github.com/maximhq/bifrost/core/schemas"
@@ -36,13 +35,33 @@ func TestComputeToolsHash_DiffersOnContentChange(t *testing.T) {
 }
 
 func TestComputeToolsHash_IncludesCachedMCPAppsMetadata(t *testing.T) {
-	var first, refreshed schemas.ChatTool
-	require.NoError(t, json.Unmarshal([]byte(`{"type":"function","function":{"name":"app-open","parameters":{"type":"object","properties":{}}},"_bifrost_mcp_app":{"originalName":"open","resourceUri":"ui://app/one"}}`), &first))
-	require.NoError(t, json.Unmarshal([]byte(`{"type":"function","function":{"name":"app-open","parameters":{"type":"object","properties":{}}},"_bifrost_mcp_app":{"originalName":"open","resourceUri":"ui://app/two"}}`), &refreshed))
+	first := schemas.ChatTool{Type: "function", MCPApp: &schemas.MCPAppToolMetadata{ResourceURI: "ui://app/one"}}
+	refreshed := schemas.ChatTool{Type: "function", MCPApp: &schemas.MCPAppToolMetadata{ResourceURI: "ui://app/two"}}
 
 	firstHash := computeToolsHash(map[string]schemas.ChatTool{"app-open": first}, nil, "")
 	refreshedHash := computeToolsHash(map[string]schemas.ChatTool{"app-open": refreshed}, nil, "")
 	assert.NotEqual(t, firstHash, refreshedHash, "resource-only changes must refresh the stored catalog")
+}
+
+func TestSetClientTools_MetadataOnlyChangeRefreshesCatalog(t *testing.T) {
+	m := NewMCPManager(context.Background(), schemas.MCPConfig{}, nil, &MockLogger{}, nil)
+	config := &schemas.MCPClientConfig{ID: "client-app-refresh", Name: "app-client"}
+	m.mu.Lock()
+	m.clientMap[config.ID] = &schemas.MCPClientState{Name: config.Name, ExecutionConfig: config, ToolMap: map[string]schemas.ChatTool{}}
+	m.mu.Unlock()
+
+	callCount := 0
+	m.SetToolsChangeCallback(func(string, string, map[string]schemas.ChatTool, map[string]string, string) { callCount++ })
+	tool := func(uri string) map[string]schemas.ChatTool {
+		return map[string]schemas.ChatTool{"app-client-open": {
+			Type:   schemas.ChatToolTypeFunction,
+			MCPApp: &schemas.MCPAppToolMetadata{ResourceURI: uri},
+		}}
+	}
+	m.SetClientTools(config.ID, tool("ui://one"), nil, "")
+	m.SetClientTools(config.ID, tool("ui://two"), nil, "")
+	m.SetClientTools(config.ID, tool("ui://two"), nil, "")
+	assert.Equal(t, 2, callCount, "a metadata-only refresh must persist once, then identical discovery must be gated")
 }
 
 // TestSetClientTools_UnchangedTools_DoesNotFireCallback pins the funnel's

@@ -435,6 +435,7 @@ type ChatTool struct {
 	Custom       *ChatToolCustom     `json:"custom,omitempty"`        // Custom tool definition (shape 2)
 	CacheControl *CacheControl       `json:"cache_control,omitempty"` // Cache control for the tool
 	Annotations  *MCPToolAnnotations `json:"-"`                       // MCP tool annotations (Bifrost-internal, never forwarded to providers)
+	MCPApp       *MCPAppToolMetadata `json:"-"`                       // Original MCP metadata retained for the native MCP Apps relay/cache only
 
 	// Anthropic-native tool flags promoted to the neutral layer. All optional;
 	// ignored by providers that don't support them. Gating per ProviderFeatures
@@ -480,6 +481,14 @@ type ChatTool struct {
 	// the full tool marshal per request. nil for client-supplied tools, which
 	// marshal normally. Unexported so it never appears in JSON.
 	serialized []byte
+}
+
+// MCPAppToolMetadata retains the upstream definition required by native MCP Apps.
+// It is deliberately excluded from provider JSON; cache helpers persist it in an
+// additive per-tool sidecar so existing flat tool-map readers remain compatible.
+type MCPAppToolMetadata struct {
+	RawDefinition json.RawMessage `json:"rawDefinition,omitempty"`
+	ResourceURI   string          `json:"resourceUri,omitempty"`
 }
 
 // normalizeShape clears fields that don't belong to the ChatTool's active
@@ -586,6 +595,72 @@ func (t *ChatTool) UnmarshalJSON(data []byte) error {
 	}
 	*t = ChatTool(temp)
 	t.normalizeShape()
+	return nil
+}
+
+// MarshalMCPAppToolCache serializes a flat tool map with optional internal MCP
+// Apps metadata attached to individual tool records. Older readers ignore the
+// additive sidecar and continue to load the ordinary ChatTool fields.
+func MarshalMCPAppToolCache(tools map[string]ChatTool) ([]byte, error) {
+	if tools == nil {
+		return []byte("null"), nil
+	}
+	out := make(map[string]json.RawMessage, len(tools))
+	for name, tool := range tools {
+		encoded, err := json.Marshal(tool)
+		if err != nil {
+			return nil, err
+		}
+		if tool.MCPApp == nil {
+			out[name] = encoded
+			continue
+		}
+		var fields map[string]json.RawMessage
+		if err := json.Unmarshal(encoded, &fields); err != nil {
+			return nil, err
+		}
+		sidecar, err := json.Marshal(tool.MCPApp)
+		if err != nil {
+			return nil, err
+		}
+		fields["_bifrost_mcp_app"] = sidecar
+		encoded, err = json.Marshal(fields)
+		if err != nil {
+			return nil, err
+		}
+		out[name] = encoded
+	}
+	return json.Marshal(out)
+}
+
+// UnmarshalMCPAppToolCache decodes both historical flat tool maps and the
+// additive cache sidecar. It is intentionally used only at cache boundaries,
+// keeping ordinary provider-facing ChatTool decoding on its existing path.
+func UnmarshalMCPAppToolCache(data []byte, tools *map[string]ChatTool) error {
+	var records map[string]json.RawMessage
+	if err := json.Unmarshal(data, &records); err != nil {
+		return err
+	}
+	if records == nil {
+		*tools = nil
+		return nil
+	}
+	decoded := make(map[string]ChatTool, len(records))
+	for name, record := range records {
+		var tool ChatTool
+		if err := json.Unmarshal(record, &tool); err != nil {
+			return err
+		}
+		var sidecar struct {
+			MCPApp *MCPAppToolMetadata `json:"_bifrost_mcp_app"`
+		}
+		if err := json.Unmarshal(record, &sidecar); err != nil {
+			return err
+		}
+		tool.MCPApp = sidecar.MCPApp
+		decoded[name] = tool
+	}
+	*tools = decoded
 	return nil
 }
 

@@ -2,6 +2,7 @@ package configstore
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
 	"github.com/maximhq/bifrost/core/schemas"
@@ -28,6 +29,14 @@ func TestUpdateMCPClientTools_TargetedColumnUpdate(t *testing.T) {
 
 	tools := map[string]schemas.ChatTool{
 		"echo": {Type: "function"},
+		"app-open": {
+			Type:     "function",
+			Function: &schemas.ChatToolFunction{Name: "app-open"},
+			MCPApp: &schemas.MCPAppToolMetadata{
+				RawDefinition: []byte(`{"name":"open","inputSchema":{"type":"object","properties":{}},"_meta":{"ui":{"resourceUri":"ui://app/open"}}}`),
+				ResourceURI:   "ui://app/open",
+			},
+		},
 	}
 	mapping := map[string]string{"echo": "echo-server"}
 
@@ -36,6 +45,18 @@ func TestUpdateMCPClientTools_TargetedColumnUpdate(t *testing.T) {
 	got, err := s.GetMCPClientByID(ctx, "mcp-tools-client")
 	require.NoError(t, err)
 	assert.Equal(t, tools, got.DiscoveredTools)
+	// The database keeps the original flat map and an additive per-tool cache sidecar.
+	var stockShape map[string]struct {
+		Type     string `json:"type"`
+		Function struct {
+			Name string `json:"name"`
+		} `json:"function"`
+	}
+	var stored tables.TableMCPClient
+	require.NoError(t, s.DB().WithContext(ctx).Where("client_id = ?", "mcp-tools-client").Take(&stored).Error)
+	require.NoError(t, json.Unmarshal([]byte(stored.DiscoveredToolsJSON), &stockShape))
+	assert.Equal(t, "app-open", stockShape["app-open"].Function.Name)
+	assert.Equal(t, "function", stockShape["app-open"].Type)
 	assert.Equal(t, mapping, got.DiscoveredToolNameMapping)
 	// Untouched column proves this was a targeted update, not a full-row one.
 	assert.Equal(t, "original_name", got.Name)

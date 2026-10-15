@@ -98,6 +98,48 @@ func TestConvertMCPToolToBifrostSchema_WithAnnotations(t *testing.T) {
 	assert.NotContains(t, s, "Resource Reader", "annotation title must be absent from provider JSON")
 }
 
+func TestConvertMCPToolToBifrostSchema_PreservesMCPAppDefinition(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		metadata map[string]any
+		wantURI  string
+	}{
+		{
+			name:     "modern",
+			metadata: map[string]any{"ui": map[string]any{"resourceUri": "ui://modern/view", "visibility": []any{"app"}}},
+			wantURI:  "ui://modern/view",
+		},
+		{
+			name:     "legacy",
+			metadata: map[string]any{"ui/resourceUri": "ui://legacy/view"},
+			wantURI:  "ui://legacy/view",
+		},
+		{
+			name:     "dual-prefers-modern",
+			metadata: map[string]any{"ui": map[string]any{"resourceUri": "ui://modern/view"}, "ui/resourceUri": "ui://legacy/view"},
+			wantURI:  "ui://modern/view",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			tool := convertMCPToolToBifrostSchema(&mcp.Tool{
+				Name:        "open_view",
+				InputSchema: mcp.ToolInputSchema{Type: "object", Properties: map[string]any{}},
+				Meta:        &mcp.Meta{AdditionalFields: tc.metadata},
+			}, defaultLogger)
+			require.NotNil(t, tool.MCPApp)
+			assert.Equal(t, tc.wantURI, tool.MCPApp.ResourceURI)
+			var raw map[string]any
+			require.NoError(t, json.Unmarshal(tool.MCPApp.RawDefinition, &raw))
+			assert.Equal(t, "open_view", raw["name"])
+			assert.NotNil(t, raw["inputSchema"])
+			assert.NotNil(t, raw["_meta"])
+			providerJSON, err := json.Marshal(tool)
+			require.NoError(t, err)
+			assert.NotContains(t, string(providerJSON), "ui://")
+		})
+	}
+}
+
 // TestConvertMCPToolToBifrostSchema_NilAnnotationsWhenAllZero verifies the nil guard:
 // when all annotation fields are zero-valued, ChatTool.Annotations must remain nil.
 func TestConvertMCPToolToBifrostSchema_NilAnnotationsWhenAllZero(t *testing.T) {
