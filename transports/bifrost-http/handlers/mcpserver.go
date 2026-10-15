@@ -4,6 +4,7 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync/atomic"
 	"time"
@@ -174,9 +175,77 @@ func (h *MCPServerHandler) handleMCPServer(ctx *fasthttp.RequestCtx) {
 		SendError(ctx, fasthttp.StatusInternalServerError, fmt.Sprintf("Failed to encode response: %v", err))
 		return
 	}
+	// Only initialize produces this concrete result type. Check it before decoding the request so
+	// ordinary tool/resource calls take the existing marshal path without extension parsing.
+	if rpcResponse, ok := response.(mcp.JSONRPCResponse); ok {
+		if _, initialize := rpcResponse.Result.(mcp.InitializeResult); initialize {
+			responseJSON = addMCPAppsNegotiation(ctx.PostBody(), responseJSON)
+		}
+	}
 
 	ctx.SetContentType("application/json")
 	ctx.SetBody(responseJSON)
+}
+
+const mcpAppsExtension = "io.modelcontextprotocol/ui"
+
+// addMCPAppsNegotiation advertises the UI extension only when the peer requested it in
+// initialize. mcp-go models the standard capability fields; MCP extensions are open-ended, so
+// add the negotiated extension at the JSON-RPC boundary without changing the shared SDK type.
+func addMCPAppsNegotiation(request, response []byte) []byte {
+	var requestEnvelope struct {
+		Params struct {
+			Capabilities struct {
+				Extensions map[string]json.RawMessage `json:"extensions"`
+			} `json:"capabilities"`
+		} `json:"params"`
+	}
+	if json.Unmarshal(request, &requestEnvelope) != nil {
+		return response
+	}
+	if _, negotiated := requestEnvelope.Params.Capabilities.Extensions[mcpAppsExtension]; !negotiated {
+		return response
+	}
+	var envelope map[string]json.RawMessage
+	if json.Unmarshal(response, &envelope) != nil {
+		return response
+	}
+	var result map[string]json.RawMessage
+	if json.Unmarshal(envelope["result"], &result) != nil {
+		return response
+	}
+	var capabilities map[string]json.RawMessage
+	if json.Unmarshal(result["capabilities"], &capabilities) != nil {
+		return response
+	}
+	var extensions map[string]json.RawMessage
+	if raw := capabilities["extensions"]; len(raw) > 0 {
+		if json.Unmarshal(raw, &extensions) != nil {
+			return response
+		}
+	}
+	if extensions == nil {
+		extensions = make(map[string]json.RawMessage)
+	}
+	extensions[mcpAppsExtension] = json.RawMessage(`{"mimeTypes":["text/html;profile=mcp-app"]}`)
+	var err error
+	capabilities["extensions"], err = json.Marshal(extensions)
+	if err != nil {
+		return response
+	}
+	result["capabilities"], err = json.Marshal(capabilities)
+	if err != nil {
+		return response
+	}
+	envelope["result"], err = json.Marshal(result)
+	if err != nil {
+		return response
+	}
+	updated, err := json.Marshal(envelope)
+	if err != nil {
+		return response
+	}
+	return updated
 }
 
 // handleMCPServerSSE handles GET requests for MCP Server-Sent Events streaming
