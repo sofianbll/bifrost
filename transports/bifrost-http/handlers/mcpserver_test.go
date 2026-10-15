@@ -8,9 +8,9 @@ import (
 	"github.com/maximhq/bifrost/core/schemas"
 	"github.com/maximhq/bifrost/framework/configstore"
 	"github.com/maximhq/bifrost/transports/v2/bifrost-http/lib"
-	"github.com/valyala/fasthttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/valyala/fasthttp"
 )
 
 func TestConvertToolFunctionParametersToMCPInputSchemaPreservesDefs(t *testing.T) {
@@ -335,4 +335,56 @@ func BenchmarkMCPToolCallResponse(b *testing.B) {
 			}
 		})
 	}
+}
+
+type mcpAppsToolManager struct{ tools []schemas.ChatTool }
+
+func (m *mcpAppsToolManager) GetAvailableMCPTools(context.Context) []schemas.ChatTool { return m.tools }
+func (m *mcpAppsToolManager) GetMCPServerInstructions(context.Context) string         { return "" }
+func (m *mcpAppsToolManager) ExecuteChatMCPTool(context.Context, *schemas.ChatAssistantMessageToolCall) (*schemas.ChatMessage, *schemas.BifrostError) {
+	return &schemas.ChatMessage{}, nil
+}
+func (m *mcpAppsToolManager) ExecuteResponsesMCPTool(context.Context, *schemas.ResponsesToolMessage) (*schemas.ResponsesMessage, *schemas.BifrostError) {
+	return nil, nil
+}
+
+func TestToolsListPreservesAndQualifiesMCPAppMetadata(t *testing.T) {
+	appTool := schemas.ChatTool{
+		Type: schemas.ChatToolTypeFunction,
+		Function: &schemas.ChatToolFunction{
+			Name:       "app-client-open_view",
+			Parameters: &schemas.ToolFunctionParameters{Type: "object", Properties: schemas.NewOrderedMapFromPairs()},
+		},
+		MCPApp: &schemas.MCPAppToolMetadata{
+			RawDefinition: []byte(`{"name":"open_view","inputSchema":{"type":"object","properties":{}},"_meta":{"ui":{"resourceUri":"ui://shared/view","visibility":["app"]},"ui/resourceUri":"ui://shared/view"}}`),
+			ResourceURI:   "ui://shared/view",
+			Visibility:    []string{"app"},
+		},
+	}
+	tm := &mcpAppsToolManager{tools: []schemas.ChatTool{appTool}}
+	h := &MCPServerHandler{toolManager: tm, config: &lib.Config{ClientConfig: &configstore.ClientConfig{}}}
+	h.mcpServer.Store(h.buildServer(tm.tools))
+	ctx := &fasthttp.RequestCtx{}
+	ctx.Request.SetBody([]byte(`{"jsonrpc":"2.0","id":3,"method":"tools/list","params":{}}`))
+	h.handleMCPServer(ctx)
+
+	var response struct {
+		Result struct {
+			Tools []struct {
+				Meta struct {
+					UI struct {
+						ResourceURI string   `json:"resourceUri"`
+						Visibility  []string `json:"visibility"`
+					} `json:"ui"`
+					LegacyURI string `json:"ui/resourceUri"`
+				} `json:"_meta"`
+			} `json:"tools"`
+		} `json:"result"`
+	}
+	require.NoError(t, json.Unmarshal(ctx.Response.Body(), &response))
+	require.Len(t, response.Result.Tools, 1)
+	resourceURI := response.Result.Tools[0].Meta.UI.ResourceURI
+	assert.Contains(t, resourceURI, "bifrost-mcp-app://", "the source-qualified gateway URI must be advertised to the App")
+	assert.Equal(t, resourceURI, response.Result.Tools[0].Meta.LegacyURI, "modern and legacy aliases must resolve to the same gateway resource")
+	assert.Equal(t, []string{"app"}, response.Result.Tools[0].Meta.UI.Visibility)
 }
