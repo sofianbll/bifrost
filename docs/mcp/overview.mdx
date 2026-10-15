@@ -142,11 +142,11 @@ This enables a powerful pattern:
 
 ### MCP Apps
 
-The HTTP gateway relays MCP Apps over the same `/mcp` endpoint. A client must request the `io.modelcontextprotocol/ui` extension in `initialize`; Bifrost advertises it only to clients that request it. Tools retain their upstream UI metadata and input schema, while each resource URI is qualified with its source client so two servers can use the same upstream URI safely. Resource reads and tool calls remain scoped to the caller's client, tool, key, and request filters.
+The HTTP gateway relays MCP Apps over the same `/mcp` endpoint. A client must request the `io.modelcontextprotocol/ui` extension in `initialize`; Bifrost advertises it only to clients that request it. Tools retain their upstream UI metadata and input schema, while each resource URI is qualified with its source client so two servers can use the same upstream URI safely. Resource reads and tool calls remain scoped to the caller's client, tool, key, and request filters. The cache keeps App metadata in an additive sidecar alongside the existing flat tool map. Older Bifrost versions can still read the cached tools and functions, but an older writer drops the sidecar; after upgrading again, the App metadata returns when upstream discovery succeeds.
 
 Tools marked with `_meta.ui.visibility: ["app"]` remain available to native MCP clients but are omitted from model-facing tool catalogs unless their metadata also includes `model`. Bifrost returns the upstream native `CallToolResult` fields, including structured content, metadata, and `isError`, after MCP post-hooks. If a hook changes the compatibility result without changing the native result, Bifrost drops that stale native payload and returns the effective hook result.
 
-The gateway relays completed resource and tool results. It does not provide partial tool input delivery or live streaming of an upstream `CallToolResult`; these require separate protocol support.
+The gateway relays completed resource and tool results. Raw tool definitions retained for native metadata are capped at 256 KiB per tool. Code Mode clients can expose linked Apps and callbacks to native MCP clients, while nested Code Mode calls remain data-only. The gateway does not provide partial tool input delivery, live streaming of an upstream `CallToolResult`, or native Codex streaming; these require separate protocol support.
 
 ```mermaid
 graph TD
