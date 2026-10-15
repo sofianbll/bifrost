@@ -21,6 +21,7 @@ import (
 type mockToolClientManager struct {
 	tools        []schemas.ChatTool
 	instructions []schemas.MCPServerInstructions
+	codeMode     bool
 }
 
 func (m *mockToolClientManager) GetClientByName(clientName string) *schemas.MCPClientState {
@@ -30,7 +31,7 @@ func (m *mockToolClientManager) GetClientByName(clientName string) *schemas.MCPC
 			ExecutionConfig: &schemas.MCPClientConfig{
 				ID:               "test-client",
 				Name:             "test-client",
-				IsCodeModeClient: false,
+				IsCodeModeClient: m.codeMode,
 				ToolsToExecute:   []string{"*"},
 			},
 		}
@@ -93,6 +94,17 @@ func TestGetAvailableToolsKeepsAppOnlyToolsOutOfModelCatalog(t *testing.T) {
 
 	assert.Equal(t, []string{"test-client-search", "test-client-plain"}, toolNamesFromAvailable(manager.GetAvailableTools(ctx)))
 	assert.Equal(t, []string{"test-client-open", "test-client-search", "test-client-plain"}, toolNamesFromAvailable(manager.GetAvailableToolsForMCP(ctx)))
+}
+
+func TestGetAvailableToolsForMCPIncludesAppsFromCodeModeClients(t *testing.T) {
+	appOnly := makeTool("test-client-open_view")
+	appOnly.MCPApp = &schemas.MCPAppToolMetadata{Visibility: []string{"app"}}
+	ordinary := makeTool("test-client-structured_result")
+	manager := NewToolsManager(nil, &mockToolClientManager{tools: []schemas.ChatTool{appOnly, ordinary}, codeMode: true}, nil, nil, defaultLogger)
+	ctx := schemas.NewBifrostContext(context.Background(), schemas.NoDeadline)
+
+	assert.Empty(t, toolNamesFromAvailable(manager.GetAvailableTools(ctx)), "Code Mode client tools must stay out of the model catalog")
+	assert.Equal(t, []string{"test-client-open_view"}, toolNamesFromAvailable(manager.GetAvailableToolsForMCP(ctx)), "the native MCP catalog should include only linked Apps from a Code Mode client")
 }
 
 func toolNamesFromAvailable(tools []schemas.ChatTool) []string {
