@@ -273280,6 +273280,60 @@
           }
         }
       ]
+    },
+    {
+      "name": "251. First-boot Virtual MCP grants (firstboot-grants-standalone)",
+      "description": "Runs before any setup-token postseed on a disposable fresh config store. The shared Python profile declares a non-CodeMode stdio fixture, a Virtual MCP exposing only string_transform, and the virtual key that the Virtual MCP attaches to; no database pre-creation is permitted. This request proves the attached key reaches the fixture through the file-declared Virtual MCP route.",
+      "item": [
+        {
+          "name": "stdio fixture firstboot grant invokes string_transform (firstboot-grants-standalone)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var text = pm.response.text() || '';",
+                  "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
+                  "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(200); });",
+                  "pm.test('file-declared grant invokes the stdio fixture tool', function () { var result=body.result||{}; var content=result.content||[]; pm.expect(body.error,text).to.not.exist; pm.expect(result,text).to.be.an('object'); pm.expect(result.isError,text).to.not.equal(true); pm.expect(content.length,text).to.be.greaterThan(0); var toolResult={}; try { toolResult=JSON.parse(content[0].text||'{}'); } catch (e) {} pm.expect(toolResult.input,text).to.equal('firstboot-grant-204'); pm.expect(toolResult.operation,text).to.equal('uppercase'); pm.expect(toolResult.result,text).to.equal('FIRSTBOOT-GRANT-204'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-firstboot-grants-fixture"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"string_transform\",\"arguments\":{\"input\":\"firstboot-grant-204\",\"operation\":\"uppercase\"}}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp/firstboot-grants-fixture",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp",
+                "firstboot-grants-fixture"
+              ]
+            }
+          }
+        }
+      ]
     }
   ]
 }
