@@ -1024,8 +1024,8 @@ func convertMCPToolToBifrostSchema(mcpTool *mcp.Tool, logger schemas.Logger) sch
 	var appMetadata *schemas.MCPAppToolMetadata
 	if mcpTool.Meta != nil {
 		if rawDefinition, err := json.Marshal(mcpTool); err == nil {
-			resourceURI := mcpToolUIResourceURI(rawDefinition)
-			appMetadata = &schemas.MCPAppToolMetadata{RawDefinition: rawDefinition, ResourceURI: resourceURI}
+			resourceURI, visibility := mcpToolUIProperties(rawDefinition)
+			appMetadata = &schemas.MCPAppToolMetadata{RawDefinition: rawDefinition, ResourceURI: resourceURI, Visibility: visibility}
 		}
 	}
 
@@ -1046,22 +1046,23 @@ func convertMCPToolToBifrostSchema(mcpTool *mcp.Tool, logger schemas.Logger) sch
 	}
 }
 
-func mcpToolUIResourceURI(rawDefinition []byte) string {
+func mcpToolUIProperties(rawDefinition []byte) (string, []string) {
 	var definition struct {
 		Meta struct {
 			UI struct {
-				ResourceURI string `json:"resourceUri"`
+				ResourceURI string   `json:"resourceUri"`
+				Visibility  []string `json:"visibility"`
 			} `json:"ui"`
 			LegacyResourceURI string `json:"ui/resourceUri"`
 		} `json:"_meta"`
 	}
 	if json.Unmarshal(rawDefinition, &definition) != nil {
-		return ""
+		return "", nil
 	}
 	if definition.Meta.UI.ResourceURI != "" {
-		return definition.Meta.UI.ResourceURI
+		return definition.Meta.UI.ResourceURI, definition.Meta.UI.Visibility
 	}
-	return definition.Meta.LegacyResourceURI
+	return definition.Meta.LegacyResourceURI, definition.Meta.UI.Visibility
 }
 
 // extractTextFromMCPResponse extracts text content from an MCP tool response.

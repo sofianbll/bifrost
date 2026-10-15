@@ -4612,6 +4612,11 @@ func (bifrost *Bifrost) GetAvailableMCPTools(ctx *schemas.BifrostContext) []sche
 	if bifrost.MCPManager == nil {
 		return nil
 	}
+	if nativeAppLister, ok := bifrost.MCPManager.(interface {
+		GetAvailableToolsForMCP(ctx *schemas.BifrostContext) []schemas.ChatTool
+	}); ok {
+		return nativeAppLister.GetAvailableToolsForMCP(ctx)
+	}
 	return bifrost.MCPManager.GetAvailableTools(ctx)
 }
 

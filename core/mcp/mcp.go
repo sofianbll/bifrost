@@ -355,6 +355,12 @@ func (m *MCPManager) GetAvailableTools(ctx *schemas.BifrostContext) []schemas.Ch
 	return m.toolsManager.GetAvailableTools(ctx)
 }
 
+// GetAvailableToolsForMCP retains app-only tools for the native MCP server.
+// Provider-facing catalog construction uses GetAvailableTools and filters them.
+func (m *MCPManager) GetAvailableToolsForMCP(ctx *schemas.BifrostContext) []schemas.ChatTool {
+	return m.toolsManager.GetAvailableToolsForMCP(ctx)
+}
+
 // UpdateCodeModeLimits replaces the per-execution code mode limits at runtime.
 func (m *MCPManager) UpdateCodeModeLimits(limits *schemas.MCPCodeModeLimits) {
 	m.toolsManager.UpdateCodeModeLimits(limits)
