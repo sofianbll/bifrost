@@ -37,13 +37,13 @@ jobs:
             comparison_mode: characterize
             extra_firstboot: true
           - name: issue-23
-            product_pin: 439a3d338fef1c19327f1820e1c85fa444f952c8
+            product_pin: e804bbcaf49305d49704f29d94733a126c88b9bd
             fixture_scopes: codemode-errors
             comparison_mode: strict
             extra_firstboot: false
           - name: issue-24
-            product_pin: 2a31dc4418aa5d4b2043d7995b829e94d521c6f4
-            fixture_scopes: firstboot-grants
+            product_pin: 1194291f60bf0894d8b0998e2725b583bfdf1b5c
+            fixture_scopes: firstboot-grants-standalone
             comparison_mode: strict
             extra_firstboot: false
     env:
