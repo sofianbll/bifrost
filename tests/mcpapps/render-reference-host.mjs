@@ -900,7 +900,7 @@ async function calibrateLatePartialReplay(browser, build, outDir, secrets, timeo
     evidence.initialReceivedOrder = await body.evaluate(() => window.__bifrostToolNotifications);
     assert.deepEqual(evidence.initialReceivedOrder, ["ui/notifications/tool-input", "ui/notifications/tool-result"]);
     // Deliberately replay the old sandbox transport bypass after final input/result.
-    // The real AppBridge forbids this order; the passive App observer must reject it too.
+    // The protocol forbids this order; the passive App observer must reject it too.
     const notify = (method, elements) => state.page.frameLocator("iframe").locator("body").evaluate((body, message) => {
       const frame = body.querySelector("iframe");
       if (!frame?.contentWindow) throw new Error("Legacy control has no App frame");
@@ -923,10 +923,15 @@ async function calibrateLatePartialReplay(browser, build, outDir, secrets, timeo
     evidence.status = "passed";
   } catch (error) { evidence.error = redact(error.message, secrets); }
   finally {
-    await writeFile(join(outDir, "report.json"), redact(JSON.stringify(evidence, null, 2), secrets) + "\n", { mode: 0o600 });
-    if (state) await state.context.close();
-    if (target) await stopChild(target.child);
-    await closeProxy(proxy);
+    try {
+      await writeFile(join(outDir, "report.json"), redact(JSON.stringify(evidence, null, 2), secrets) + "\n", { mode: 0o600 });
+    } finally {
+      const cleanup = await Promise.allSettled([
+        state ? state.context.close() : Promise.resolve(), stopChild(target?.child), closeProxy(proxy),
+      ]);
+      const failures = cleanup.filter((result) => result.status === "rejected").map((result) => result.reason);
+      if (failures.length) throw new AggregateError(failures, "Legacy partial control cleanup failed");
+    }
   }
   return evidence;
 }
