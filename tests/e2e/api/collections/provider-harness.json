@@ -273874,7 +273874,7 @@
                   "var text = pm.response.text() || '';",
                   "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
                   "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(200); });",
-                  "pm.test('aggregate namespaces sources and marks callbacks app-only', function () { var tools=(body.result && body.result.tools) || []; var one=tools.filter(function(t){return t.name.indexOf('mcp_apps_fixture-open_view')!==-1;})[0]; var two=tools.filter(function(t){return t.name.indexOf('mcp_apps_fixture_second-open_view')!==-1;})[0]; pm.expect(one,text).to.be.an('object'); pm.expect(two,text).to.be.an('object'); pm.expect(one._meta.ui.resourceUri).to.eql(one._meta['ui/resourceUri']); pm.expect(two._meta.ui.resourceUri).to.eql(two._meta['ui/resourceUri']); pm.expect(one._meta.ui.resourceUri).to.not.eql(two._meta.ui.resourceUri); pm.collectionVariables.set('mcpAppsAggUri1',one._meta.ui.resourceUri); pm.collectionVariables.set('mcpAppsAggUri2',two._meta.ui.resourceUri); var callbacks=tools.filter(function(t){return /save_state$/.test(t.name);}); pm.expect(callbacks.length).to.eql(2); pm.expect(callbacks.every(function(t){return t._meta.ui.visibility[0]==='app';})).to.eql(true); });"
+                  "pm.test('aggregate namespaces sources and marks callbacks app-only', function () { var tools=(body.result && body.result.tools) || []; var one=tools.find(function(t){return t.name==='mcp_apps_fixture-open_view';}); var two=tools.find(function(t){return t.name==='mcp_apps_fixture_second-open_view';}); var three=tools.find(function(t){return t.name==='mcp_apps_fixture_modern-open_view';}); pm.expect(one,text).to.be.an('object'); pm.expect(two,text).to.be.an('object'); pm.expect(three,text).to.be.an('object'); var uri1='ui://bifrost/bWNwX2FwcHNfZml4dHVyZQ/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw'; var uri2='ui://bifrost/bWNwX2FwcHNfZml4dHVyZV9zZWNvbmQ/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw'; var uri3='ui://bifrost/bWNwX2FwcHNfZml4dHVyZV9tb2Rlcm4/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw'; pm.expect(uri1).to.not.eql(uri2); pm.expect(uri1).to.not.eql(uri3); pm.expect(uri2).to.not.eql(uri3); pm.expect(one._meta.ui.resourceUri).to.eql(uri1); pm.expect(one._meta['ui/resourceUri']).to.eql(uri1); pm.expect(two._meta['ui/resourceUri']).to.eql(uri2); pm.expect(two._meta.ui).to.eql(undefined); pm.expect(three._meta.ui.resourceUri).to.eql(uri3); pm.expect(three._meta['ui/resourceUri']).to.eql(undefined); pm.collectionVariables.set('mcpAppsAggUri1',one._meta.ui.resourceUri); pm.collectionVariables.set('mcpAppsAggUri2',two._meta['ui/resourceUri']); pm.collectionVariables.set('mcpAppsAggUri3',three._meta.ui.resourceUri); var expectedCallbacks=['mcp_apps_fixture-save_state','mcp_apps_fixture_second-save_state','mcp_apps_fixture_modern-save_state']; var callbacks=tools.filter(function(t){return /save_state$/.test(t.name);}).map(function(t){return t.name;}).sort(); pm.expect(callbacks).to.eql(expectedCallbacks.sort()); var appCallbacks=tools.filter(function(t){return /save_state$/.test(t.name);}); pm.expect(appCallbacks.every(function(t){return Array.isArray(t._meta.ui.visibility)&&t._meta.ui.visibility.length===1&&t._meta.ui.visibility[0]==='app';})).to.eql(true); });"
                 ]
               }
             }
@@ -274005,7 +274005,7 @@
           }
         },
         {
-          "name": "MCP Apps fixture aggregate rejects ambiguous callback alias",
+          "name": "[NO-CONTENT] MCP Apps fixture aggregate rejects ambiguous callback alias",
           "event": [
             {
               "listen": "test",
@@ -274958,7 +274958,7 @@
           }
         },
         {
-          "name": "MCP Apps fixture denied aggregate resource",
+          "name": "[NO-CONTENT] MCP Apps fixture denied aggregate resource",
           "event": [
             {
               "listen": "test",
@@ -275005,7 +275005,7 @@
           }
         },
         {
-          "name": "MCP Apps fixture denied aggregate callback",
+          "name": "[NO-CONTENT] MCP Apps fixture denied aggregate callback",
           "event": [
             {
               "listen": "test",

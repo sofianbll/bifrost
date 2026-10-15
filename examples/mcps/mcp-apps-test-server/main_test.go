@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"os/exec"
 	"strings"
@@ -77,32 +78,106 @@ func TestStdioToolListMetadataVariants(t *testing.T) {
 	}
 }
 
+func TestStdioStateCallbacksPersistWithinOneFixtureProcess(t *testing.T) {
+	initialize := `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"fixture-test","version":"1"}}}`
+	initialized := `{"jsonrpc":"2.0","method":"notifications/initialized"}`
+	responses := runStdio(t, []string{"first", "dual"}, initialize, initialized,
+		`{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"save_state","arguments":{"state":"first-literal"}}}`,
+		`{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"read_state","arguments":{}}}`,
+		`{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"save_state","arguments":{"state":"changed-literal"}}}`,
+		`{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"read_state","arguments":{}}}`,
+		`{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"save_state","arguments":{"state":"first-literal"}}}`,
+		`{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"read_state","arguments":{}}}`,
+	)
+	assertStateResponse(t, responses[1], "first:save_state", "first", "first-literal")
+	assertStateResponse(t, responses[2], "first:read_state", "first", "first-literal")
+	assertStateResponse(t, responses[3], "first:save_state", "first", "changed-literal")
+	assertStateResponse(t, responses[4], "first:read_state", "first", "changed-literal")
+	assertStateResponse(t, responses[5], "first:save_state", "first", "first-literal")
+	assertStateResponse(t, responses[6], "first:read_state", "first", "first-literal")
+
+	otherSource := runStdio(t, []string{"second", "legacy"}, initialize, initialized,
+		`{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"read_state","arguments":{}}}`,
+		`{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"save_state","arguments":{"state":"second-literal"}}}`,
+		`{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"read_state","arguments":{}}}`,
+	)
+	assertStateResponse(t, otherSource[1], "second:read_state", "second", "")
+	assertStateResponse(t, otherSource[2], "second:save_state", "second", "second-literal")
+	assertStateResponse(t, otherSource[3], "second:read_state", "second", "second-literal")
+}
+
+func assertStateResponse(t *testing.T, response []byte, wantText, wantInstance, wantState string) {
+	t.Helper()
+	var call struct {
+		Result struct {
+			Content []struct {
+				Text string `json:"text"`
+			} `json:"content"`
+			StructuredContent struct {
+				Instance string `json:"instance"`
+				State    string `json:"state"`
+			} `json:"structuredContent"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(response, &call); err != nil {
+		t.Fatal(err)
+	}
+	if len(call.Result.Content) != 1 || call.Result.Content[0].Text != wantText {
+		t.Fatalf("state callback text = %+v, want %q", call.Result.Content, wantText)
+	}
+	if call.Result.StructuredContent.Instance != wantInstance || call.Result.StructuredContent.State != wantState {
+		t.Fatalf("state callback structured content = %+v, want instance=%q state=%q",
+			call.Result.StructuredContent, wantInstance, wantState)
+	}
+}
+
 func runStdio(t *testing.T, args []string, requests ...string) [][]byte {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, "go", append([]string{"run", "."}, args...)...)
 	cmd.Env = append(os.Environ(), "GOWORK=off")
-	cmd.Stdin = strings.NewReader(strings.Join(requests, "\n") + "\n")
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	if err := cmd.Run(); err != nil {
-		t.Fatalf("go run fixture: %v\n%s", err, stderr.String())
-	}
-	scanner := bufio.NewScanner(&stdout)
-	var responses [][]byte
-	for scanner.Scan() {
-		line := bytes.TrimSpace(scanner.Bytes())
-		if len(line) != 0 {
-			responses = append(responses, bytes.Clone(line))
-		}
-	}
-	if err := scanner.Err(); err != nil {
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
 		t.Fatal(err)
 	}
-	if len(responses) != 2 {
-		t.Fatalf("stdio returned %d responses, want initialize and tools/call/list responses: %s", len(responses), stdout.String())
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	if err := cmd.Start(); err != nil {
+		t.Fatalf("go run fixture: %v\n%s", err, stderr.String())
+	}
+	reader := bufio.NewReader(stdout)
+	var responses [][]byte
+	for _, request := range requests {
+		if _, err := fmt.Fprintln(stdin, request); err != nil {
+			t.Fatalf("write MCP request: %v", err)
+		}
+		var message struct {
+			Method string `json:"method"`
+		}
+		if err := json.Unmarshal([]byte(request), &message); err != nil {
+			t.Fatal(err)
+		}
+		if !strings.HasPrefix(message.Method, "notifications/") {
+			line, err := reader.ReadBytes('\n')
+			if err != nil {
+				t.Fatalf("read MCP response: %v\n%s", err, stderr.String())
+			}
+			responses = append(responses, bytes.TrimSpace(line))
+		}
+	}
+	if err := stdin.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := cmd.Wait(); err != nil {
+		t.Fatalf("go run fixture: %v\n%s", err, stderr.String())
+	}
+	if len(responses) != len(requests)-1 {
+		t.Fatalf("stdio returned %d responses, want %d non-notification responses", len(responses), len(requests)-1)
 	}
 	return responses
 }

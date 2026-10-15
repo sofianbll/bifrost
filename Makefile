@@ -2092,6 +2092,7 @@ NEWMAN_HTMLEXTRA_VERSION ?= 1.23.1
 # status table lists, including the deferred cache-parity pass, so it lives in
 # one place rather than being restated per newman invocation.
 HARNESS_PROVIDERS := openai anthropic bedrock bedrock_mantle gemini vertex azure passthrough openrouter huggingface groq xai mistral cohere deepseek
+HARNESS_SOURCE_COLLECTION ?= tests/e2e/api/collections/provider-harness.json
 
 # Second parallelism axis. Each provider fork is sharded again by modality class so the run is not
 # bound by one provider's whole sequential item list: openai alone is ~1264 requests, and its
@@ -2611,7 +2612,7 @@ run-provider-harness-test: $(if $(HELP),,install-newman) ## Run the Bifrost prov
 	: "unresolved {{vertexAccessToken}} placeholder and 401 en masse."; \
 	export VERTEX_ACCESS_TOKEN_VAL; \
 	$(USE_NODE); run_quiet node tests/e2e/api/runners/augment-provider-harness.mjs \
-		--source tests/e2e/api/collections/provider-harness.json \
+		--source "$(HARNESS_SOURCE_COLLECTION)" \
 		--out tmp/harness-augmented.json || { say "$(RED)Harness augmentation failed$(NC)"; exit 1; }; \
 	COLLECTION_FILE="tmp/harness-augmented.json"; \
 	: "SMOKE_MANIFEST alone carries smoke mode: it is both the truth test and the flag value."; \
