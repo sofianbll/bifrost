@@ -413,3 +413,29 @@ func TestExecuteTool_ToolErrorMentioningSession_DoesNotTriggerRecovery(t *testin
 	assert.Same(t, before.Conn, after.Conn)
 	assert.Equal(t, int32(1), calls.Load(), "a tool error is not a dead session: the call must not be replayed")
 }
+
+func BenchmarkExecuteChatToolNoApps(b *testing.B) {
+	s := server.NewMCPServer("ordinary-tool-benchmark", "1.0.0", server.WithToolCapabilities(true))
+	s.AddTool(mcpgo.NewTool("echo", mcpgo.WithReadOnlyHintAnnotation(true)), func(context.Context, mcpgo.CallToolRequest) (*mcpgo.CallToolResult, error) {
+		return mcpgo.NewToolResultText("ok"), nil
+	})
+	httpServer := httptest.NewServer(server.NewStreamableHTTPServer(s))
+	b.Cleanup(httpServer.Close)
+
+	manager := NewMCPManager(context.Background(), schemas.MCPConfig{}, nil, &MockLogger{}, nil)
+	b.Cleanup(func() { _ = manager.Cleanup() })
+	config := newRecoveryClientConfig("client-ordinary-benchmark", "ordinary-client", httpServer.URL)
+	if err := manager.connectToMCPClient(context.Background(), config); err != nil {
+		b.Fatal(err)
+	}
+	toolName := "ordinary-client-echo"
+	toolCall := &schemas.ChatAssistantMessageToolCall{Function: schemas.ChatAssistantMessageToolCallFunction{Name: &toolName, Arguments: "{}"}}
+	ctx := schemas.NewBifrostContext(context.Background(), schemas.NoDeadline)
+	b.ReportAllocs()
+	b.ResetTimer()
+	for b.Loop() {
+		if _, bErr := manager.ExecuteChatTool(ctx, toolCall); bErr != nil {
+			b.Fatal(bErr)
+		}
+	}
+}

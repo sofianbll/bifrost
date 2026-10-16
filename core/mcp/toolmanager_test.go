@@ -1296,3 +1296,18 @@ func TestParseAndAddToolsToRequest_InstructionsWhenFilterOptsIn(t *testing.T) {
 	assert.Equal(t, schemas.ChatMessageRoleSystem, result.ChatRequest.Input[0].Role)
 	assert.Contains(t, *result.ChatRequest.Input[0].Content.ContentStr, "Always call echo first.")
 }
+
+var availableToolsBenchmarkSink []schemas.ChatTool
+
+func BenchmarkGetAvailableToolsNoApps(b *testing.B) {
+	manager := NewToolsManager(nil, &mockToolClientManager{tools: []schemas.ChatTool{
+		makeTool("test-client-lookup"),
+		makeTool("test-client-search"),
+	}}, nil, nil, defaultLogger)
+	ctx := schemas.NewBifrostContext(context.Background(), schemas.NoDeadline)
+	b.ReportAllocs()
+	b.ResetTimer()
+	for b.Loop() {
+		availableToolsBenchmarkSink = manager.GetAvailableTools(ctx)
+	}
+}
