@@ -1,3 +1,4 @@
+[fix]: serialize MCP catalog refreshes to prevent stale snapshot publication
 - **MCP Apps and Code Mode Error Results** - The MCP server now negotiates the MCP Apps extension, exposes source-qualified app resources and app tool metadata, preserves native MCP tool results, and retains Code Mode protocol error markers across `tools/call`.
 ## ✨ Features
 

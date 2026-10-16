@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -93,6 +94,7 @@ type VirtualKeyCache interface {
 // MCPServerHandler manages HTTP requests for MCP server operations
 // It implements the MCP protocol over HTTP streaming (SSE) for MCP clients
 type MCPServerHandler struct {
+	syncMu      sync.Mutex // Guards the entire catalog refresh, not request readers.
 	toolManager MCPToolManager
 	// admitter answers what the request may reach. Optional: without one nothing resolves access,
 	// and every request is served unrestricted.
@@ -491,8 +493,12 @@ func (h *MCPServerHandler) handleMCPServerSSE(ctx *fasthttp.RequestCtx) {
 
 // SyncMCPServer rebuilds the server from the tools currently available and swaps it in. Called
 // whenever the set of MCP clients or their tools changes. Every caller is served from this one
-// server; what each of them sees is decided per request.
+// server; what each of them sees is decided per request. Capture, build and publication
+// are serialized so a delayed older refresh cannot replace a newer catalog.
 func (h *MCPServerHandler) SyncMCPServer(ctx context.Context) error {
+	h.syncMu.Lock()
+	defer h.syncMu.Unlock()
+
 	availableTools := h.toolManager.GetAvailableMCPTools(ctx)
 	h.mcpServer.Store(h.buildServer(availableTools))
 	logger.Debug("Synced MCP server with %d tools", len(availableTools))

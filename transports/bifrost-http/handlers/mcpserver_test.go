@@ -4,7 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/maximhq/bifrost/core/schemas"
@@ -1014,4 +1017,172 @@ func TestResourcesListAndReadAreSourceQualified(t *testing.T) {
 	require.Len(t, readEnvelope.Result.Contents, 1)
 	assert.Equal(t, firstURI, readEnvelope.Result.Contents[0].URI)
 	assert.Equal(t, "<html>app</html>", readEnvelope.Result.Contents[0].Text)
+}
+
+// refreshCatalogManager controls capture at the existing manager boundary.
+// Published slices remain immutable while a refresh is paused.
+type refreshCatalogManager struct {
+	mcpAppAliasToolManager
+	catalog       atomic.Pointer[[]schemas.ChatTool]
+	captures      atomic.Int32
+	captured      chan struct{}
+	release       chan struct{}
+	secondCapture chan struct{}
+}
+
+func (manager *refreshCatalogManager) GetAvailableMCPTools(ctx context.Context) []schemas.ChatTool {
+	tools := *manager.catalog.Load()
+	if ctx.Value(schemas.MCPContextKeyIncludeTools) != nil {
+		return (&mcpAppAliasToolManager{tools: tools}).GetAvailableMCPTools(ctx)
+	}
+	switch manager.captures.Add(1) {
+	case 2:
+		close(manager.captured)
+		<-manager.release
+	case 3:
+		close(manager.secondCapture)
+	}
+	return tools
+}
+
+func refreshCatalogResponse(h *MCPServerHandler, body string) *fasthttp.RequestCtx {
+	request := &fasthttp.RequestCtx{}
+	request.Request.SetRequestURI("/mcp")
+	request.Request.Header.SetMethod(fasthttp.MethodPost)
+	request.Request.SetBodyString(body)
+	h.handleMCPServer(request)
+	return request
+}
+
+func requireRefreshCatalog(t *testing.T, h *MCPServerHandler, names []string) {
+	t.Helper()
+	response := refreshCatalogResponse(h, `{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}`)
+	require.Equal(t, fasthttp.StatusOK, response.Response.StatusCode())
+	var body struct {
+		Result struct {
+			Tools []struct {
+				Name string `json:"name"`
+			} `json:"tools"`
+		} `json:"result"`
+	}
+	require.NoError(t, json.Unmarshal(response.Response.Body(), &body))
+	actual := make([]string, 0, len(body.Result.Tools))
+	for _, tool := range body.Result.Tools {
+		actual = append(actual, tool.Name)
+	}
+	require.ElementsMatch(t, names, actual, "public tools/list must serve the latest complete catalog")
+}
+
+func TestSyncMCPServerSerialCatalogChanges(t *testing.T) {
+	manager := &mcpAppAliasToolManager{}
+	h, err := NewMCPServerHandler(context.Background(), &lib.Config{ClientConfig: &configstore.ClientConfig{}}, manager, nil, nil, nil)
+	require.NoError(t, err)
+	requireRefreshCatalog(t, h, nil)
+	first := appCallbackTool("first", "save_state")
+	modern := appCallbackTool("modern", "read_state")
+	for _, catalog := range []struct {
+		tools []schemas.ChatTool
+		names []string
+	}{
+		{[]schemas.ChatTool{first, modern}, []string{"first-save_state", "modern-read_state"}},
+		{[]schemas.ChatTool{modern}, []string{"modern-read_state"}},
+		{nil, nil},
+	} {
+		manager.tools = catalog.tools
+		require.NoError(t, h.SyncMCPServer(context.Background()))
+		requireRefreshCatalog(t, h, catalog.names)
+	}
+	response := refreshCatalogResponse(h, `{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"read_state","arguments":{}}}`)
+	assert.NotContains(t, string(response.Response.Body()), `"tool":"modern-read_state"`, "removed callbacks must not survive an empty snapshot")
+	assert.Contains(t, string(response.Response.Body()), `"error"`)
+}
+
+func TestSyncMCPServerOverlappingRefreshKeepsLatestCatalog(t *testing.T) {
+	initial := []schemas.ChatTool{appCallbackTool("first", "save_state"), appCallbackTool("second", "save_state")}
+	latest := append(append([]schemas.ChatTool{}, initial...), appCallbackTool("modern", "read_state"))
+	manager := &refreshCatalogManager{captured: make(chan struct{}), release: make(chan struct{}), secondCapture: make(chan struct{})}
+	manager.catalog.Store(&initial)
+	h, err := NewMCPServerHandler(context.Background(), &lib.Config{ClientConfig: &configstore.ClientConfig{}}, manager, nil, nil, nil)
+	require.NoError(t, err)
+	var release sync.Once
+	var firstDone, secondDone chan error
+	await := func(done chan error) {
+		t.Helper()
+		select {
+		case err := <-done:
+			require.NoError(t, err)
+		case <-time.After(3 * time.Second):
+			t.Fatal("catalog refresh did not finish after barrier release")
+		}
+	}
+	start := func() chan error {
+		done := make(chan error, 1)
+		go func() { done <- h.SyncMCPServer(context.Background()); close(done) }()
+		return done
+	}
+	t.Cleanup(func() {
+		release.Do(func() { close(manager.release) })
+		if firstDone != nil {
+			await(firstDone)
+		}
+		if secondDone != nil {
+			await(secondDone)
+		}
+	})
+	firstDone = start()
+	select {
+	case <-manager.captured:
+	case <-time.After(3 * time.Second):
+		t.Fatal("first catalog capture did not reach barrier")
+	}
+	// Readers keep serving the immutable previous snapshot during a refresh.
+	requireRefreshCatalog(t, h, []string{"first-save_state", "second-save_state"})
+	manager.catalog.Store(&latest)
+	secondDone = start()
+	// Bounded negative capture assertion, not a startup sleep. On the old code,
+	// B completes before A is released; serialization instead delays B's capture.
+	select {
+	case <-manager.secondCapture:
+		await(secondDone)
+		assert.Fail(t, "overlapping refresh entered catalog capture while the first capture was held")
+	case <-time.After(100 * time.Millisecond):
+	}
+	release.Do(func() { close(manager.release) })
+	await(firstDone)
+	await(secondDone)
+	requireRefreshCatalog(t, h, []string{"first-save_state", "second-save_state", "modern-read_state"})
+	response := refreshCatalogResponse(h, `{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"read_state","arguments":{}}}`)
+	assert.Equal(t, fasthttp.StatusOK, response.Response.StatusCode())
+	assert.Contains(t, string(response.Response.Body()), `"tool":"modern-read_state"`, "callback aliases must match the same complete catalog")
+}
+
+func BenchmarkSyncMCPServerCatalog(b *testing.B) {
+	manager := &mcpAppAliasToolManager{tools: []schemas.ChatTool{
+		appCallbackTool("first", "save_state"), appCallbackTool("second", "save_state"), appCallbackTool("modern", "read_state"),
+	}}
+	for _, parallel := range []bool{false, true} {
+		b.Run(fmt.Sprintf("parallel=%t", parallel), func(b *testing.B) {
+			h, err := NewMCPServerHandler(context.Background(), &lib.Config{ClientConfig: &configstore.ClientConfig{}}, manager, nil, nil, nil)
+			if err != nil {
+				b.Fatal(err)
+			}
+			b.ReportAllocs()
+			b.ResetTimer()
+			if parallel {
+				b.RunParallel(func(pb *testing.PB) {
+					for pb.Next() {
+						if err := h.SyncMCPServer(context.Background()); err != nil {
+							b.Error(err)
+						}
+					}
+				})
+			} else {
+				for i := 0; i < b.N; i++ {
+					if err := h.SyncMCPServer(context.Background()); err != nil {
+						b.Fatal(err)
+					}
+				}
+			}
+		})
+	}
 }
