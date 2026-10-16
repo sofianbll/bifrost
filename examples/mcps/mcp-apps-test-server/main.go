@@ -1,3 +1,4 @@
+// Package main provides the stdio fixture for MCP Apps relay tests.
 package main
 
 import (
