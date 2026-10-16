@@ -5,6 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -P)"
 export BIFROST_REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd -P)"
 exec python3 - "$@" <<'PY'
 import base64
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -308,6 +309,71 @@ def parse_published_endpoint(output):
 def published_endpoint(container, env):
     output = subprocess.check_output(["docker", "port", container, "8080/tcp"], text=True, env=env)
     return parse_published_endpoint(output)
+
+
+def parse_fixture_module_info(go_info, expected_module, driver_head):
+    module_match = re.search(r"(?m)^\s*path\s+(\S+)\s*$", go_info)
+    revision_match = re.search(r"(?m)^\s*build\s+vcs\.revision=(\S+)\s*$", go_info)
+    modified_match = re.search(r"(?m)^\s*build\s+vcs\.modified=(\S+)\s*$", go_info)
+    module_path = module_match.group(1) if module_match else ""
+    vcs_revision = revision_match.group(1) if revision_match else ""
+    vcs_modified = modified_match.group(1) if modified_match else ""
+    problems = []
+    if not module_path or module_path != expected_module:
+        problems.append(f"module path {module_path!r} differs from go.mod {expected_module!r}")
+    if vcs_revision != driver_head:
+        problems.append(f"binary VCS revision {vcs_revision!r} differs from driver HEAD {driver_head!r}")
+    if vcs_modified != "false":
+        problems.append(f"binary VCS modified marker is {vcs_modified!r}, expected 'false'")
+    return {"module_path": module_path, "vcs_revision": vcs_revision,
+            "vcs_modified": vcs_modified, "validation_errors": problems}
+
+
+def fixture_build_provenance(modules, report_dir, baseline, expected_driver_source):
+    driver_head = subprocess.check_output(["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True).strip()
+    tracked_status = subprocess.check_output(
+        ["git", "-C", str(ROOT), "status", "--porcelain", "--untracked-files=no"], text=True).strip()
+    failures = []
+    if driver_head != expected_driver_source:
+        failures.append(f"driver HEAD {driver_head} differs from pinned harness source {expected_driver_source}")
+    if tracked_status:
+        failures.append(f"driver tracked worktree is dirty: {tracked_status}")
+    fixtures = []
+    text_sections = [f"driver_head={driver_head}",
+                     f"expected_driver_source={expected_driver_source}",
+                     f"driver_tracked_status={'clean' if not tracked_status else tracked_status}"]
+    for module, name in modules:
+        binary = module / "bin" / name
+        info = subprocess.check_output(["go", "version", "-m", str(binary)], text=True)
+        module_source = (module / "go.mod").read_text()
+        expected_module_match = re.search(r"(?m)^module\s+(\S+)\s*$", module_source)
+        expected_module = expected_module_match.group(1) if expected_module_match else ""
+        parsed_info = parse_fixture_module_info(info, expected_module, driver_head)
+        module_path = parsed_info["module_path"]
+        vcs_revision = parsed_info["vcs_revision"]
+        vcs_modified = parsed_info["vcs_modified"]
+        binary_sha256 = hashlib.sha256(binary.read_bytes()).hexdigest()
+        problems = parsed_info["validation_errors"]
+        if problems:
+            failures.append(f"{name}: " + "; ".join(problems))
+        fixtures.append({"name": name, "binary": str(binary.relative_to(ROOT)),
+                         "binary_sha256": binary_sha256, "module_path": module_path,
+                         "expected_module_path": expected_module, "vcs_revision": vcs_revision,
+                         "vcs_modified": vcs_modified, "go_version_m": info,
+                         "validation_errors": problems})
+        text_sections.extend([f"\nfixture={name}", f"binary={binary.relative_to(ROOT)}",
+                              f"binary_sha256={binary_sha256}", f"module_path={module_path}",
+                              f"vcs_revision={vcs_revision}", f"vcs_modified={vcs_modified}",
+                              "go_version -m:", info.rstrip()])
+    evidence = {"driver_head": driver_head, "expected_driver_source": expected_driver_source,
+                "driver_tracked_status": tracked_status, "source_role": "stock" if baseline else "candidate",
+                "fixtures": fixtures, "validation_errors": failures}
+    prefix = "stock-" if baseline else ""
+    (report_dir / f"{prefix}fixture-build-info.json").write_text(json.dumps(evidence, indent=2) + "\n")
+    (report_dir / f"{prefix}fixture-build-info.txt").write_text("\n".join(text_sections) + "\n")
+    if failures:
+        raise RuntimeError("fixture build provenance verification failed: " + " | ".join(failures))
+    return evidence
 
 
 def firstboot_comparison_classification(phase, candidate_gate):
@@ -822,6 +888,19 @@ def self_check():
                 pass
             else:
                 raise AssertionError(f"malformed Docker port mapping was accepted: {malformed_endpoint!r}")
+    pinned_driver = "a" * 40
+    pinned_module = "example.test/fixture"
+    valid_build_info = (f"/tmp/fixture: go1.27.2\n\tpath {pinned_module}\n"
+                        f"\tbuild vcs=git\n\tbuild vcs.revision={pinned_driver}\n"
+                        "\tbuild vcs.modified=false\n")
+    assert parse_fixture_module_info(valid_build_info, pinned_module, pinned_driver)["validation_errors"] == []
+    for invalid_info, expected_module in (
+            (valid_build_info.replace(f"path {pinned_module}", "path example.test/other"), pinned_module),
+            (valid_build_info.replace(pinned_driver, "b" * 40), pinned_module),
+            (valid_build_info.replace("vcs.modified=false", "vcs.modified=true"), pinned_module),
+            (valid_build_info.replace("vcs.modified=false\n", ""), pinned_module)):
+        if not parse_fixture_module_info(invalid_info, expected_module, pinned_driver)["validation_errors"]:
+            raise AssertionError("fixture build provenance accepted an incorrect module or VCS identity")
     assert firstboot_comparison_classification("firstboot", "candidate-green") == "fixed"
     assert firstboot_comparison_classification("firstboot", "expected-stock-red") == "unresolved"
     assert firstboot_comparison_classification("restart", "candidate-green") == "green-control"
@@ -1533,6 +1612,7 @@ def main(args):
     if mode not in ("characterize", "strict"):
         raise RuntimeError("BIFROST_COMPARISON_MODE must be characterize or strict")
     source_identities = {
+        "driver": os.environ.get("DRIVER_SOURCE", ""),
         "stock": os.environ.get("BIFROST_STOCK_SOURCE", ""),
         "candidate": os.environ.get("BIFROST_CANDIDATE_SOURCE", ""),
         "stable_reference": os.environ.get("BIFROST_STABLE_REFERENCE", ""),
@@ -1626,6 +1706,7 @@ def main(args):
                 output.chmod(0o755)
                 created_bins.append(output)
 
+            fixture_build_provenance(modules, report_dir, baseline, source_identities["driver"])
             base_config = json.loads(config_path.read_text())
             expected_clients = expected_fixture_client_count(scopes)
             # The selected stdio clients must exist in the read-only repo mount at exact paths.
