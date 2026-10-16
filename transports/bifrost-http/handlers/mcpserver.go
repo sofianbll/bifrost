@@ -578,14 +578,7 @@ func (h *MCPServerHandler) buildServer(availableTools []schemas.ChatTool) *mcpSe
 	// Per-request tool filter so tools/list answers with what this request may see.
 	server.WithToolFilter(h.makeIncludeClientsFilter())(mcpServer)
 
-	// Register tools from all connected clients
-	hasMCPApps := false
-	for _, tool := range availableTools {
-		if tool.MCPAppMetadata() != nil {
-			hasMCPApps = true
-			break
-		}
-	}
+	// Register tools from all connected clients.
 	for _, tool := range availableTools {
 		// Only process function tools (skip custom tools)
 		if tool.Function == nil {
@@ -620,7 +613,7 @@ func (h *MCPServerHandler) buildServer(availableTools []schemas.ChatTool) *mcpSe
 			var toolMessage *schemas.ChatMessage
 			var nativeResult json.RawMessage
 			var err *schemas.BifrostError
-			if nativeExecutor, ok := h.toolManager.(MCPAppToolExecutor); hasMCPApps && ok {
+			if nativeExecutor, ok := h.toolManager.(MCPAppToolExecutor); tool.MCPAppMetadata() != nil && ok {
 				bctx, ok := ctx.(*schemas.BifrostContext)
 				if !ok {
 					bctx = schemas.NewBifrostContext(ctx, schemas.NoDeadline)
