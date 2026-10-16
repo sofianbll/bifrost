@@ -113,7 +113,7 @@ func registerReturnErrorTool(s *server.MCPServer) {
 		mcp.WithString("error_type",
 			mcp.Required(),
 			mcp.Description("Type of error to return"),
-			mcp.Enum("validation", "runtime", "network", "timeout", "permission"),
+			mcp.Enum("validation", "runtime", "network", "timeout", "permission", "prefix"),
 		),
 	)
 
@@ -147,6 +147,8 @@ func registerReturnErrorTool(s *server.MCPServer) {
 			errorMessage = "Timeout Error: Operation exceeded maximum allowed time"
 		case "permission":
 			errorMessage = "Permission Error: Insufficient privileges to perform operation"
+		case "prefix":
+			errorMessage = "Error: synthetic fixture error value"
 		default:
 			errorMessage = fmt.Sprintf("Unknown error type: %s", args.ErrorType)
 		}
@@ -264,10 +266,10 @@ func registerMemoryIntensiveTool(s *server.MCPServer) {
 		}
 
 		response := map[string]interface{}{
-			"allocated_mb": args.SizeMB,
+			"allocated_mb":    args.SizeMB,
 			"allocated_bytes": sizeBytes,
-			"checksum":     checksum,
-			"message":      fmt.Sprintf("Successfully allocated %dMB", args.SizeMB),
+			"checksum":        checksum,
+			"message":         fmt.Sprintf("Successfully allocated %dMB", args.SizeMB),
 		}
 
 		// Clear memory before returning

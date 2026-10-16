@@ -2,6 +2,7 @@ package mcp
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"net"
@@ -13,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	mcpgo "github.com/mark3labs/mcp-go/mcp"
 	"github.com/maximhq/bifrost/core/network"
 	"github.com/maximhq/bifrost/core/network/proxytest"
 	"github.com/maximhq/bifrost/core/schemas"
@@ -1239,4 +1241,68 @@ func TestBuildTLSHTTPClientUsesGlobalProxy(t *testing.T) {
 	_, err = httpClient.Do(req)
 	require.Error(t, err, "a metadata address must be refused")
 	proxytest.AssertRoute(t, set, proxytest.Direct, "", nil)
+}
+
+type mcpAppResourceTestPipeline struct {
+	deny    bool
+	preRuns int
+}
+
+func (p *mcpAppResourceTestPipeline) RunMCPPreHooks(_ *schemas.BifrostContext, _ *schemas.BifrostMCPRequest) (*schemas.BifrostMCPRequest, *schemas.MCPPluginShortCircuit, int) {
+	p.preRuns++
+	if p.deny {
+		return nil, &schemas.MCPPluginShortCircuit{Error: &schemas.BifrostError{Error: &schemas.ErrorField{Message: "policy denied"}}}, 1
+	}
+	response := &schemas.BifrostMCPResponse{}
+	response.SetMCPAppResourceResult(json.RawMessage(`{"contents":[{"uri":"ui://upstream/view","mimeType":"text/html;profile=mcp-app","text":"upstream secret"}]}`))
+	return nil, &schemas.MCPPluginShortCircuit{Response: response}, 1
+}
+
+func (p *mcpAppResourceTestPipeline) RunMCPPostHooks(_ *schemas.BifrostContext, response *schemas.BifrostMCPResponse, err *schemas.BifrostError, _ int) (*schemas.BifrostMCPResponse, *schemas.BifrostError) {
+	if !p.deny && response != nil {
+		response.SetMCPAppResourceResult(json.RawMessage(`{"contents":[{"uri":"ui://upstream/view","mimeType":"text/html;profile=mcp-app","text":"redacted"}]}`))
+	}
+	return response, err
+}
+
+func (*mcpAppResourceTestPipeline) RunMCPPreConnectionHooks(_ *schemas.BifrostContext, req *schemas.BifrostMCPConnectRequest) (*schemas.BifrostMCPConnectRequest, *schemas.MCPConnectionShortCircuit, int) {
+	return req, nil, 0
+}
+func (*mcpAppResourceTestPipeline) RunMCPPostConnectionHooks(_ *schemas.BifrostContext, response *schemas.BifrostMCPConnectResponse, err *schemas.BifrostError, _ int) (*schemas.BifrostMCPConnectResponse, *schemas.BifrostError) {
+	return response, err
+}
+
+type mcpAppResourceClientManager struct {
+	MockClientManager
+	state *schemas.MCPClientState
+	tools []schemas.ChatTool
+}
+
+func (m *mcpAppResourceClientManager) GetClientByName(name string) *schemas.MCPClientState {
+	if m.state != nil && m.state.Name == name {
+		return m.state
+	}
+	return nil
+}
+func (m *mcpAppResourceClientManager) GetToolPerClient(context.Context) map[string][]schemas.ChatTool {
+	return map[string][]schemas.ChatTool{"client": m.tools}
+}
+
+func TestReadMCPAppResourceUsesMCPHooksAndHidesDenials(t *testing.T) {
+	tool := schemas.ChatTool{Type: schemas.ChatToolTypeFunction, Function: &schemas.ChatToolFunction{Name: "client-open_view"}, Annotations: &schemas.MCPToolAnnotations{MCPApp: &schemas.MCPAppToolMetadata{ResourceURI: "ui://upstream/view", SourceClient: "client"}}}
+	manager := NewMCPManager(context.Background(), schemas.MCPConfig{}, nil, &MockLogger{}, nil)
+	manager.toolsManager.clientManager = &mcpAppResourceClientManager{tools: []schemas.ChatTool{tool}}
+	pipeline := &mcpAppResourceTestPipeline{}
+	manager.SetPluginPipeline(func() PluginPipeline { return pipeline }, func(PluginPipeline) {})
+	ctx := schemas.NewBifrostContext(context.Background(), schemas.NoDeadline)
+	result, err := manager.ReadMCPAppResource(ctx, "client-open_view", "ui://upstream/view")
+	assert.Equal(t, 1, pipeline.preRuns)
+	require.NoError(t, err)
+	require.Len(t, result.Contents, 1)
+	assert.Equal(t, "redacted", result.Contents[0].(mcpgo.TextResourceContents).Text)
+
+	pipeline.deny = true
+	result, err = manager.ReadMCPAppResource(ctx, "client-open_view", "ui://upstream/view")
+	assert.Nil(t, result)
+	assert.EqualError(t, err, "resource is unavailable")
 }
