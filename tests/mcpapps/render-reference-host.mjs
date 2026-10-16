@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
+import { createHash } from "node:crypto";
 import { spawn } from "node:child_process";
 import { createServer } from "node:net";
 import { readFile } from "node:fs/promises";
@@ -45,12 +46,21 @@ for (const invalid of [
 }
 
 const manifest = JSON.parse(await readFile(join(hostDirectory, ".bifrost-reference-host.json"), "utf8"));
+const hashSha256 = (value) => createHash("sha256").update(value).digest("hex");
 if (manifest.commit !== "82221c0c8ce7661efa6771c9d461511b1650495f" || manifest.version !== "2.0.3") {
   throw new Error("Reference host does not match the approved ext-apps source pin");
 }
 if (!manifest.hostFixtureAuthAdapter?.patchSha256 || !manifest.hostFixtureNegotiationAdapter?.patchSha256 ||
-    !manifest.controlledPartialReplay?.patchSha256 || !manifest.appBundle?.sha256) {
-  throw new Error("Reference host manifest is missing auth, negotiation, partial replay, or generated SDK artifact identity");
+    !manifest.controlledPartialReplay?.patchSha256 || !manifest.appBundle?.sha256 ||
+    manifest.faviconAsset?.path !== "examples/basic-host/dist/favicon.ico" || manifest.faviconAsset.bytes !== 70 ||
+    manifest.faviconAsset.sha256 !== "5bfe18012b31dfdba82299e1e2f69c5f6ca42e17928ffa8ee25079d55a24df0a") {
+  throw new Error("Reference host manifest is missing adapter, generated SDK artifact, or deterministic favicon identity");
+}
+const faviconBytes = await readFile(join(hostDirectory, manifest.faviconAsset.path));
+if (faviconBytes.byteLength !== manifest.faviconAsset.bytes || hashSha256(faviconBytes) !== manifest.faviconAsset.sha256 ||
+    faviconBytes.readUInt16LE(0) !== 0 || faviconBytes.readUInt16LE(2) !== 1 ||
+    faviconBytes.readUInt16LE(4) !== 1 || faviconBytes.readUInt32LE(18) !== 22) {
+  throw new Error("Pinned reference host favicon file does not match its validated ICO manifest");
 }
 
 const require = createRequire(join(hostDirectory, "package.json"));
@@ -327,6 +337,7 @@ try {
     hostCommit: manifest.commit,
     hostFixtureAuthPatchSha256: manifest.hostFixtureAuthAdapter.patchSha256,
     hostFixtureNegotiationPatchSha256: manifest.hostFixtureNegotiationAdapter.patchSha256,
+    hostFaviconAsset: manifest.faviconAsset,
     sdkBundleAccessControlAllowOrigin: assetAllowOrigin,
     appBundleSha256: manifest.appBundle.sha256,
     candidateSource,
