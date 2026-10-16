@@ -480,6 +480,69 @@ func TestToolsListPreservesAndQualifiesMCPAppMetadata(t *testing.T) {
 	assert.Equal(t, []string{"app"}, response.Result.Tools[0].Meta.UI.Visibility)
 }
 
+func TestMCPAppsPreservesSupportedOutputSchema(t *testing.T) {
+	const upstreamURI = "ui://shared/output-schema"
+	upstream := mcp.Tool{
+		Name: "open_view",
+		InputSchema: mcp.ToolInputSchema{
+			Type:       "object",
+			Properties: map[string]any{},
+		},
+		OutputSchema: mcp.ToolOutputSchema{
+			Type: "object",
+			Properties: map[string]any{
+				"ok": map[string]any{"type": "boolean"},
+			},
+			Required: []string{"ok"},
+		},
+		Meta: &mcp.Meta{AdditionalFields: map[string]any{
+			"ui": map[string]any{"resourceUri": upstreamURI, "visibility": []string{"app"}},
+		}},
+	}
+	rawDefinition, err := json.Marshal(upstream)
+	require.NoError(t, err)
+	tool := schemas.ChatTool{
+		Type: schemas.ChatToolTypeFunction,
+		Function: &schemas.ChatToolFunction{
+			Name:       "app-client-open_view",
+			Parameters: &schemas.ToolFunctionParameters{Type: "object", Properties: schemas.NewOrderedMapFromPairs()},
+		},
+		Annotations: &schemas.MCPToolAnnotations{MCPApp: &schemas.MCPAppToolMetadata{
+			RawDefinition: rawDefinition,
+			ResourceURI:   upstreamURI,
+			SourceClient:  "client",
+			Visibility:    []string{"app"},
+			ModernURI:     true,
+		}},
+	}
+	tm := &mcpAppsToolManager{tools: []schemas.ChatTool{tool}}
+	h := &MCPServerHandler{toolManager: tm, config: &lib.Config{ClientConfig: &configstore.ClientConfig{}}}
+	h.mcpServer.Store(h.buildServer(tm.tools))
+	response := h.server().HandleMessage(context.Background(), []byte(`{"jsonrpc":"2.0","id":8,"method":"tools/list","params":{}}`))
+	require.NotNil(t, response)
+	encoded, err := json.Marshal(response)
+	require.NoError(t, err)
+	var envelope struct {
+		Result struct {
+			Tools []struct {
+				Name         string          `json:"name"`
+				OutputSchema json.RawMessage `json:"outputSchema"`
+				Meta         json.RawMessage `json:"_meta"`
+			} `json:"tools"`
+		} `json:"result"`
+	}
+	require.NoError(t, json.Unmarshal(encoded, &envelope))
+	require.Len(t, envelope.Result.Tools, 1)
+	assert.JSONEq(t, `{"type":"object","properties":{"ok":{"type":"boolean"}},"required":["ok"]}`, string(envelope.Result.Tools[0].OutputSchema), "the public MCP App definition must retain the SDK-supported output schema")
+	var metadata struct {
+		UI struct {
+			ResourceURI string `json:"resourceUri"`
+		} `json:"ui"`
+	}
+	require.NoError(t, json.Unmarshal(envelope.Result.Tools[0].Meta, &metadata))
+	assert.Equal(t, mcpAppGatewayURI("client", upstreamURI), metadata.UI.ResourceURI, "the qualified App resource metadata must remain overlaid on the original definition")
+}
+
 func TestResourcesListAndReadAreSourceQualified(t *testing.T) {
 	const upstreamURI = "ui://shared/view"
 	tools := []schemas.ChatTool{
