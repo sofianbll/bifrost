@@ -1,0 +1,6 @@
+=== RUN   TestSyncMCPServerSerialCatalogChanges
+--- PASS: TestSyncMCPServerSerialCatalogChanges (0.01s)
+=== RUN   TestSyncMCPServerOverlappingRefreshKeepsLatestCatalog
+--- PASS: TestSyncMCPServerOverlappingRefreshKeepsLatestCatalog (0.10s)
+PASS
+ok  	github.com/maximhq/bifrost/transports/bifrost-http/handlers	0.219s

@@ -1,0 +1,37 @@
+=== RUN   TestSyncMCPServerSerialCatalogChanges
+--- PASS: TestSyncMCPServerSerialCatalogChanges (0.00s)
+=== RUN   TestSyncMCPServerOverlappingRefreshKeepsLatestCatalog
+    mcpserver_test.go:1147: 
+        	Error Trace:	/workspace/stable23-integration/transports/bifrost-http/handlers/mcpserver_test.go:1147
+        	Error:      	overlapping refresh entered catalog capture while the first capture was held
+        	Test:       	TestSyncMCPServerOverlappingRefreshKeepsLatestCatalog
+    mcpserver_test.go:1153: 
+        	Error Trace:	/workspace/stable23-integration/transports/bifrost-http/handlers/mcpserver_test.go:1073
+        	            				/workspace/stable23-integration/transports/bifrost-http/handlers/mcpserver_test.go:1153
+        	Error:      	elements differ
+        	            	
+        	            	extra elements in list A:
+        	            	([]interface {}) (len=1) {
+        	            	 (string) (len=17) "modern-read_state"
+        	            	}
+        	            	
+        	            	
+        	            	listA:
+        	            	([]string) (len=3) {
+        	            	 (string) (len=16) "first-save_state",
+        	            	 (string) (len=17) "second-save_state",
+        	            	 (string) (len=17) "modern-read_state"
+        	            	}
+        	            	
+        	            	
+        	            	listB:
+        	            	([]string) (len=2) {
+        	            	 (string) (len=16) "first-save_state",
+        	            	 (string) (len=17) "second-save_state"
+        	            	}
+        	Test:       	TestSyncMCPServerOverlappingRefreshKeepsLatestCatalog
+        	Messages:   	public tools/list must serve the latest complete catalog
+--- FAIL: TestSyncMCPServerOverlappingRefreshKeepsLatestCatalog (0.00s)
+FAIL
+FAIL	github.com/maximhq/bifrost/transports/bifrost-http/handlers	0.075s
+FAIL
