@@ -818,7 +818,7 @@ func resolveMCPAppCallbackAlias(ctx context.Context, manager MCPToolManager, cat
 		}
 		if selected != "" {
 			idResult := gjson.GetBytes(request, "id")
-			if !idResult.Exists() || idResult.Type == gjson.Null {
+			if !idResult.Exists() {
 				return nil, nil, true
 			}
 			refusal := mcp.NewJSONRPCError(mcp.NewRequestId(idResult.Value()), mcp.INVALID_PARAMS, "App callback alias is ambiguous", nil)
