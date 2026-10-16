@@ -126,8 +126,12 @@ try {
   let initializeEvidence;
   let toolListEvidence;
   const mcpNetworkEvents = [];
+  const bundleNetworkEvents = [];
   page.on("request", (request) => {
     const requestUrl = new URL(request.url());
+    if (requestUrl.pathname.endsWith("/mcp-app-fixture.js")) {
+      bundleNetworkEvents.push({ direction: "request", method: request.method(), origin: requestUrl.origin, path: requestUrl.pathname });
+    }
     if (requestUrl.origin !== serverUrl.origin) return;
     mcpNetworkEvents.push({ direction: "request", method: request.method(), path: requestUrl.pathname });
     if (requestUrl.pathname !== serverUrl.pathname || request.method() !== "POST") return;
@@ -145,6 +149,9 @@ try {
   });
   page.on("response", async (response) => {
     const responseUrl = new URL(response.url());
+    if (responseUrl.pathname.endsWith("/mcp-app-fixture.js")) {
+      bundleNetworkEvents.push({ direction: "response", method: response.request().method(), origin: responseUrl.origin, path: responseUrl.pathname, status: response.status(), contentType: response.headers()["content-type"], allowOrigin: response.headers()["access-control-allow-origin"] });
+    }
     if (responseUrl.origin !== serverUrl.origin) return;
     const responseHeaders = response.headers();
     mcpNetworkEvents.push({
@@ -178,7 +185,11 @@ try {
   });
   page.on("requestfailed", (request) => {
     const requestUrl = new URL(request.url());
-    pageErrors.push(`requestfailed ${request.method()} ${requestUrl.origin}${requestUrl.pathname}: ${request.failure()?.errorText ?? "unknown"}`);
+    const failure = request.failure()?.errorText ?? "unknown";
+    if (requestUrl.pathname.endsWith("/mcp-app-fixture.js")) {
+      bundleNetworkEvents.push({ direction: "requestfailed", method: request.method(), origin: requestUrl.origin, path: requestUrl.pathname, failure });
+    }
+    pageErrors.push(`requestfailed ${request.method()} ${requestUrl.origin}${requestUrl.pathname}: ${failure}`);
   });
   if (partialReplay) {
     const observedPartialMessages = [];
@@ -226,7 +237,30 @@ try {
     if (input?.message === "host-input") break;
     await delay(100);
   }
-  assert.deepEqual(input, { message: "host-input" }, "Pinned host must deliver its full final input to the App SDK");
+  try {
+    assert.deepEqual(input, { message: "host-input" }, "Pinned host must deliver its full final input to the App SDK");
+  } catch (error) {
+    const safeText = async (locator) => {
+      try { return redact(await locator.textContent({ timeout: 1000 })); }
+      catch (readError) { return `unavailable: ${redact(readError.message)}`; }
+    };
+    const [fixtureStatus, inputText, resultText] = await Promise.all([
+      app.getByTestId("fixture-status").evaluate((element) => ({ text: element.textContent, rootStatus: element.closest("[data-testid='mcp-app-fixture']")?.getAttribute("data-status") })).catch((readError) => `unavailable: ${redact(readError.message)}`),
+      safeText(inputView),
+      safeText(resultView),
+    ]);
+    const diagnostic = {
+      assertion: redact(error.message),
+      fixtureStatus,
+      toolInputText: inputText,
+      toolResultText: resultText,
+      frameUrls: page.frames().map((frame) => redact(frame.url())),
+      bundleNetworkEvents,
+      mcpNetworkEvents,
+      pageErrors,
+    };
+    throw new Error(`Pinned host full-input assertion failed; diagnostic=${JSON.stringify(diagnostic)}`);
+  }
   let result;
   for (let attempt = 0; attempt < 100; attempt++) {
     try { result = JSON.parse(await resultView.textContent()); } catch {}
