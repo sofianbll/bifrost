@@ -365,8 +365,25 @@ func (*hiddenMCPToolManager) GetAvailableMCPTools(context.Context) []schemas.Cha
 
 type mcpAppAliasToolManager struct{ tools []schemas.ChatTool }
 
-func (m *mcpAppAliasToolManager) GetAvailableMCPTools(context.Context) []schemas.ChatTool {
-	return m.tools
+func (m *mcpAppAliasToolManager) GetAvailableMCPTools(ctx context.Context) []schemas.ChatTool {
+	requested, _ := ctx.Value(schemas.MCPContextKeyIncludeTools).([]string)
+	if len(requested) == 0 {
+		return m.tools
+	}
+	allowed := make(map[string]struct{}, len(requested))
+	for _, name := range requested {
+		allowed[name] = struct{}{}
+	}
+	filtered := make([]schemas.ChatTool, 0, len(m.tools))
+	for _, tool := range m.tools {
+		if tool.Function == nil {
+			continue
+		}
+		if _, ok := allowed[tool.Function.Name]; ok {
+			filtered = append(filtered, tool)
+		}
+	}
+	return filtered
 }
 
 func (*mcpAppAliasToolManager) GetMCPServerInstructions(context.Context) string { return "" }
@@ -440,6 +457,82 @@ func TestMCPAppsBareCallbackSelectsUniqueAvailableSource(t *testing.T) {
 	require.Len(t, response.Result.Content, 1)
 	assert.Equal(t, "first-save_state", response.Result.Content[0].Text, "the alias should route to the canonical source-qualified tool")
 	assert.Equal(t, "first-save_state", response.Result.Structured["tool"], "the native execution path should receive the canonical name")
+}
+
+func TestMCPAppsBareCallbackIsAmbiguousWithoutDisclosingSources(t *testing.T) {
+	tools := []schemas.ChatTool{
+		appCallbackTool("first", "save_state"),
+		appCallbackTool("second", "save_state"),
+	}
+	tm := &mcpAppAliasToolManager{tools: tools}
+	h := &MCPServerHandler{toolManager: tm, config: &lib.Config{ClientConfig: &configstore.ClientConfig{}}}
+	h.mcpServer.Store(h.buildServer(tools))
+	ctx := &fasthttp.RequestCtx{}
+	ctx.Request.SetRequestURI("/mcp")
+	ctx.Request.Header.SetMethod(fasthttp.MethodPost)
+	ctx.Request.SetBody([]byte(`{"jsonrpc":"2.0","id":12,"method":"tools/call","params":{"name":"save_state","arguments":{}}}`))
+	h.handleMCPServer(ctx)
+
+	var response struct {
+		Error struct {
+			Code    int    `json:"code"`
+			Message string `json:"message"`
+		} `json:"error"`
+	}
+	require.NoError(t, json.Unmarshal(ctx.Response.Body(), &response))
+	assert.Equal(t, mcp.INVALID_PARAMS, response.Error.Code)
+	assert.Equal(t, "App callback alias is ambiguous", response.Error.Message)
+	assert.NotContains(t, string(ctx.Response.Body()), "first-")
+	assert.NotContains(t, string(ctx.Response.Body()), "second-")
+}
+
+func TestMCPAppsBareCallbackUsesOnlyAdmittedSourceAndCatalogStaysQualified(t *testing.T) {
+	tools := []schemas.ChatTool{
+		appCallbackTool("first", "save_state"),
+		appCallbackTool("second", "save_state"),
+	}
+	tm := &mcpAppAliasToolManager{tools: tools}
+	h := &MCPServerHandler{toolManager: tm, config: &lib.Config{ClientConfig: &configstore.ClientConfig{}}}
+	h.mcpServer.Store(h.buildServer(tools))
+	ctx := &fasthttp.RequestCtx{}
+	ctx.Request.SetRequestURI("/mcp")
+	ctx.Request.Header.SetMethod(fasthttp.MethodPost)
+	ctx.Request.Header.Set("x-bf-mcp-include-tools", "second-save_state")
+	ctx.Request.SetBody([]byte(`{"jsonrpc":"2.0","id":13,"method":"tools/call","params":{"name":"save_state","arguments":{}}}`))
+	h.handleMCPServer(ctx)
+
+	var called struct {
+		Result struct {
+			Content []struct {
+				Text string `json:"text"`
+			} `json:"content"`
+		} `json:"result"`
+	}
+	require.NoError(t, json.Unmarshal(ctx.Response.Body(), &called))
+	require.Len(t, called.Result.Content, 1)
+	assert.Equal(t, "second-save_state", called.Result.Content[0].Text)
+
+	listCtx := &fasthttp.RequestCtx{}
+	listCtx.Request.SetBody([]byte(`{"jsonrpc":"2.0","id":14,"method":"tools/list","params":{}}`))
+	h.handleMCPServer(listCtx)
+	assert.Contains(t, string(listCtx.Response.Body()), `"name":"first-save_state"`)
+	assert.Contains(t, string(listCtx.Response.Body()), `"name":"second-save_state"`)
+	assert.NotContains(t, string(listCtx.Response.Body()), `"name":"save_state"`)
+}
+
+func TestMCPAppsBareCallbackCannotBypassDeniedGatewayRequest(t *testing.T) {
+	tools := []schemas.ChatTool{appCallbackTool("first", "save_state")}
+	tm := &mcpAppAliasToolManager{tools: tools}
+	denied := &schemas.BifrostError{StatusCode: schemas.Ptr(fasthttp.StatusForbidden), Error: &schemas.ErrorField{Message: "denied"}}
+	h := &MCPServerHandler{toolManager: tm, admitter: &fakeAdmitter{refusal: denied}, config: &lib.Config{ClientConfig: &configstore.ClientConfig{}}}
+	h.mcpServer.Store(h.buildServer(tools))
+	ctx := &fasthttp.RequestCtx{}
+	ctx.Request.SetRequestURI("/mcp")
+	ctx.Request.Header.SetMethod(fasthttp.MethodPost)
+	ctx.Request.SetBody([]byte(`{"jsonrpc":"2.0","id":15,"method":"tools/call","params":{"name":"save_state","arguments":{}}}`))
+	h.handleMCPServer(ctx)
+	assert.Equal(t, fasthttp.StatusForbidden, ctx.Response.StatusCode())
+	assert.NotContains(t, string(ctx.Response.Body()), "first-save_state")
 }
 
 func TestCallToolRefusesHiddenToolWithoutDisclosingItsName(t *testing.T) {

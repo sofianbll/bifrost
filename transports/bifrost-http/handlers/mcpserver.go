@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -18,6 +19,8 @@ import (
 	"github.com/maximhq/bifrost/core/schemas"
 	"github.com/maximhq/bifrost/framework/configstore/tables"
 	"github.com/maximhq/bifrost/transports/v2/bifrost-http/lib"
+	"github.com/tidwall/gjson"
+	"github.com/tidwall/sjson"
 	"github.com/valyala/fasthttp"
 )
 
@@ -99,9 +102,18 @@ type MCPServerHandler struct {
 	vkCache VirtualKeyCache
 	// mcpServer is the one server every caller is served from. What each caller sees of it is
 	// decided per request, from the tool list stamped on the request context, so nothing about
-	// it is per caller. Replaced whole when the tool registry changes; a request already holding
-	// the previous one finishes against it.
-	mcpServer atomic.Pointer[server.MCPServer]
+	// it is per caller. The immutable server and callback-alias projection are swapped together
+	// when the tool registry changes, so in-flight requests cannot combine different snapshots.
+	mcpServer atomic.Pointer[mcpServerSnapshot]
+}
+
+type mcpServerSnapshot struct {
+	server          *server.MCPServer
+	callbackAliases *mcpAppCallbackAliasCatalog
+}
+
+type mcpAppCallbackAliasCatalog struct {
+	byName map[string][]string
 }
 
 // getVirtualKeyByID resolves a virtual key by its row ID for the JWT auth path,
@@ -167,15 +179,34 @@ func (h *MCPServerHandler) handleMCPServer(ctx *fasthttp.RequestCtx) {
 		SendError(ctx, refusal.status, refusal.message)
 		return
 	}
-	mcpServer := h.server()
-	if mcpServer == nil {
+	snapshot := h.mcpServer.Load()
+	if snapshot == nil || snapshot.server == nil {
 		SendError(ctx, fasthttp.StatusServiceUnavailable, "MCP server is not ready")
 		return
+	}
+	mcpServer := snapshot.server
+
+	requestBody := ctx.PostBody()
+	if rewritten, refusal, handled := resolveMCPAppCallbackAlias(bifrostCtx, h.toolManager, snapshot.callbackAliases, requestBody); handled {
+		if refusal != nil {
+			responseJSON, err := sonic.Marshal(refusal)
+			if err != nil {
+				SendError(ctx, fasthttp.StatusInternalServerError, "Failed to encode MCP response")
+				return
+			}
+			ctx.SetContentType("application/json")
+			ctx.SetBody(responseJSON)
+			return
+		}
+		ctx.SetStatusCode(fasthttp.StatusAccepted)
+		return
+	} else if rewritten != nil {
+		requestBody = rewritten
 	}
 
 	// Use mcp-go server to handle the request
 	// HandleMessage processes JSON-RPC messages and returns appropriate responses
-	response := mcpServer.HandleMessage(bifrostCtx, ctx.PostBody())
+	response := mcpServer.HandleMessage(bifrostCtx, requestBody)
 
 	// Check if response is nil (notification - no response needed)
 	if response == nil {
@@ -194,10 +225,10 @@ func (h *MCPServerHandler) handleMCPServer(ctx *fasthttp.RequestCtx) {
 	// ordinary tool/resource calls take the existing marshal path without extension parsing.
 	if rpcResponse, ok := response.(mcp.JSONRPCResponse); ok {
 		if _, initialize := rpcResponse.Result.(mcp.InitializeResult); initialize {
-			responseJSON = addMCPAppsNegotiation(ctx.PostBody(), responseJSON)
+			responseJSON = addMCPAppsNegotiation(requestBody, responseJSON)
 		}
 		if _, resourcesList := rpcResponse.Result.(mcp.ListResourcesResult); resourcesList {
-			responseJSON = filterMCPAppResources(bifrostCtx, ctx.PostBody(), responseJSON, h.toolManager)
+			responseJSON = filterMCPAppResources(bifrostCtx, requestBody, responseJSON, h.toolManager)
 		}
 	}
 
@@ -506,7 +537,11 @@ func (h *MCPServerHandler) SyncMCPServer(ctx context.Context) error {
 
 // server returns the server requests are currently served from, or nil before the first sync.
 func (h *MCPServerHandler) server() *server.MCPServer {
-	return h.mcpServer.Load()
+	snapshot := h.mcpServer.Load()
+	if snapshot == nil {
+		return nil
+	}
+	return snapshot.server
 }
 
 // forwardServerInstructions answers initialize with the upstream servers' own usage guidance,
@@ -530,7 +565,7 @@ func (h *MCPServerHandler) forwardServerInstructions(ctx context.Context, _ any,
 // buildServer registers every available tool on a fresh server. A tool's handler reads nothing
 // about the caller: what a request may see and call rides on its context, and both the tool filter
 // and the executor read it from there.
-func (h *MCPServerHandler) buildServer(availableTools []schemas.ChatTool) *server.MCPServer {
+func (h *MCPServerHandler) buildServer(availableTools []schemas.ChatTool) *mcpServerSnapshot {
 	hooks := &server.Hooks{}
 	hooks.AddAfterInitialize(h.forwardServerInstructions)
 
@@ -706,7 +741,104 @@ func (h *MCPServerHandler) buildServer(availableTools []schemas.ChatTool) *serve
 		}
 		mcpServer.AddTool(serverTool, handler)
 	}
-	return mcpServer
+	return &mcpServerSnapshot{
+		server:          mcpServer,
+		callbackAliases: buildMCPAppCallbackAliasCatalog(availableTools),
+	}
+}
+
+// buildMCPAppCallbackAliasCatalog retains only aliases for callbacks that are explicitly
+// App-only in the discovered catalog. It is rebuilt with the immutable server snapshot, so its
+// lifetime and size are bounded by the currently discovered tool set.
+func buildMCPAppCallbackAliasCatalog(tools []schemas.ChatTool) *mcpAppCallbackAliasCatalog {
+	var catalog *mcpAppCallbackAliasCatalog
+	for _, tool := range tools {
+		if tool.Function == nil {
+			continue
+		}
+		metadata := tool.MCPAppMetadata()
+		if metadata == nil || metadata.SourceClient == "" || !mcpAppOnlyVisibility(metadata.Visibility) {
+			continue
+		}
+		prefix := metadata.SourceClient + "-"
+		if !strings.HasPrefix(tool.Function.Name, prefix) {
+			continue
+		}
+		alias := strings.TrimPrefix(tool.Function.Name, prefix)
+		if alias == "" {
+			continue
+		}
+		if catalog == nil {
+			catalog = &mcpAppCallbackAliasCatalog{byName: make(map[string][]string)}
+		}
+		catalog.byName[alias] = append(catalog.byName[alias], tool.Function.Name)
+	}
+	return catalog
+}
+
+func mcpAppOnlyVisibility(visibility []string) bool {
+	hasApp := false
+	for _, audience := range visibility {
+		switch audience {
+		case "app":
+			hasApp = true
+		case "model":
+			return false
+		}
+	}
+	return hasApp
+}
+
+// resolveMCPAppCallbackAlias rewrites a bare callback name only when exactly one matching
+// source-qualified App callback is in this request's already-admitted tool catalog. It does not
+// register aliases with mcp-go, so tools/list continues to expose only canonical names.
+func resolveMCPAppCallbackAlias(ctx context.Context, manager MCPToolManager, catalog *mcpAppCallbackAliasCatalog, request []byte) ([]byte, *mcp.JSONRPCError, bool) {
+	if catalog == nil || len(catalog.byName) == 0 || gjson.GetBytes(request, "method").String() != "tools/call" {
+		return nil, nil, false
+	}
+	name := gjson.GetBytes(request, "params.name").String()
+	if name == "" {
+		return nil, nil, false
+	}
+	candidates := catalog.byName[name]
+	if len(candidates) == 0 {
+		return nil, nil, false
+	}
+
+	allowed := manager.GetAvailableMCPTools(ctx)
+	allowedNames := make(map[string]struct{}, len(allowed))
+	for _, tool := range allowed {
+		if tool.Function != nil {
+			allowedNames[tool.Function.Name] = struct{}{}
+		}
+	}
+	// An explicitly named canonical tool always keeps its existing meaning.
+	if _, exists := allowedNames[name]; exists {
+		return nil, nil, false
+	}
+	var selected string
+	for _, candidate := range candidates {
+		if _, exists := allowedNames[candidate]; !exists {
+			continue
+		}
+		if selected != "" {
+			idResult := gjson.GetBytes(request, "id")
+			if !idResult.Exists() || idResult.Type == gjson.Null {
+				return nil, nil, true
+			}
+			refusal := mcp.NewJSONRPCError(mcp.NewRequestId(idResult.Value()), mcp.INVALID_PARAMS, "App callback alias is ambiguous", nil)
+			return nil, &refusal, true
+		}
+		selected = candidate
+	}
+	if selected == "" {
+		return nil, nil, false
+	}
+	rewritten, err := sjson.SetBytes(request, "params.name", selected)
+	if err != nil {
+		return nil, nil, false
+	}
+	return rewritten, nil, false
 }
 
 func mcpToolVisibleToRequest(ctx context.Context, manager MCPToolManager, toolName string) bool {
