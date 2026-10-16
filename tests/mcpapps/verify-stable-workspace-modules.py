@@ -20,10 +20,16 @@ def verify(root, manifest_path):
     rows = []
     for number, raw in enumerate(manifest_path.read_text().splitlines(), 1):
         fields = raw.split(maxsplit=1)
-        if len(fields) != 2:
+        if not fields:
+            continue
+        if len(fields) == 1:
+            module, location = fields[0], None
+        else:
+            module, location = fields[0], fields[1].strip() or None
+        is_bifrost = module == PREFIX or module.startswith(PREFIX + "/")
+        if is_bifrost and not location:
             raise RuntimeError(f"malformed module manifest line {number}: {raw!r}")
-        module, location = fields
-        if module == PREFIX or module.startswith(PREFIX + "/"):
+        if is_bifrost:
             path = Path(location).resolve()
             try:
                 path.relative_to(root)
@@ -38,6 +44,7 @@ def verify(root, manifest_path):
         raise RuntimeError(f"required Bifrost workspace modules are missing: {missing}")
     return {"source_root": str(root), "required_local_modules": sorted(REQUIRED_MODULES),
             "bifrost_modules": [row for row in rows if row["module"] == PREFIX or row["module"].startswith(PREFIX + "/")],
+            "external_modules": [row for row in rows if row["module"] != PREFIX and not row["module"].startswith(PREFIX + "/")],
             "all_bifrost_modules_local_to_source": True}
 
 
@@ -53,16 +60,25 @@ def self_check():
             (local / "go.mod").write_text("module " + module + "\n")
             records.append(f"{module} {local}")
         manifest = root / "modules.txt"
-        manifest.write_text("\n".join(records) + "\n")
-        assert verify(root, manifest)["all_bifrost_modules_local_to_source"]
-        manifest.write_text(manifest.read_text() + f"{PREFIX}/plugins/telemetry /tmp/published-module\n")
+        manifest.write_text("\n".join(records) + "\n" + "golang.org/x/tools \n")
+        valid_report = verify(root, manifest)
+        assert valid_report["all_bifrost_modules_local_to_source"]
+        assert valid_report["external_modules"] == [{"module": "golang.org/x/tools", "directory": None}]
+        manifest.write_text(manifest.read_text() + f"{PREFIX}/plugins/telemetry \n")
+        try:
+            verify(root, manifest)
+        except RuntimeError as error:
+            assert "malformed module manifest" in str(error)
+        else:
+            raise AssertionError("accepted a linked Bifrost module without a local directory")
+        manifest.write_text("\n".join(records) + "\n" + f"{PREFIX}/plugins/telemetry /tmp/published-module\n")
         try:
             verify(root, manifest)
         except RuntimeError as error:
             assert "outside the pinned source" in str(error)
         else:
             raise AssertionError("accepted a Bifrost module outside the pinned source")
-    print("PASS workspace provenance self-check: four required local modules and no external linked Bifrost module")
+    print("PASS workspace provenance self-check: local Bifrost modules required, blank external directory accepted, blank/published Bifrost module rejected")
 
 
 def main():

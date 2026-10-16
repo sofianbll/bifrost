@@ -1,0 +1,9 @@
+# Issue #37 driver repair cycle 2
+
+The first stable qualification Actions dispatch was [run 38938325671](https://github.com/sofianbll/bifrost/actions/runs/38938325671) on driver commit `34e3ac7b6471ecd74d7f1576b246a4afc68fcf5d`. It failed before any job started. Re-running the cached `actionlint` against that exact workflow produced two findings: `runner.temp` was used in job-level `env` for `REPORT_DIR` and `GO_TEST_REPORT_DIR`, where the `runner` context is unavailable. The original diagnostic is preserved in `driver-repair2-actionlint-before.log`.
+
+The workflow now creates both directories in its first shell step using `$RUNNER_TEMP` and exports their paths through `$GITHUB_ENV`. This keeps report paths available to every subsequent step, including the always-run final gate and artifact upload, without relying on an unavailable job-level context. The candidate and stock pins, qualification gates, artifact behavior, and final status conditions are unchanged.
+
+Root reproduced the parser edge with a synthetic row matching documented `go list -m -f '{{.Path}} {{.Dir}}' all` behavior: an unused external module may have an empty `Dir`. A separate cold-cache `GOPROXY=off` attempt did not produce usable module metadata, so no full cold-cache manifest result is claimed. The workspace verifier now records an external blank directory as null and still strictly requires every Bifrost module to have a nonempty local path inside the exact checkout with a `go.mod`. Its self-check accepts the external blank-directory row and rejects both a blank Bifrost directory and an external Bifrost path.
+
+The exact cached `actionlint` command is preserved in `driver-repair2-actionlint-after.log`; it exits 0 with no diagnostics on the complete workflow. The workspace provenance self-check passes. These are static checks only. This repair did not dispatch Actions or run Go suites, builds, Docker, or the reference host.

@@ -27,10 +27,20 @@ jobs:
       DRIVER_SOURCE: ${{ github.sha }}
       FIXTURE_SCOPES: mcp-apps,codemode-errors
       COMPARISON_MODE: strict
-      GO_TEST_REPORT_DIR: ${{ runner.temp }}/stable23-go-tests
-      REPORT_DIR: ${{ runner.temp }}/stable23-qualification
 
     steps:
+      - name: Initialize run report directories
+        shell: bash
+        run: |
+          set -euo pipefail
+          report_dir="$RUNNER_TEMP/stable23-qualification"
+          go_test_report_dir="$RUNNER_TEMP/stable23-go-tests"
+          mkdir -p "$report_dir" "$go_test_report_dir"
+          {
+            printf 'REPORT_DIR=%s\n' "$report_dir"
+            printf 'GO_TEST_REPORT_DIR=%s\n' "$go_test_report_dir"
+          } >> "$GITHUB_ENV"
+
       - name: Checkout exact stable stock source
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -74,7 +84,6 @@ jobs:
             test -z "$(git -C "$source" status --porcelain --untracked-files=all)"
             test ! -e "$source/.env"
           done
-          mkdir -p "$RUNNER_TEMP/stable23-qualification"
           report_dir="$REPORT_DIR"
           python3 - <<'PY'
           import json, os, subprocess
@@ -247,7 +256,6 @@ jobs:
         if: always() && steps.build-stock.outcome == 'success' && steps.build-candidate.outcome == 'success'
         continue-on-error: true
         env:
-          REPORT_DIR: ${{ env.REPORT_DIR }}
           GITHUB_RUN_ID: ${{ github.run_id }}
           STOCK_SOURCE: ${{ env.STOCK_SOURCE }}
           CANDIDATE_SOURCE: ${{ env.CANDIDATE_SOURCE }}

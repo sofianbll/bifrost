@@ -1,0 +1,8 @@
+../../tmp/stable23-driver-before-repair2.yml:30:31: context "runner" is not allowed here. available contexts are "github", "inputs", "matrix", "needs", "secrets", "strategy", "vars". see https://docs.github.com/en/actions/learn-github-actions/contexts#context-availability for more details [expression]
+   |
+30 |       GO_TEST_REPORT_DIR: ${{ runner.temp }}/stable23-go-tests
+   |                               ^~~~~~~~~~~
+../../tmp/stable23-driver-before-repair2.yml:31:23: context "runner" is not allowed here. available contexts are "github", "inputs", "matrix", "needs", "secrets", "strategy", "vars". see https://docs.github.com/en/actions/learn-github-actions/contexts#context-availability for more details [expression]
+   |
+31 |       REPORT_DIR: ${{ runner.temp }}/stable23-qualification
+   |                       ^~~~~~~~~~~
