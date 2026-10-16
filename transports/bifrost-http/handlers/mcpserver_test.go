@@ -486,6 +486,23 @@ func TestMCPAppsBareCallbackIsAmbiguousWithoutDisclosingSources(t *testing.T) {
 	assert.NotContains(t, string(ctx.Response.Body()), "second-")
 }
 
+func TestMCPAppsAmbiguousCallbackWithNullIDReturnsJSONRPCError(t *testing.T) {
+	tools := []schemas.ChatTool{
+		appCallbackTool("first", "save_state"),
+		appCallbackTool("second", "save_state"),
+	}
+	tm := &mcpAppAliasToolManager{tools: tools}
+	h := &MCPServerHandler{toolManager: tm, config: &lib.Config{ClientConfig: &configstore.ClientConfig{}}}
+	h.mcpServer.Store(h.buildServer(tools))
+	ctx := &fasthttp.RequestCtx{}
+	ctx.Request.SetRequestURI("/mcp")
+	ctx.Request.Header.SetMethod(fasthttp.MethodPost)
+	ctx.Request.SetBody([]byte(`{"jsonrpc":"2.0","id":null,"method":"tools/call","params":{"name":"save_state","arguments":{}}}`))
+	h.handleMCPServer(ctx)
+	assert.Contains(t, string(ctx.Response.Body()), `"id":null`)
+	assert.Contains(t, string(ctx.Response.Body()), `"code":-32602`)
+}
+
 func TestMCPAppsBareCallbackUsesOnlyAdmittedSourceAndCatalogStaysQualified(t *testing.T) {
 	tools := []schemas.ChatTool{
 		appCallbackTool("first", "save_state"),
