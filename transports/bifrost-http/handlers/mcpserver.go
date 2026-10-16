@@ -4,7 +4,10 @@ package handlers
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -16,6 +19,8 @@ import (
 	"github.com/maximhq/bifrost/core/schemas"
 	"github.com/maximhq/bifrost/framework/configstore/tables"
 	"github.com/maximhq/bifrost/transports/v2/bifrost-http/lib"
+	"github.com/tidwall/gjson"
+	"github.com/tidwall/sjson"
 	"github.com/valyala/fasthttp"
 )
 
@@ -37,6 +42,20 @@ type MCPToolManager interface {
 	GetMCPServerInstructions(ctx context.Context) string
 	ExecuteChatMCPTool(ctx context.Context, toolCall *schemas.ChatAssistantMessageToolCall) (*schemas.ChatMessage, *schemas.BifrostError)
 	ExecuteResponsesMCPTool(ctx context.Context, toolCall *schemas.ResponsesToolMessage) (*schemas.ResponsesMessage, *schemas.BifrostError)
+}
+
+// MCPAppResourceReader is implemented by the core manager for source-qualified
+// App resources. Kept optional so custom MCPToolManager implementations retain
+// the pre-existing handler contract.
+type MCPAppResourceReader interface {
+	ReadMCPAppResource(ctx *schemas.BifrostContext, toolName, upstreamURI string) (*mcp.ReadResourceResult, error)
+}
+
+// MCPAppToolExecutor is optional so existing custom MCPToolManager implementations
+// keep the compatibility-message path. The core implementation preserves native
+// content, structuredContent, metadata, and isError through the plugin hooks.
+type MCPAppToolExecutor interface {
+	ExecuteMCPAppTool(ctx *schemas.BifrostContext, toolCall *schemas.ChatAssistantMessageToolCall) (*schemas.ChatMessage, json.RawMessage, *schemas.BifrostError)
 }
 
 // MCPGatewayAdmitter decides whether a /mcp request may be served, and what it may reach. It runs
@@ -83,9 +102,18 @@ type MCPServerHandler struct {
 	vkCache VirtualKeyCache
 	// mcpServer is the one server every caller is served from. What each caller sees of it is
 	// decided per request, from the tool list stamped on the request context, so nothing about
-	// it is per caller. Replaced whole when the tool registry changes; a request already holding
-	// the previous one finishes against it.
-	mcpServer atomic.Pointer[server.MCPServer]
+	// it is per caller. The immutable server and callback-alias projection are swapped together
+	// when the tool registry changes, so in-flight requests cannot combine different snapshots.
+	mcpServer atomic.Pointer[mcpServerSnapshot]
+}
+
+type mcpServerSnapshot struct {
+	server          *server.MCPServer
+	callbackAliases *mcpAppCallbackAliasCatalog
+}
+
+type mcpAppCallbackAliasCatalog struct {
+	byName map[string][]string
 }
 
 // getVirtualKeyByID resolves a virtual key by its row ID for the JWT auth path,
@@ -151,15 +179,34 @@ func (h *MCPServerHandler) handleMCPServer(ctx *fasthttp.RequestCtx) {
 		SendError(ctx, refusal.status, refusal.message)
 		return
 	}
-	mcpServer := h.server()
-	if mcpServer == nil {
+	snapshot := h.mcpServer.Load()
+	if snapshot == nil || snapshot.server == nil {
 		SendError(ctx, fasthttp.StatusServiceUnavailable, "MCP server is not ready")
 		return
+	}
+	mcpServer := snapshot.server
+
+	requestBody := ctx.PostBody()
+	if rewritten, refusal, handled := resolveMCPAppCallbackAlias(bifrostCtx, h.toolManager, snapshot.callbackAliases, requestBody); handled {
+		if refusal != nil {
+			responseJSON, err := sonic.Marshal(refusal)
+			if err != nil {
+				SendError(ctx, fasthttp.StatusInternalServerError, "Failed to encode MCP response")
+				return
+			}
+			ctx.SetContentType("application/json")
+			ctx.SetBody(responseJSON)
+			return
+		}
+		ctx.SetStatusCode(fasthttp.StatusAccepted)
+		return
+	} else if rewritten != nil {
+		requestBody = rewritten
 	}
 
 	// Use mcp-go server to handle the request
 	// HandleMessage processes JSON-RPC messages and returns appropriate responses
-	response := mcpServer.HandleMessage(bifrostCtx, ctx.PostBody())
+	response := mcpServer.HandleMessage(bifrostCtx, requestBody)
 
 	// Check if response is nil (notification - no response needed)
 	if response == nil {
@@ -174,9 +221,169 @@ func (h *MCPServerHandler) handleMCPServer(ctx *fasthttp.RequestCtx) {
 		SendError(ctx, fasthttp.StatusInternalServerError, fmt.Sprintf("Failed to encode response: %v", err))
 		return
 	}
+	// Only initialize produces this concrete result type. Check it before decoding the request so
+	// ordinary tool/resource calls take the existing marshal path without extension parsing.
+	if rpcResponse, ok := response.(mcp.JSONRPCResponse); ok {
+		if _, initialize := rpcResponse.Result.(mcp.InitializeResult); initialize {
+			responseJSON = addMCPAppsNegotiation(requestBody, responseJSON)
+		}
+		if _, resourcesList := rpcResponse.Result.(mcp.ListResourcesResult); resourcesList {
+			responseJSON = filterMCPAppResources(bifrostCtx, requestBody, responseJSON, h.toolManager)
+		}
+	}
 
 	ctx.SetContentType("application/json")
 	ctx.SetBody(responseJSON)
+}
+
+const mcpAppsExtension = "io.modelcontextprotocol/ui"
+const mcpAppsHTMLMIME = "text/html;profile=mcp-app"
+
+func mcpAppGatewayURI(sourceClient, upstreamURI string) string {
+	return "ui://bifrost/" + base64.RawURLEncoding.EncodeToString([]byte(sourceClient)) + "/" + base64.RawURLEncoding.EncodeToString([]byte(upstreamURI))
+}
+
+func qualifyMCPAppMetadata(meta *mcp.Meta, resourceURI string, visibility []string, modern, legacy bool) *mcp.Meta {
+	if meta == nil {
+		meta = &mcp.Meta{}
+	}
+	if meta.AdditionalFields == nil {
+		meta.AdditionalFields = make(map[string]any)
+	}
+	ui, _ := meta.AdditionalFields["ui"].(map[string]any)
+	if ui == nil {
+		ui = make(map[string]any)
+	} else {
+		copyUI := make(map[string]any, len(ui)+1)
+		for key, value := range ui {
+			copyUI[key] = value
+		}
+		ui = copyUI
+	}
+	if modern {
+		ui["resourceUri"] = resourceURI
+		meta.AdditionalFields["ui"] = ui
+	}
+	if legacy {
+		meta.AdditionalFields["ui/resourceUri"] = resourceURI
+	}
+	if len(visibility) > 0 {
+		ui["visibility"] = visibility
+		meta.AdditionalFields["ui"] = ui
+	}
+	return meta
+}
+
+func filterMCPAppResources(ctx context.Context, request, encoded []byte, manager MCPToolManager) []byte {
+	var envelope struct {
+		Params struct {
+			Method string `json:"method"`
+		} `json:"params"`
+		Method string `json:"method"`
+	}
+	if json.Unmarshal(request, &envelope) != nil || envelope.Method != string(mcp.MethodResourcesList) {
+		return encoded
+	}
+	allowed := make(map[string]struct{})
+	for _, tool := range manager.GetAvailableMCPTools(ctx) {
+		appMetadata := tool.MCPAppMetadata()
+		if tool.Function == nil || appMetadata == nil || appMetadata.ResourceURI == "" {
+			continue
+		}
+		allowed[mcpAppGatewayURI(appMetadata.SourceClient, appMetadata.ResourceURI)] = struct{}{}
+	}
+	var wrapper map[string]json.RawMessage
+	if json.Unmarshal(encoded, &wrapper) != nil {
+		return encoded
+	}
+	var result map[string]json.RawMessage
+	if json.Unmarshal(wrapper["result"], &result) != nil {
+		return encoded
+	}
+	var resources []json.RawMessage
+	if json.Unmarshal(result["resources"], &resources) != nil {
+		return encoded
+	}
+	visible := make([]json.RawMessage, 0, len(resources))
+	for _, raw := range resources {
+		var resource struct {
+			URI string `json:"uri"`
+		}
+		if json.Unmarshal(raw, &resource) == nil {
+			if _, ok := allowed[resource.URI]; ok {
+				visible = append(visible, raw)
+			}
+		}
+	}
+	if visible == nil {
+		visible = []json.RawMessage{}
+	}
+	result["resources"], _ = json.Marshal(visible)
+	wrapper["result"], _ = json.Marshal(result)
+	filtered, err := json.Marshal(wrapper)
+	if err != nil {
+		return encoded
+	}
+	return filtered
+}
+
+// addMCPAppsNegotiation advertises the UI extension only when the peer requested it in
+// initialize. mcp-go models the standard capability fields; MCP extensions are open-ended, so
+// add the negotiated extension at the JSON-RPC boundary without changing the shared SDK type.
+func addMCPAppsNegotiation(request, response []byte) []byte {
+	var requestEnvelope struct {
+		Params struct {
+			Capabilities struct {
+				Extensions map[string]json.RawMessage `json:"extensions"`
+			} `json:"capabilities"`
+		} `json:"params"`
+	}
+	if json.Unmarshal(request, &requestEnvelope) != nil {
+		return response
+	}
+	if _, negotiated := requestEnvelope.Params.Capabilities.Extensions[mcpAppsExtension]; !negotiated {
+		return response
+	}
+	var envelope map[string]json.RawMessage
+	if json.Unmarshal(response, &envelope) != nil {
+		return response
+	}
+	var result map[string]json.RawMessage
+	if json.Unmarshal(envelope["result"], &result) != nil {
+		return response
+	}
+	var capabilities map[string]json.RawMessage
+	if json.Unmarshal(result["capabilities"], &capabilities) != nil {
+		return response
+	}
+	var extensions map[string]json.RawMessage
+	if raw := capabilities["extensions"]; len(raw) > 0 {
+		if json.Unmarshal(raw, &extensions) != nil {
+			return response
+		}
+	}
+	if extensions == nil {
+		extensions = make(map[string]json.RawMessage)
+	}
+	extensions[mcpAppsExtension] = json.RawMessage(`{"mimeTypes":["text/html;profile=mcp-app"]}`)
+	var err error
+	capabilities["extensions"], err = json.Marshal(extensions)
+	if err != nil {
+		return response
+	}
+	result["capabilities"], err = json.Marshal(capabilities)
+	if err != nil {
+		return response
+	}
+	envelope["result"], err = json.Marshal(result)
+	if err != nil {
+		return response
+	}
+	updated, err := json.Marshal(envelope)
+	if err != nil {
+		return response
+	}
+	return updated
 }
 
 // handleMCPServerSSE handles GET requests for MCP Server-Sent Events streaming
@@ -330,7 +537,11 @@ func (h *MCPServerHandler) SyncMCPServer(ctx context.Context) error {
 
 // server returns the server requests are currently served from, or nil before the first sync.
 func (h *MCPServerHandler) server() *server.MCPServer {
-	return h.mcpServer.Load()
+	snapshot := h.mcpServer.Load()
+	if snapshot == nil {
+		return nil
+	}
+	return snapshot.server
 }
 
 // forwardServerInstructions answers initialize with the upstream servers' own usage guidance,
@@ -354,7 +565,7 @@ func (h *MCPServerHandler) forwardServerInstructions(ctx context.Context, _ any,
 // buildServer registers every available tool on a fresh server. A tool's handler reads nothing
 // about the caller: what a request may see and call rides on its context, and both the tool filter
 // and the executor read it from there.
-func (h *MCPServerHandler) buildServer(availableTools []schemas.ChatTool) *server.MCPServer {
+func (h *MCPServerHandler) buildServer(availableTools []schemas.ChatTool) *mcpServerSnapshot {
 	hooks := &server.Hooks{}
 	hooks.AddAfterInitialize(h.forwardServerInstructions)
 
@@ -368,6 +579,13 @@ func (h *MCPServerHandler) buildServer(availableTools []schemas.ChatTool) *serve
 	server.WithToolFilter(h.makeIncludeClientsFilter())(mcpServer)
 
 	// Register tools from all connected clients
+	hasMCPApps := false
+	for _, tool := range availableTools {
+		if tool.MCPAppMetadata() != nil {
+			hasMCPApps = true
+			break
+		}
+	}
 	for _, tool := range availableTools {
 		// Only process function tools (skip custom tools)
 		if tool.Function == nil {
@@ -379,6 +597,9 @@ func (h *MCPServerHandler) buildServer(availableTools []schemas.ChatTool) *serve
 
 		handler := func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			logger.Debug("[mcp-server] tool handler start tool=%q arg_count=%d", toolName, len(request.GetArguments()))
+			if tool.MCPAppMetadata() != nil && !mcpToolVisibleToRequest(ctx, h.toolManager, toolName) {
+				return mcp.NewToolResultError("tool is unavailable"), nil
+			}
 			// Convert to Bifrost tool call format
 			toolCallType := "function"
 			toolCallID := fmt.Sprintf("mcp-%s", toolName)
@@ -396,7 +617,18 @@ func (h *MCPServerHandler) buildServer(availableTools []schemas.ChatTool) *serve
 			}
 
 			// Execute the tool via tool executor
-			toolMessage, err := h.toolManager.ExecuteChatMCPTool(ctx, &toolCall)
+			var toolMessage *schemas.ChatMessage
+			var nativeResult json.RawMessage
+			var err *schemas.BifrostError
+			if nativeExecutor, ok := h.toolManager.(MCPAppToolExecutor); hasMCPApps && ok {
+				bctx, ok := ctx.(*schemas.BifrostContext)
+				if !ok {
+					bctx = schemas.NewBifrostContext(ctx, schemas.NoDeadline)
+				}
+				toolMessage, nativeResult, err = nativeExecutor.ExecuteMCPAppTool(bctx, &toolCall)
+			} else {
+				toolMessage, err = h.toolManager.ExecuteChatMCPTool(ctx, &toolCall)
+			}
 			if err != nil {
 				logger.Debug("[mcp-server] tool handler error tool=%q error=%s", toolName, bifrost.GetErrorMessage(err))
 				if authReq := err.ExtraFields.MCPAuthRequired; authReq != nil {
@@ -405,6 +637,12 @@ func (h *MCPServerHandler) buildServer(availableTools []schemas.ChatTool) *serve
 				return mcp.NewToolResultError(fmt.Sprintf("Tool execution failed: %v", bifrost.GetErrorMessage(err))), nil
 			}
 			logger.Debug("[mcp-server] tool handler success tool=%q", toolName)
+			if len(nativeResult) > 0 {
+				var result mcp.CallToolResult
+				if json.Unmarshal(nativeResult, &result) == nil {
+					return &result, nil
+				}
+			}
 
 			// Extract content from tool message
 			var resultText string
@@ -451,15 +689,202 @@ func (h *MCPServerHandler) buildServer(availableTools []schemas.ChatTool) *serve
 			}
 		}
 
-		// Register tool with the server
-		mcpServer.AddTool(mcp.Tool{
+		// Apps keep their original MCP definition and annotations; only the public
+		// tool name and linked resource URI are gateway-qualified.
+		serverTool := mcp.Tool{
 			Name:        toolName,
 			Description: description,
 			InputSchema: inputSchema,
 			Annotations: toolAnnotation,
-		}, handler)
+		}
+		if appMetadata := tool.MCPAppMetadata(); appMetadata != nil {
+			if len(appMetadata.RawDefinition) > 0 {
+				var original struct {
+					Meta         *mcp.Meta       `json:"_meta"`
+					OutputSchema json.RawMessage `json:"outputSchema"`
+				}
+				if json.Unmarshal(appMetadata.RawDefinition, &original) == nil {
+					serverTool.Meta = original.Meta
+					serverTool.RawOutputSchema = original.OutputSchema
+				}
+			}
+			gatewayURI := ""
+			if appMetadata.ResourceURI != "" {
+				gatewayURI = mcpAppGatewayURI(appMetadata.SourceClient, appMetadata.ResourceURI)
+			}
+			serverTool.Meta = qualifyMCPAppMetadata(serverTool.Meta, gatewayURI, appMetadata.Visibility, appMetadata.ModernURI, appMetadata.LegacyURI)
+			if gatewayURI != "" {
+				upstreamURI := appMetadata.ResourceURI
+				mcpServer.AddResource(mcp.Resource{
+					URI:      gatewayURI,
+					Name:     toolName,
+					MIMEType: mcpAppsHTMLMIME,
+				}, func(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+					if request.Params.URI != gatewayURI || !mcpAppToolVisible(ctx, h.toolManager, toolName, upstreamURI) {
+						return nil, fmt.Errorf("resource is unavailable")
+					}
+					reader, ok := h.toolManager.(MCPAppResourceReader)
+					if !ok {
+						return nil, fmt.Errorf("resource is unavailable")
+					}
+					bctx, ok := ctx.(*schemas.BifrostContext)
+					if !ok {
+						bctx = schemas.NewBifrostContext(ctx, schemas.NoDeadline)
+					}
+					result, err := reader.ReadMCPAppResource(bctx, toolName, upstreamURI)
+					if err != nil || result == nil {
+						return nil, fmt.Errorf("resource is unavailable")
+					}
+					return rewriteMCPAppResourceContents(result.Contents, gatewayURI), nil
+				})
+			}
+		}
+		mcpServer.AddTool(serverTool, handler)
 	}
-	return mcpServer
+	return &mcpServerSnapshot{
+		server:          mcpServer,
+		callbackAliases: buildMCPAppCallbackAliasCatalog(availableTools),
+	}
+}
+
+// buildMCPAppCallbackAliasCatalog retains only aliases for callbacks that are explicitly
+// App-only in the discovered catalog. It is rebuilt with the immutable server snapshot, so its
+// lifetime and size are bounded by the currently discovered tool set.
+func buildMCPAppCallbackAliasCatalog(tools []schemas.ChatTool) *mcpAppCallbackAliasCatalog {
+	var catalog *mcpAppCallbackAliasCatalog
+	for _, tool := range tools {
+		if tool.Function == nil {
+			continue
+		}
+		metadata := tool.MCPAppMetadata()
+		if metadata == nil || metadata.SourceClient == "" || !mcpAppOnlyVisibility(metadata.Visibility) {
+			continue
+		}
+		prefix := metadata.SourceClient + "-"
+		if !strings.HasPrefix(tool.Function.Name, prefix) {
+			continue
+		}
+		alias := strings.TrimPrefix(tool.Function.Name, prefix)
+		if alias == "" {
+			continue
+		}
+		if catalog == nil {
+			catalog = &mcpAppCallbackAliasCatalog{byName: make(map[string][]string)}
+		}
+		catalog.byName[alias] = append(catalog.byName[alias], tool.Function.Name)
+	}
+	return catalog
+}
+
+func mcpAppOnlyVisibility(visibility []string) bool {
+	hasApp := false
+	for _, audience := range visibility {
+		switch audience {
+		case "app":
+			hasApp = true
+		case "model":
+			return false
+		}
+	}
+	return hasApp
+}
+
+// resolveMCPAppCallbackAlias rewrites a bare callback name only when exactly one matching
+// source-qualified App callback is in this request's already-admitted tool catalog. It does not
+// register aliases with mcp-go, so tools/list continues to expose only canonical names.
+func resolveMCPAppCallbackAlias(ctx context.Context, manager MCPToolManager, catalog *mcpAppCallbackAliasCatalog, request []byte) ([]byte, *mcp.JSONRPCError, bool) {
+	if catalog == nil || len(catalog.byName) == 0 || gjson.GetBytes(request, "method").String() != "tools/call" {
+		return nil, nil, false
+	}
+	name := gjson.GetBytes(request, "params.name").String()
+	if name == "" {
+		return nil, nil, false
+	}
+	candidates := catalog.byName[name]
+	if len(candidates) == 0 {
+		return nil, nil, false
+	}
+
+	allowed := manager.GetAvailableMCPTools(ctx)
+	allowedNames := make(map[string]struct{}, len(allowed))
+	for _, tool := range allowed {
+		if tool.Function != nil {
+			allowedNames[tool.Function.Name] = struct{}{}
+		}
+	}
+	// An explicitly named canonical tool always keeps its existing meaning.
+	if _, exists := allowedNames[name]; exists {
+		return nil, nil, false
+	}
+	var selected string
+	for _, candidate := range candidates {
+		if _, exists := allowedNames[candidate]; !exists {
+			continue
+		}
+		if selected != "" {
+			idResult := gjson.GetBytes(request, "id")
+			if !idResult.Exists() {
+				return nil, nil, true
+			}
+			refusal := mcp.NewJSONRPCError(mcp.NewRequestId(idResult.Value()), mcp.INVALID_PARAMS, "App callback alias is ambiguous", nil)
+			return nil, &refusal, true
+		}
+		selected = candidate
+	}
+	if selected == "" {
+		return nil, nil, false
+	}
+	rewritten, err := sjson.SetBytes(request, "params.name", selected)
+	if err != nil {
+		return nil, nil, false
+	}
+	return rewritten, nil, false
+}
+
+func mcpToolVisibleToRequest(ctx context.Context, manager MCPToolManager, toolName string) bool {
+	for _, tool := range manager.GetAvailableMCPTools(ctx) {
+		if tool.Function != nil && tool.Function.Name == toolName {
+			return true
+		}
+	}
+	return false
+}
+
+func mcpAppToolVisible(ctx context.Context, manager MCPToolManager, toolName, upstreamURI string) bool {
+	for _, visible := range manager.GetAvailableMCPTools(ctx) {
+		appMetadata := visible.MCPAppMetadata()
+		if visible.Function != nil && visible.Function.Name == toolName && appMetadata != nil && appMetadata.ResourceURI == upstreamURI {
+			return true
+		}
+	}
+	return false
+}
+
+func rewriteMCPAppResourceContents(contents []mcp.ResourceContents, gatewayURI string) []mcp.ResourceContents {
+	rewritten := make([]mcp.ResourceContents, 0, len(contents))
+	for _, content := range contents {
+		switch value := content.(type) {
+		case mcp.TextResourceContents:
+			value.URI = gatewayURI
+			rewritten = append(rewritten, value)
+		case *mcp.TextResourceContents:
+			if value != nil {
+				copyValue := *value
+				copyValue.URI = gatewayURI
+				rewritten = append(rewritten, copyValue)
+			}
+		case mcp.BlobResourceContents:
+			value.URI = gatewayURI
+			rewritten = append(rewritten, value)
+		case *mcp.BlobResourceContents:
+			if value != nil {
+				copyValue := *value
+				copyValue.URI = gatewayURI
+				rewritten = append(rewritten, copyValue)
+			}
+		}
+	}
+	return rewritten
 }
 
 // makeIncludeClientsFilter returns a ToolFilterFunc that narrows tools/list to what the request's
