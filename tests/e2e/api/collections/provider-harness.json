@@ -273617,7 +273617,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"mcp_apps_fixture_second-structured_result\",\"arguments\":{}}}"
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"mcp_apps_fixture_second-open_view\",\"arguments\":{\"message\":\"structured\"}}}"
             },
             "url": {
               "raw": "{{baseUrl}}/mcp/mcp-apps-fixture-second",
@@ -274235,7 +274235,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"mcp_apps_fixture_second-structured_result\",\"arguments\":{}}}"
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"mcp_apps_fixture_second-open_view\",\"arguments\":{\"message\":\"structured\"}}}"
             },
             "url": {
               "raw": "{{baseUrl}}/mcp",
