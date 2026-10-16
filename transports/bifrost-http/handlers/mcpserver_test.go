@@ -338,6 +338,33 @@ func BenchmarkMCPToolCallResponse(b *testing.B) {
 	}
 }
 
+// BenchmarkMCPHTTPNoApp measures the ordinary public HTTP MCP tools/call path
+// when the server has no App metadata. It includes gateway admission, dispatch,
+// and JSON response encoding so the no-App alias fast path is represented.
+func BenchmarkMCPHTTPNoApp(b *testing.B) {
+	tm := &markerToolManager{message: &schemas.ChatMessage{
+		Content: &schemas.ChatMessageContent{ContentStr: schemas.Ptr("tool response")},
+	}}
+	h := &MCPServerHandler{
+		toolManager: tm,
+		config:      &lib.Config{ClientConfig: &configstore.ClientConfig{}},
+	}
+	h.mcpServer.Store(h.buildServer(tm.GetAvailableMCPTools(context.Background())))
+	ctx := &fasthttp.RequestCtx{}
+	ctx.Request.SetRequestURI("/mcp")
+	ctx.Request.Header.SetMethod(fasthttp.MethodPost)
+	ctx.Request.SetBody([]byte(`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"lookup","arguments":{}}}`))
+	b.ReportAllocs()
+	b.ResetTimer()
+	for b.Loop() {
+		ctx.Response.Reset()
+		h.handleMCPServer(ctx)
+		if ctx.Response.StatusCode() != fasthttp.StatusOK {
+			b.Fatalf("unexpected HTTP status: %d", ctx.Response.StatusCode())
+		}
+	}
+}
+
 type mcpAppsToolManager struct {
 	tools        []schemas.ChatTool
 	nativeResult json.RawMessage
