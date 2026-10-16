@@ -34,8 +34,9 @@ func TestStdioToolListMetadataVariants(t *testing.T) {
 			var list struct {
 				Result struct {
 					Tools []struct {
-						Name string                     `json:"name"`
-						Meta map[string]json.RawMessage `json:"_meta"`
+						Name         string                     `json:"name"`
+						Meta         map[string]json.RawMessage `json:"_meta"`
+						OutputSchema json.RawMessage            `json:"outputSchema"`
 					} `json:"tools"`
 				} `json:"result"`
 			}
@@ -51,6 +52,28 @@ func TestStdioToolListMetadataVariants(t *testing.T) {
 			}
 			if openView == nil {
 				t.Fatal("tools/list did not include open_view metadata")
+			}
+			var outputSchema struct {
+				Type       string `json:"type"`
+				Properties map[string]struct {
+					Type string `json:"type"`
+				} `json:"properties"`
+				Required []string `json:"required"`
+			}
+			for _, tool := range list.Result.Tools {
+				if tool.Name == "open_view" {
+					if err := json.Unmarshal(tool.OutputSchema, &outputSchema); err != nil {
+						t.Fatalf("decode open_view output schema: %v", err)
+					}
+					break
+				}
+			}
+			required := make(map[string]bool, len(outputSchema.Required))
+			for _, name := range outputSchema.Required {
+				required[name] = true
+			}
+			if outputSchema.Type != "object" || outputSchema.Properties["instance"].Type != "string" || outputSchema.Properties["message"].Type != "string" || len(required) != 2 || !required["instance"] || !required["message"] {
+				t.Fatalf("open_view output schema = %+v, want required string instance and message fields", outputSchema)
 			}
 			_, hasLegacy := openView["ui/resourceUri"]
 			if hasLegacy != test.legacy {
