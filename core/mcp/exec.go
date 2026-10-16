@@ -1,6 +1,8 @@
 package mcp
 
 import (
+	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"sync"
@@ -29,6 +31,7 @@ var mcpRequestPool = sync.Pool{
 func resetMCPRequest(req *schemas.BifrostMCPRequest) {
 	req.RequestType = ""
 	req.ClientName = ""
+	req.NativeMCPAppResult = false
 	req.BifrostMCPPingRequest = nil
 	req.BifrostMCPListToolsRequest = nil
 	req.BifrostMCPExecuteToolRequest = nil
@@ -114,7 +117,32 @@ func (m *MCPManager) executeToolWithHooks(
 		bErr.ExtraFields.RequestType = requestType
 		return nil, bErr
 	}
+	clearStaleNativeMCPAppResult(resp)
 	return resp, nil
+}
+
+func clearStaleNativeMCPAppResult(resp *schemas.BifrostMCPResponse) {
+	raw, resultHash, messageHash := resp.GetNativeMCPAppResult()
+	if len(raw) == 0 || sha256.Sum256(raw) != resultHash {
+		return
+	}
+	// A post-hook that changed the compatibility ChatMessage while leaving the
+	// native payload untouched has redacted/blocked the effective result. Do
+	// not leak the pre-hook wire result back to the App.
+	if hashMCPAppMessage(resp.ChatMessage) != messageHash {
+		resp.ClearNativeMCPAppResult()
+	}
+}
+
+func hashMCPAppMessage(message *schemas.ChatMessage) [32]byte {
+	if message == nil {
+		return sha256.Sum256(nil)
+	}
+	encoded, err := schemas.MarshalSorted(message)
+	if err != nil {
+		return sha256.Sum256(nil)
+	}
+	return sha256.Sum256(encoded)
 }
 
 // prepareToolExecution resolves the tool to its owning MCP client and
@@ -284,6 +312,28 @@ func (m *MCPManager) ExecuteChatTool(ctx *schemas.BifrostContext, toolCall *sche
 		}
 	}
 	return result.ChatMessage, nil
+}
+
+// ExecuteMCPAppTool executes one UI-linked MCP tool through the regular permission,
+// credential, retry, and plugin pipeline while retaining the native CallToolResult.
+func (m *MCPManager) ExecuteMCPAppTool(ctx *schemas.BifrostContext, toolCall *schemas.ChatAssistantMessageToolCall) (*schemas.ChatMessage, json.RawMessage, *schemas.BifrostError) {
+	if toolCall == nil {
+		return nil, nil, &schemas.BifrostError{IsBifrostError: false, Error: &schemas.ErrorField{Message: "toolCall cannot be nil"}, ExtraFields: schemas.BifrostErrorExtraFields{RequestType: schemas.ChatCompletionRequest}}
+	}
+	request := getMCPRequest()
+	request.RequestType = schemas.MCPRequestTypeChatToolCall
+	request.NativeMCPAppResult = true
+	request.ChatAssistantMessageToolCall = toolCall
+	defer releaseMCPRequest(request)
+	result, bErr := m.executeToolWithHooks(ctx, request, schemas.ChatCompletionRequest)
+	if bErr != nil {
+		return nil, nil, bErr
+	}
+	if result == nil {
+		return nil, nil, nil
+	}
+	raw, _, _ := result.GetNativeMCPAppResult()
+	return result.ChatMessage, append(json.RawMessage(nil), raw...), nil
 }
 
 // ExecuteResponsesTool executes an MCP tool call and returns the result as a responses

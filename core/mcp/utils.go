@@ -21,6 +21,9 @@ import (
 	"github.com/maximhq/bifrost/core/schemas"
 )
 
+const maxCachedMCPAppDefinitionBytes = 256 << 10
+const maxCachedMCPAppMetadataBytes = 256 << 10
+
 // computeToolsHash returns a stable content hash of a tool map + name
 // mapping, used to gate the tools-change funnel (SetClientTools,
 // connectToMCPClient, writeBackTools) to genuine changes only — a
@@ -33,7 +36,7 @@ import (
 // a genuine discovery result from being recorded).
 func computeToolsHash(tools map[string]schemas.ChatTool, toolNameMapping map[string]string, instructions string) string {
 	h := sha256.New()
-	if data, err := json.Marshal(tools); err == nil {
+	if data, err := schemas.MarshalMCPAppToolCache(tools); err == nil {
 		h.Write(data)
 	}
 	h.Write([]byte{0}) // separator so {"a":"b"} tools + {} mapping can't collide with {} tools + {"a":"b"} mapping
@@ -46,6 +49,43 @@ func computeToolsHash(tools map[string]schemas.ChatTool, toolNameMapping map[str
 	h.Write([]byte{0})
 	h.Write([]byte(instructions))
 	return hex.EncodeToString(h.Sum(nil))
+}
+
+func boundedMCPAppToolMetadata(rawDefinition []byte, resourceURI string, visibility []string, modernURI, legacyURI bool) *schemas.MCPAppToolMetadata {
+	metadata := &schemas.MCPAppToolMetadata{
+		RawDefinition: rawDefinition,
+		ResourceURI:   resourceURI,
+		Visibility:    visibility,
+		ModernURI:     modernURI,
+		LegacyURI:     legacyURI,
+	}
+	if len(metadata.RawDefinition) > maxCachedMCPAppDefinitionBytes || !mcpAppMetadataFitsCache(metadata) {
+		metadata.RawDefinition = nil
+	}
+	if mcpAppMetadataFitsCache(metadata) {
+		return metadata
+	}
+	resourceURI = metadata.ResourceURI
+	metadata.ResourceURI = ""
+	if mcpAppMetadataFitsCache(metadata) {
+		return metadata
+	}
+	metadata.ResourceURI = resourceURI
+
+	// A visibility list that exceeds the sidecar budget must not make an
+	// app-only tool appear model-visible. Preserve only the conservative App
+	// classification while keeping a small linked-resource URI when possible.
+	metadata.Visibility = []string{"app"}
+	if mcpAppMetadataFitsCache(metadata) {
+		return metadata
+	}
+	metadata.ResourceURI = ""
+	return metadata
+}
+
+func mcpAppMetadataFitsCache(metadata *schemas.MCPAppToolMetadata) bool {
+	encoded, err := schemas.MarshalSorted(metadata)
+	return err == nil && len(encoded) <= maxCachedMCPAppMetadataBytes
 }
 
 // RetryConfig defines the retry behavior with exponential backoff
@@ -1021,6 +1061,22 @@ func convertMCPToolToBifrostSchema(mcpTool *mcp.Tool, logger schemas.Logger) sch
 		}
 	}
 
+	var appMetadata *schemas.MCPAppToolMetadata
+	if mcpTool.Meta != nil {
+		if rawDefinition, err := schemas.MarshalSorted(mcpTool); err == nil {
+			resourceURI, visibility, modernURI, legacyURI := mcpToolUIProperties(rawDefinition)
+			if resourceURI != "" || len(visibility) > 0 {
+				appMetadata = boundedMCPAppToolMetadata(rawDefinition, resourceURI, visibility, modernURI, legacyURI)
+			}
+		}
+		if appMetadata != nil {
+			if annotations == nil {
+				annotations = &schemas.MCPToolAnnotations{}
+			}
+			annotations.MCPApp = appMetadata
+		}
+	}
+
 	return schemas.ChatTool{
 		Type: schemas.ChatToolTypeFunction,
 		Function: &schemas.ChatToolFunction{
@@ -1035,6 +1091,27 @@ func convertMCPToolToBifrostSchema(mcpTool *mcp.Tool, logger schemas.Logger) sch
 		},
 		Annotations: annotations,
 	}
+}
+
+func mcpToolUIProperties(rawDefinition []byte) (string, []string, bool, bool) {
+	var definition struct {
+		Meta struct {
+			UI struct {
+				ResourceURI string   `json:"resourceUri"`
+				Visibility  []string `json:"visibility"`
+			} `json:"ui"`
+			LegacyResourceURI string `json:"ui/resourceUri"`
+		} `json:"_meta"`
+	}
+	if json.Unmarshal(rawDefinition, &definition) != nil {
+		return "", nil, false, false
+	}
+	modern := definition.Meta.UI.ResourceURI != ""
+	legacy := definition.Meta.LegacyResourceURI != ""
+	if modern {
+		return definition.Meta.UI.ResourceURI, definition.Meta.UI.Visibility, modern, legacy
+	}
+	return definition.Meta.LegacyResourceURI, definition.Meta.UI.Visibility, modern, legacy
 }
 
 // extractTextFromMCPResponse extracts text content from an MCP tool response.

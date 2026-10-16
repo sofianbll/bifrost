@@ -34,6 +34,36 @@ func TestComputeToolsHash_DiffersOnContentChange(t *testing.T) {
 	assert.NotEqual(t, base, changedMapping)
 }
 
+func TestComputeToolsHash_IncludesCachedMCPAppsMetadata(t *testing.T) {
+	first := schemas.ChatTool{Type: "function", Annotations: &schemas.MCPToolAnnotations{MCPApp: &schemas.MCPAppToolMetadata{ResourceURI: "ui://app/one"}}}
+	refreshed := schemas.ChatTool{Type: "function", Annotations: &schemas.MCPToolAnnotations{MCPApp: &schemas.MCPAppToolMetadata{ResourceURI: "ui://app/two"}}}
+
+	firstHash := computeToolsHash(map[string]schemas.ChatTool{"app-open": first}, nil, "")
+	refreshedHash := computeToolsHash(map[string]schemas.ChatTool{"app-open": refreshed}, nil, "")
+	assert.NotEqual(t, firstHash, refreshedHash, "resource-only changes must refresh the stored catalog")
+}
+
+func TestSetClientTools_MetadataOnlyChangeRefreshesCatalog(t *testing.T) {
+	m := NewMCPManager(context.Background(), schemas.MCPConfig{}, nil, &MockLogger{}, nil)
+	config := &schemas.MCPClientConfig{ID: "client-app-refresh", Name: "app-client"}
+	m.mu.Lock()
+	m.clientMap[config.ID] = &schemas.MCPClientState{Name: config.Name, ExecutionConfig: config, ToolMap: map[string]schemas.ChatTool{}}
+	m.mu.Unlock()
+
+	callCount := 0
+	m.SetToolsChangeCallback(func(string, string, map[string]schemas.ChatTool, map[string]string, string) { callCount++ })
+	tool := func(uri string) map[string]schemas.ChatTool {
+		return map[string]schemas.ChatTool{"app-client-open": {
+			Type:        schemas.ChatToolTypeFunction,
+			Annotations: &schemas.MCPToolAnnotations{MCPApp: &schemas.MCPAppToolMetadata{ResourceURI: uri}},
+		}}
+	}
+	m.SetClientTools(config.ID, tool("ui://one"), nil, "")
+	m.SetClientTools(config.ID, tool("ui://two"), nil, "")
+	m.SetClientTools(config.ID, tool("ui://two"), nil, "")
+	assert.Equal(t, 2, callCount, "a metadata-only refresh must persist once, then identical discovery must be gated")
+}
+
 // TestSetClientTools_UnchangedTools_DoesNotFireCallback pins the funnel's
 // gating: rediscovering byte-identical tools must not re-notify — the
 // registered callback's whole purpose (persist to DB, resync the local MCP

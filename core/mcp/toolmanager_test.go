@@ -21,6 +21,7 @@ import (
 type mockToolClientManager struct {
 	tools        []schemas.ChatTool
 	instructions []schemas.MCPServerInstructions
+	codeMode     bool
 }
 
 func (m *mockToolClientManager) GetClientByName(clientName string) *schemas.MCPClientState {
@@ -30,7 +31,7 @@ func (m *mockToolClientManager) GetClientByName(clientName string) *schemas.MCPC
 			ExecutionConfig: &schemas.MCPClientConfig{
 				ID:               "test-client",
 				Name:             "test-client",
-				IsCodeModeClient: false,
+				IsCodeModeClient: m.codeMode,
 				ToolsToExecute:   []string{"*"},
 			},
 		}
@@ -79,6 +80,58 @@ func makeTool(name string) schemas.ChatTool {
 		Function: &schemas.ChatToolFunction{
 			Name: name,
 		},
+	}
+}
+
+func TestGetAvailableToolsKeepsAppOnlyToolsOutOfModelCatalog(t *testing.T) {
+	appOnly := makeTool("test-client-open")
+	appOnly.SetMCPAppMetadata(&schemas.MCPAppToolMetadata{Visibility: []string{"app"}})
+	modelAndApp := makeTool("test-client-search")
+	modelAndApp.SetMCPAppMetadata(&schemas.MCPAppToolMetadata{Visibility: []string{"app", "model"}})
+	plain := makeTool("test-client-plain")
+	manager := NewToolsManager(nil, &mockToolClientManager{tools: []schemas.ChatTool{appOnly, modelAndApp, plain}}, nil, nil, defaultLogger)
+	ctx := schemas.NewBifrostContext(context.Background(), schemas.NoDeadline)
+
+	assert.Equal(t, []string{"test-client-search", "test-client-plain"}, toolNamesFromAvailable(manager.GetAvailableTools(ctx)))
+	assert.Equal(t, []string{"test-client-open", "test-client-search", "test-client-plain"}, toolNamesFromAvailable(manager.GetAvailableToolsForMCP(ctx)))
+}
+
+func TestGetAvailableToolsForMCPIncludesAppsFromCodeModeClients(t *testing.T) {
+	appOnly := makeTool("test-client-open_view")
+	appOnly.SetMCPAppMetadata(&schemas.MCPAppToolMetadata{Visibility: []string{"app"}})
+	ordinary := makeTool("test-client-structured_result")
+	manager := NewToolsManager(nil, &mockToolClientManager{tools: []schemas.ChatTool{appOnly, ordinary}, codeMode: true}, nil, nil, defaultLogger)
+	ctx := schemas.NewBifrostContext(context.Background(), schemas.NoDeadline)
+
+	assert.Empty(t, toolNamesFromAvailable(manager.GetAvailableTools(ctx)), "Code Mode client tools must stay out of the model catalog")
+	assert.Equal(t, []string{"test-client-open_view"}, toolNamesFromAvailable(manager.GetAvailableToolsForMCP(ctx)), "the native MCP catalog should include only linked Apps from a Code Mode client")
+}
+
+func toolNamesFromAvailable(tools []schemas.ChatTool) []string {
+	names := make([]string, 0, len(tools))
+	for _, tool := range tools {
+		if tool.Function != nil {
+			names = append(names, tool.Function.Name)
+		}
+	}
+	return names
+}
+
+var availableToolsBenchmarkSink []schemas.ChatTool
+
+// BenchmarkGetAvailableToolsNoApps measures the real core catalog path when
+// discovery produced no MCP Apps metadata. Keep the setup outside the timed
+// loop so this isolates the request-facing catalog work.
+func BenchmarkGetAvailableToolsNoApps(b *testing.B) {
+	manager := NewToolsManager(nil, &mockToolClientManager{tools: []schemas.ChatTool{
+		makeTool("test-client-lookup"),
+		makeTool("test-client-search"),
+	}}, nil, nil, defaultLogger)
+	ctx := schemas.NewBifrostContext(context.Background(), schemas.NoDeadline)
+	b.ReportAllocs()
+	b.ResetTimer()
+	for b.Loop() {
+		availableToolsBenchmarkSink = manager.GetAvailableTools(ctx)
 	}
 }
 

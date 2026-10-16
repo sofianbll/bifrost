@@ -4,6 +4,7 @@ package server
 import (
 	"context"
 	"embed"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -18,6 +19,7 @@ import (
 
 	"github.com/fasthttp/router"
 	"github.com/google/uuid"
+	mcpsdk "github.com/mark3labs/mcp-go/mcp"
 	bifrost "github.com/maximhq/bifrost/core"
 	"github.com/maximhq/bifrost/core/agent"
 	"github.com/maximhq/bifrost/core/network"
@@ -602,6 +604,18 @@ func (s *BifrostHTTPServer) RequiresPerCallConnection(config *schemas.MCPClientC
 func (s *BifrostHTTPServer) ExecuteChatMCPTool(ctx context.Context, toolCall *schemas.ChatAssistantMessageToolCall) (*schemas.ChatMessage, *schemas.BifrostError) {
 	bifrostCtx := schemas.NewBifrostContext(ctx, schemas.NoDeadline)
 	return s.Client.ExecuteChatMCPTool(bifrostCtx, toolCall)
+}
+
+// ExecuteMCPAppTool retains the native MCP result for the HTTP MCP Apps
+// handler while using the same Bifrost request context as other tool calls.
+func (s *BifrostHTTPServer) ExecuteMCPAppTool(ctx *schemas.BifrostContext, toolCall *schemas.ChatAssistantMessageToolCall) (*schemas.ChatMessage, json.RawMessage, *schemas.BifrostError) {
+	return s.Client.ExecuteMCPAppTool(ctx, toolCall)
+}
+
+// ReadMCPAppResource delegates the source-scoped App resource through the
+// core MCP hooks and connection manager.
+func (s *BifrostHTTPServer) ReadMCPAppResource(ctx *schemas.BifrostContext, toolName, upstreamURI string) (*mcpsdk.ReadResourceResult, error) {
+	return s.Client.ReadMCPAppResource(ctx, toolName, upstreamURI)
 }
 
 // ExecuteResponsesMCPTool executes an MCP tool call and returns the result as a responses message.
