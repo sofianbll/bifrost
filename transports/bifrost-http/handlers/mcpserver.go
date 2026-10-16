@@ -428,8 +428,13 @@ func (h *MCPServerHandler) buildServer(availableTools []schemas.ChatTool) *serve
 				}
 			}
 
-			// Return result using mcp-go helper
-			return mcp.NewToolResultText(resultText), nil
+			// Preserve MCP's protocol error marker. The content remains available to
+			// clients that choose to handle tool errors as values.
+			result := mcp.NewToolResultText(resultText)
+			if toolMessage != nil && toolMessage.ChatToolMessage != nil && toolMessage.ChatToolMessage.IsError != nil {
+				result.IsError = *toolMessage.ChatToolMessage.IsError
+			}
+			return result, nil
 		}
 
 		// Convert description from *string to string
