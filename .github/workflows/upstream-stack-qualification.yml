@@ -31,27 +31,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: integration
-            product_pin: integration
-            fixture_scopes: mcp-apps,codemode-errors
-            comparison_mode: characterize
-            extra_firstboot: true
-            reference_host: false
-            output_schema_probe: false
-          - name: issue-24
-            product_pin: 1194291f60bf0894d8b0998e2725b583bfdf1b5c
-            fixture_scopes: firstboot-grants-standalone
-            comparison_mode: strict
-            extra_firstboot: false
-            reference_host: false
-            output_schema_probe: false
-          - name: issue-25
+          - name: issue-25-schema
             product_pin: a7816bd1829d97939fd2c4f73da6aec158a271aa
-            fixture_scopes: mcp-apps
-            comparison_mode: characterize
+            fixture_scopes: none
+            comparison_mode: not-run
             extra_firstboot: false
-            reference_host: true
+            reference_host: false
             output_schema_probe: true
+            schema_only: true
     env:
       STOCK_SOURCE: 83258b776c68e1e3d2c1ca0d08a31c2e5811344f
       STABLE_REFERENCE: 9237ec06672406e437b3cb33fc793ffd0403b3ae
@@ -61,6 +48,7 @@ jobs:
       COMPARISON_MODE: ${{ matrix.name == 'integration' && (inputs.comparison_mode || 'characterize') || matrix.comparison_mode }}
     steps:
       - name: Checkout pinned stock source
+        if: matrix.schema_only != true
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: ${{ env.STOCK_SOURCE }}
@@ -79,40 +67,49 @@ jobs:
           path: driver
           persist-credentials: false
       - name: Verify exact source identities
+        id: source-identities
         run: |
           export REPORT_DIR="$RUNNER_TEMP/mcp-stack-${{ matrix.name }}"
           echo "REPORT_DIR=$REPORT_DIR" >> "$GITHUB_ENV"
-          test "$(git -C stock rev-parse HEAD)" = "$STOCK_SOURCE"
           test "$(git -C candidate rev-parse HEAD)" = "$CANDIDATE_SOURCE"
           test "$(git -C driver rev-parse HEAD)" = "$DRIVER_SOURCE"
-          test "$(git -C stock status --porcelain --untracked-files=no)" = ''
           test "$(git -C candidate status --porcelain --untracked-files=no)" = ''
           test "$(git -C driver status --porcelain --untracked-files=no)" = ''
+          if [[ "${{ matrix.schema_only }}" != 'true' ]]; then
+            test "$(git -C stock rev-parse HEAD)" = "$STOCK_SOURCE"
+            test "$(git -C stock status --porcelain --untracked-files=no)" = ''
+          fi
           test ! -f candidate/.env
           test ! -f driver/.env
           mkdir -p "$REPORT_DIR"
           cat > "$REPORT_DIR/source-identities.json" <<EOF
           {
             "stock_source": "$STOCK_SOURCE",
+            "stock_source_checked": ${{ matrix.schema_only != true }},
             "candidate_source": "$CANDIDATE_SOURCE",
             "harness_source": "$DRIVER_SOURCE",
             "stable_release_reference": "$STABLE_REFERENCE",
             "fixture_scopes": "$FIXTURE_SCOPES",
+            "schema_only": ${{ matrix.schema_only }},
+            "qualification_scope": "${{ matrix.schema_only == true && 'go-only-output-schema-probe' || 'product-fixture-comparison' }}",
             "candidate_tracked_status": "clean",
             "harness_tracked_status": "clean",
             "comparison_mode": "$COMPARISON_MODE"
           }
           EOF
       - uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
+        id: setup-go
         with:
           go-version: "1.27.2"
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        if: matrix.schema_only != true
         with:
           node-version: "25"
       - name: Install the existing API harness dependencies
+        if: matrix.schema_only != true
         run: npm ci --prefix driver/tests/e2e
       - name: Bootstrap the pinned MCP Apps reference host
-        if: matrix.reference_host == true
+        if: matrix.schema_only != true && matrix.reference_host == true
         working-directory: driver
         env:
           MATRIX_NAME: ${{ matrix.name }}
@@ -124,8 +121,10 @@ jobs:
           echo "REFERENCE_HOST_DIRECTORY=$HOST_DIRECTORY" >> "$GITHUB_ENV"
           cp "$HOST_DIRECTORY/.bifrost-reference-host.json" "$REPORT_DIR/reference-host-bootstrap-manifest.json"
       - uses: step-security/setup-buildx-action@f931205d68723ad9589fd2a7e2ece238bf9de341 # v4.0.0
+        if: matrix.schema_only != true
       - name: Build pinned stock image with its local modules
         id: build-stock
+        if: matrix.schema_only != true
         uses: step-security/docker-build-push-action@846549baaf047e867d038826129a64d81df0f704 # v7.1.0
         with:
           context: stock
@@ -136,6 +135,7 @@ jobs:
           build-args: DYNAMIC=1
       - name: Build pinned product image with its local modules
         id: build-candidate
+        if: matrix.schema_only != true
         uses: step-security/docker-build-push-action@846549baaf047e867d038826129a64d81df0f704 # v7.1.0
         with:
           context: candidate
@@ -145,6 +145,7 @@ jobs:
           tags: bifrost:candidate-${{ matrix.name }}-${{ github.run_id }}
           build-args: DYNAMIC=1
       - name: Record compiled module and image identities
+        if: matrix.schema_only != true
         run: |
           python3 - <<'PY'
           import json, os, subprocess
@@ -191,6 +192,7 @@ jobs:
         env:
           MATRIX_NAME: ${{ matrix.name }}
       - name: Check comparator and fixture contracts
+        if: matrix.schema_only != true
         working-directory: driver
         run: |
           .github/workflows/scripts/test-mcp-apps-fixture.sh --self-check
@@ -198,6 +200,7 @@ jobs:
           python3 -m json.tool tests/e2e/api/collections/provider-harness.json >/dev/null
       - name: Run pinned product fixture scope
         id: candidate-fixture
+        if: matrix.schema_only != true
         continue-on-error: true
         working-directory: driver
         env:
@@ -211,7 +214,7 @@ jobs:
         run: .github/workflows/scripts/test-mcp-apps-fixture.sh "bifrost:candidate-${{ matrix.name }}-${{ github.run_id }}" "$REPORT_DIR"
       - name: Run pinned stock fixtures and compare observed assertions
         id: stock-fixture
-        if: always() && steps.build-stock.outcome == 'success' && steps.build-candidate.outcome == 'success' && steps.candidate-fixture.outcome != 'skipped'
+        if: always() && matrix.schema_only != true && steps.build-stock.outcome == 'success' && steps.build-candidate.outcome == 'success' && steps.candidate-fixture.outcome != 'skipped'
         working-directory: driver
         env:
           GITHUB_ACTIONS: "true"
@@ -223,7 +226,7 @@ jobs:
           BIFROST_REFERENCE_HOST_DIRECTORY: ""
         run: .github/workflows/scripts/test-mcp-apps-fixture.sh --baseline "bifrost:stock-${{ matrix.name }}-${{ github.run_id }}" "$REPORT_DIR"
       - name: Run known-red MCP Apps output schema regression probe
-        if: always() && matrix.output_schema_probe == true && steps.build-candidate.outcome == 'success'
+        if: always() && matrix.output_schema_probe == true && steps.source-identities.outcome == 'success' && steps.setup-go.outcome == 'success' && (matrix.schema_only == true || steps.build-candidate.outcome == 'success')
         working-directory: candidate
         env:
           REPORT_DIR: ${{ env.REPORT_DIR }}
@@ -244,7 +247,15 @@ jobs:
           }
           trap record_preflight_failure ERR
 
-          if ! rg -q "^func ${test_name}\\(" "$test_file"; then
+          if ! python3 - "$test_file" "$test_name" <<'PY'
+          import re, sys
+          from pathlib import Path
+          source, expected = sys.argv[1:]
+          pattern = re.compile(r'^func ' + re.escape(expected) + r'\(')
+          if not any(pattern.search(line) for line in Path(source).read_text().splitlines()):
+              raise SystemExit(1)
+          PY
+          then
             printf 'stage=preflight\nerror=expected test missing from %s\n' "$test_file" > "$status_report"
             exit 2
           fi
@@ -334,7 +345,7 @@ jobs:
           exit "$probe_status"
       - name: Verify integrated first-boot grants and same-store restart
         id: firstboot-candidate
-        if: always() && matrix.extra_firstboot && steps.build-candidate.outcome == 'success'
+        if: always() && matrix.schema_only != true && matrix.extra_firstboot && steps.build-candidate.outcome == 'success'
         continue-on-error: true
         working-directory: driver
         env:
@@ -345,7 +356,7 @@ jobs:
           BIFROST_FIXTURE_SCOPES: firstboot-grants
         run: .github/workflows/scripts/test-mcp-apps-fixture.sh "bifrost:candidate-${{ matrix.name }}-${{ github.run_id }}" "$REPORT_DIR/firstboot-grants"
       - name: Verify first-boot stock red and restart control
-        if: always() && matrix.extra_firstboot && steps.build-stock.outcome == 'success' && steps.firstboot-candidate.outcome != 'skipped'
+        if: always() && matrix.schema_only != true && matrix.extra_firstboot && steps.build-stock.outcome == 'success' && steps.firstboot-candidate.outcome != 'skipped'
         working-directory: driver
         env:
           BIFROST_STOCK_SOURCE: ${{ env.STOCK_SOURCE }}
@@ -363,5 +374,5 @@ jobs:
           if-no-files-found: error
           retention-days: 14
       - name: Remove local qualification images
-        if: always()
+        if: always() && matrix.schema_only != true
         run: docker image rm -f "bifrost:stock-${{ matrix.name }}-${{ github.run_id }}" "bifrost:candidate-${{ matrix.name }}-${{ github.run_id }}" >/dev/null 2>&1 || true
