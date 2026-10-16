@@ -12,7 +12,7 @@ on:
         options:
           - characterize
           - strict
-        default: characterize
+        default: strict
 
 permissions:
   contents: read
@@ -31,24 +31,22 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: issue-25-schema
-            product_pin: a7816bd1829d97939fd2c4f73da6aec158a271aa
-            fixture_scopes: none
-            comparison_mode: not-run
+          - name: issue-25
+            product_pin: b7cf1a878395998c361b955a627e1cb9a18548fe
+            fixture_scopes: mcp-apps
+            comparison_mode: characterize
             extra_firstboot: false
-            reference_host: false
-            output_schema_probe: true
-            schema_only: true
+            reference_host: true
+            contribution_scope: true
     env:
       STOCK_SOURCE: 83258b776c68e1e3d2c1ca0d08a31c2e5811344f
       STABLE_REFERENCE: 9237ec06672406e437b3cb33fc793ffd0403b3ae
       DRIVER_SOURCE: ${{ github.sha }}
       CANDIDATE_SOURCE: ${{ matrix.product_pin == 'integration' && github.sha || matrix.product_pin }}
       FIXTURE_SCOPES: ${{ matrix.fixture_scopes }}
-      COMPARISON_MODE: ${{ matrix.name == 'integration' && (inputs.comparison_mode || 'characterize') || matrix.comparison_mode }}
+      COMPARISON_MODE: ${{ matrix.name == 'integration' && (inputs.comparison_mode || 'strict') || matrix.comparison_mode }}
     steps:
       - name: Checkout pinned stock source
-        if: matrix.schema_only != true
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: ${{ env.STOCK_SOURCE }}
@@ -67,49 +65,61 @@ jobs:
           path: driver
           persist-credentials: false
       - name: Verify exact source identities
-        id: source-identities
         run: |
           export REPORT_DIR="$RUNNER_TEMP/mcp-stack-${{ matrix.name }}"
           echo "REPORT_DIR=$REPORT_DIR" >> "$GITHUB_ENV"
+          test "$(git -C stock rev-parse HEAD)" = "$STOCK_SOURCE"
           test "$(git -C candidate rev-parse HEAD)" = "$CANDIDATE_SOURCE"
           test "$(git -C driver rev-parse HEAD)" = "$DRIVER_SOURCE"
+          test "$(git -C stock status --porcelain --untracked-files=no)" = ''
           test "$(git -C candidate status --porcelain --untracked-files=no)" = ''
           test "$(git -C driver status --porcelain --untracked-files=no)" = ''
-          if [[ "${{ matrix.schema_only }}" != 'true' ]]; then
-            test "$(git -C stock rev-parse HEAD)" = "$STOCK_SOURCE"
-            test "$(git -C stock status --porcelain --untracked-files=no)" = ''
-          fi
           test ! -f candidate/.env
           test ! -f driver/.env
           mkdir -p "$REPORT_DIR"
           cat > "$REPORT_DIR/source-identities.json" <<EOF
           {
             "stock_source": "$STOCK_SOURCE",
-            "stock_source_checked": ${{ matrix.schema_only != true }},
             "candidate_source": "$CANDIDATE_SOURCE",
             "harness_source": "$DRIVER_SOURCE",
             "stable_release_reference": "$STABLE_REFERENCE",
             "fixture_scopes": "$FIXTURE_SCOPES",
-            "schema_only": ${{ matrix.schema_only }},
-            "qualification_scope": "${{ matrix.schema_only == true && 'go-only-output-schema-probe' || 'product-fixture-comparison' }}",
             "candidate_tracked_status": "clean",
             "harness_tracked_status": "clean",
             "comparison_mode": "$COMPARISON_MODE"
           }
           EOF
       - uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
-        id: setup-go
         with:
           go-version: "1.27.2"
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        if: matrix.schema_only != true
         with:
           node-version: "25"
       - name: Install the existing API harness dependencies
-        if: matrix.schema_only != true
         run: npm ci --prefix driver/tests/e2e
+      - name: Check candidate MCP packages with local modules and race detection
+        working-directory: candidate
+        env:
+          MATRIX_NAME: ${{ matrix.name }}
+        run: |
+          source .github/workflows/scripts/setup-go-workspace.sh
+          {
+            go version
+            go env GOWORK
+            go list -m -f '{{.Path}} {{.Dir}}' all
+          } > "$REPORT_DIR/candidate-go-workspace.txt"
+          {
+            (cd core && go test -race ./mcp/... -count=1)
+            (cd framework && go test -race ./configstore/... -run 'Test.*MCP' -count=1)
+            (cd transports && go test -race ./bifrost-http/handlers -run 'Test.*MCP|TestCallTool|TestToolsList|TestInitialize' -count=1)
+            (cd examples/mcps/mcp-apps-test-server && GOWORK=off go test ./... -count=1)
+            if [ "$MATRIX_NAME" = integration ]; then
+              (cd transports && go test -race ./bifrost-http/lib -run '^(TestLoadConfig_FirstBootVirtualMCPAttachesFileDeclaredVirtualKey|TestLoadConfig_FullConfigFile_FreshDB|TestReconcileVirtualMCPsConfig.*|TestSourceOfTruthConfigJSON_MCPMissingLeavesDBUntouched|TestSourceOfTruthConfigJSON_MCPPresentEmptyPrunesDB|TestSourceOfTruthConfigJSON_InvalidOpenAPIDeclarationKeepsStoredClient|TestLoadConfig_InferenceAuthSetupFailures|TestLoadConfig_GovernanceAuthConfig_PersistsFromFirstImport)$' -count=1)
+              (cd plugins/governance && go test -race . -run '^TestGovernancePlugin_StartResetWorkers$' -count=1)
+            fi
+          } 2>&1 | tee "$REPORT_DIR/candidate-mcp-package-checks.log"
       - name: Bootstrap the pinned MCP Apps reference host
-        if: matrix.schema_only != true && matrix.reference_host == true
+        if: matrix.reference_host == true
         working-directory: driver
         env:
           MATRIX_NAME: ${{ matrix.name }}
@@ -121,10 +131,8 @@ jobs:
           echo "REFERENCE_HOST_DIRECTORY=$HOST_DIRECTORY" >> "$GITHUB_ENV"
           cp "$HOST_DIRECTORY/.bifrost-reference-host.json" "$REPORT_DIR/reference-host-bootstrap-manifest.json"
       - uses: step-security/setup-buildx-action@f931205d68723ad9589fd2a7e2ece238bf9de341 # v4.0.0
-        if: matrix.schema_only != true
       - name: Build pinned stock image with its local modules
         id: build-stock
-        if: matrix.schema_only != true
         uses: step-security/docker-build-push-action@846549baaf047e867d038826129a64d81df0f704 # v7.1.0
         with:
           context: stock
@@ -135,7 +143,6 @@ jobs:
           build-args: DYNAMIC=1
       - name: Build pinned product image with its local modules
         id: build-candidate
-        if: matrix.schema_only != true
         uses: step-security/docker-build-push-action@846549baaf047e867d038826129a64d81df0f704 # v7.1.0
         with:
           context: candidate
@@ -145,7 +152,6 @@ jobs:
           tags: bifrost:candidate-${{ matrix.name }}-${{ github.run_id }}
           build-args: DYNAMIC=1
       - name: Record compiled module and image identities
-        if: matrix.schema_only != true
         run: |
           python3 - <<'PY'
           import json, os, subprocess
@@ -192,7 +198,6 @@ jobs:
         env:
           MATRIX_NAME: ${{ matrix.name }}
       - name: Check comparator and fixture contracts
-        if: matrix.schema_only != true
         working-directory: driver
         run: |
           .github/workflows/scripts/test-mcp-apps-fixture.sh --self-check
@@ -200,7 +205,6 @@ jobs:
           python3 -m json.tool tests/e2e/api/collections/provider-harness.json >/dev/null
       - name: Run pinned product fixture scope
         id: candidate-fixture
-        if: matrix.schema_only != true
         continue-on-error: true
         working-directory: driver
         env:
@@ -214,7 +218,7 @@ jobs:
         run: .github/workflows/scripts/test-mcp-apps-fixture.sh "bifrost:candidate-${{ matrix.name }}-${{ github.run_id }}" "$REPORT_DIR"
       - name: Run pinned stock fixtures and compare observed assertions
         id: stock-fixture
-        if: always() && matrix.schema_only != true && steps.build-stock.outcome == 'success' && steps.build-candidate.outcome == 'success' && steps.candidate-fixture.outcome != 'skipped'
+        if: always() && steps.build-stock.outcome == 'success' && steps.build-candidate.outcome == 'success' && steps.candidate-fixture.outcome != 'skipped'
         working-directory: driver
         env:
           GITHUB_ACTIONS: "true"
@@ -225,127 +229,115 @@ jobs:
           BIFROST_FIXTURE_SCOPES: ${{ env.FIXTURE_SCOPES }}
           BIFROST_REFERENCE_HOST_DIRECTORY: ""
         run: .github/workflows/scripts/test-mcp-apps-fixture.sh --baseline "bifrost:stock-${{ matrix.name }}-${{ github.run_id }}" "$REPORT_DIR"
-      - name: Run known-red MCP Apps output schema regression probe
-        if: always() && matrix.output_schema_probe == true && steps.source-identities.outcome == 'success' && steps.setup-go.outcome == 'success' && (matrix.schema_only == true || steps.build-candidate.outcome == 'success')
-        working-directory: candidate
+      - name: Require completed comparison and actual reference-host evidence
+        if: always() && steps.build-stock.outcome == 'success' && steps.build-candidate.outcome == 'success'
         env:
-          REPORT_DIR: ${{ env.REPORT_DIR }}
+          C_CONTRIBUTION_SCOPE: ${{ matrix.contribution_scope }}
+          CANDIDATE_FIXTURE_OUTCOME: ${{ steps.candidate-fixture.outcome }}
+          STOCK_FIXTURE_OUTCOME: ${{ steps.stock-fixture.outcome }}
         run: |
-          set -euo pipefail
-          raw_log="$RUNNER_TEMP/c-output-schema-probe.raw.log"
-          module_report="$REPORT_DIR/c-output-schema-module-dirs.txt"
-          list_report="$REPORT_DIR/c-output-schema-test-list.txt"
-          probe_log="$REPORT_DIR/c-output-schema-known-red.log"
-          status_report="$REPORT_DIR/c-output-schema-known-red-status.txt"
-          test_name='TestMCPAppsPreservesSupportedOutputSchema'
-          test_file='transports/bifrost-http/handlers/mcpserver_test.go'
-          probe_stage='preflight'
-          record_preflight_failure() {
-            probe_status=$?
-            printf 'stage=%s\nexit_code=%s\n' "$probe_stage" "$probe_status" > "$status_report"
-            exit "$probe_status"
-          }
-          trap record_preflight_failure ERR
-
-          if ! python3 - "$test_file" "$test_name" <<'PY'
-          import re, sys
-          from pathlib import Path
-          source, expected = sys.argv[1:]
-          pattern = re.compile(r'^func ' + re.escape(expected) + r'\(')
-          if not any(pattern.search(line) for line in Path(source).read_text().splitlines()):
-              raise SystemExit(1)
-          PY
-          then
-            printf 'stage=preflight\nerror=expected test missing from %s\n' "$test_file" > "$status_report"
-            exit 2
-          fi
-
-          # This helper must run at the candidate root because its module paths are
-          # relative to the repository root. It preserves the local Go workspace.
-          probe_stage='workspace-setup'
-          source .github/workflows/scripts/setup-go-workspace.sh
-          cd transports
-          probe_stage='module-resolution'
-          go list -m -f '{{.Path}} {{.Dir}}' \
-            github.com/maximhq/bifrost/core \
-            github.com/maximhq/bifrost/framework \
-            github.com/maximhq/bifrost/transports/v2 \
-            github.com/maximhq/bifrost/plugins/governance > "$module_report"
-          python3 - "$module_report" "$GITHUB_WORKSPACE/candidate" <<'PY'
-          import sys
+          python3 - <<'PYHOST'
+          import json
+          import os
           from pathlib import Path
 
-          report = Path(sys.argv[1])
-          root = Path(sys.argv[2]).resolve()
-          rows = [line.split(maxsplit=1) for line in report.read_text().splitlines()]
-          expected = {
-              'github.com/maximhq/bifrost/core',
-              'github.com/maximhq/bifrost/framework',
-              'github.com/maximhq/bifrost/transports/v2',
-              'github.com/maximhq/bifrost/plugins/governance',
-          }
-          assert {row[0] for row in rows if len(row) == 2} == expected, rows
-          for module, directory in rows:
-              resolved = Path(directory).resolve()
-              assert resolved == root or root in resolved.parents, (module, resolved, root)
-          PY
 
-          probe_stage='test-list'
-          if ! go test -list "^${test_name}$" ./bifrost-http/handlers > "$RUNNER_TEMP/c-output-schema-test-list.raw.log" 2>&1; then
-            python3 - "$RUNNER_TEMP/c-output-schema-test-list.raw.log" "$list_report" "$probe_log" "$status_report" <<'PY'
-          import re, sys
-          from pathlib import Path
-          source, destination, log, status = map(Path, sys.argv[1:])
-          text = source.read_text(errors='replace')
-          text = text.replace('bifrost-e2e-setup-token', '<redacted>')
-          text = re.sub(r'(?i)(Bearer\s+)[A-Za-z0-9._~+/-]+=*', r'\1<redacted>', text)
-          text = re.sub(r'sk-bf-[A-Za-z0-9_-]+', '<redacted>', text)
-          destination.write_text(text)
-          log.write_text(text)
-          status.write_text('stage=test-list\nexit_code=nonzero\n')
-          PY
-            trap - ERR
-            exit 2
-          fi
-          python3 - "$RUNNER_TEMP/c-output-schema-test-list.raw.log" "$list_report" <<'PY'
-          import re, sys
-          from pathlib import Path
-          source, destination = map(Path, sys.argv[1:])
-          text = source.read_text(errors='replace')
-          text = text.replace('bifrost-e2e-setup-token', '<redacted>')
-          text = re.sub(r'(?i)(Bearer\s+)[A-Za-z0-9._~+/-]+=*', r'\1<redacted>', text)
-          text = re.sub(r'sk-bf-[A-Za-z0-9_-]+', '<redacted>', text)
-          destination.write_text(text)
-          PY
-          if ! grep -Fxq "$test_name" "$list_report"; then
-            printf 'stage=test-list\nerror=Go package did not list expected test\n' > "$status_report"
-            cp "$list_report" "$probe_log"
-            trap - ERR
-            exit 2
-          fi
+          def verify_host(directory, candidate_source):
+              status = json.loads((directory / 'reference-host-status.json').read_text())
+              assert status['status'] == 'passed' and status['candidate_source'] == candidate_source
+              for name, partial in (('normal', False), ('controlled-replay', True)):
+                  assert (directory / f'reference-host-{name}-exit-code.txt').read_text().strip() == '0'
+                  result = json.loads((directory / f'reference-host-{name}.json').read_text())
+                  assert result['candidateSource'] == candidate_source
+                  assert result['hostCommit'] == '82221c0c8ce7661efa6771c9d461511b1650495f'
+                  assert result['expectedInstance'] == 'first' and result['fixtureClientName'] == 'mcp_apps_fixture'
+                  checks = result['checks']
+                  assert checks['pageErrors'] == 0 and checks['controlledPartialInputDelivered'] == partial
+                  assert checks['uiMimeTypeNegotiated'] == 'text/html;profile=mcp-app'
+                  for key in ('sdkHandshakeAndViewRendered', 'fullInputDelivered', 'nativeResultSourceAndPayload',
+                              'saveReadChangeRestore', 'deliberateCorruptStateDetected',
+                              'notificationOrderChecked', 'missingAndReorderedNotificationsRejected'):
+                      assert checks[key] is True, f'{name}: missing host check {key}'
 
-          probe_stage='go-test'
-          trap - ERR
-          set +e
-          go test -v -count=1 -run "^${test_name}$" ./bifrost-http/handlers > "$raw_log" 2>&1
-          probe_status=$?
-          set -e
-          python3 - "$raw_log" "$probe_log" "$status_report" "$probe_status" <<'PY'
-          import re, sys
+
+          if __name__ == '__main__':
+              assert os.environ['STOCK_FIXTURE_OUTCOME'] == 'success', 'stock comparison did not complete'
+              if os.environ['C_CONTRIBUTION_SCOPE'] != 'true':
+                  assert os.environ['CANDIDATE_FIXTURE_OUTCOME'] == 'success', 'integrated candidate fixture failed'
+              verify_host(Path(os.environ['REPORT_DIR']), os.environ['CANDIDATE_SOURCE'])
+              print('PASS exact candidate fixture/reference-host checks; controlled replay is not native Codex streaming')
+          PYHOST
+      - name: Verify independent C contribution ownership and complete assertions
+        if: always() && matrix.contribution_scope == true && steps.stock-fixture.outcome == 'success'
+        run: |
+          python3 - <<'PYGATE'
+          import json
+          import os
           from pathlib import Path
-          source, destination, status = map(Path, sys.argv[1:4])
-          code = sys.argv[4]
-          text = source.read_text(errors='replace')
-          text = text.replace('bifrost-e2e-setup-token', '<redacted>')
-          text = re.sub(r'(?i)(Bearer\s+)[A-Za-z0-9._~+/-]+=*', r'\1<redacted>', text)
-          text = re.sub(r'sk-bf-[A-Za-z0-9_-]+', '<redacted>', text)
-          destination.write_text(text)
-          status.write_text(f'stage=go-test\nexit_code={code}\ntest=TestMCPAppsPreservesSupportedOutputSchema\n')
-          PY
-          exit "$probe_status"
+
+
+          def verify_contribution(report_dir, candidate_source, stock_source, driver_source):
+              load = lambda name: json.loads((report_dir / name).read_text())
+              sources = load('source-identities.json')
+              comparison = load('mcp-apps-comparison.json')
+              assert sources['candidate_source'] == candidate_source, 'candidate source mismatch'
+              assert sources['stock_source'] == stock_source, 'stock source mismatch'
+              assert sources['harness_source'] == driver_source, 'driver source mismatch'
+              assert sources['fixture_scopes'] == 'mcp-apps', 'unexpected contribution scope'
+              assert sources['comparison_mode'] == 'characterize', 'contribution must retain full characterization'
+              assert sources['candidate_tracked_status'] == sources['harness_tracked_status'] == 'clean'
+              assert comparison['candidate_source'] == candidate_source and comparison['stock_source'] == stock_source
+              assert comparison['stock_failure_scope_valid'] and comparison['candidate_failure_scope_valid']
+              assert not comparison['regressions'] and not comparison['unrelated_stock_failures']
+              assert not comparison['unrelated_candidate_failures']
+              assert comparison['strict_pass'] is False, 'pure C retains the explicitly reported A-owned failure'
+              assert comparison['candidate_exit_code'] != 0
+              assert all(row['classification'] in ('fixed', 'invariant', 'green-control')
+                         for row in comparison['named_checks']), 'C-owned named check is not green'
+              allowed = {('MCP Apps fixture Code Mode script failure sets isError',
+                          'only sandbox script failure marks outer result isError')}
+              names = []
+              candidate_failures = set()
+              for prefix in ('stock-', ''):
+                  report = load(prefix + 'mcp-apps-newman-report.json')
+                  executions = report['run']['executions']
+                  request_names = [row['item']['name'] for row in executions]
+                  assert len(request_names) == len(set(request_names)) == 39, 'missing/duplicate requests'
+                  names.append(set(request_names))
+                  for row in executions:
+                      assert not row.get('skipped') and 100 <= row['response']['code'] <= 599
+                      assertions = row.get('assertions')
+                      assert assertions and all(not item.get('skipped') for item in assertions), 'missing/skipped assertions'
+                      if not prefix:
+                          candidate_failures.update((row['item']['name'], item['assertion'])
+                                                    for item in assertions if item.get('error') is not None)
+              assert names[0] == names[1], 'stock/candidate request inventory mismatch'
+              assert candidate_failures == allowed, 'unexpected candidate failure or missing A-owned control'
+              reported_failures = {(row['request'], row['assertion']) for row in comparison['candidate_failed_assertions']}
+              assert reported_failures == candidate_failures, 'comparison disagrees with raw assertions'
+              return {'contribution_pass': True, 'strict_pass': False, 'candidate_source': candidate_source,
+                      'stock_source': stock_source, 'harness_source': driver_source,
+                      'candidate_exit_code': comparison['candidate_exit_code'], 'comparison_mode': 'characterize',
+                      'executed_requests_per_source': 39,
+                      'reported_A_owned_failures': [{'request': request, 'assertion': assertion}
+                                                    for request, assertion in sorted(allowed)],
+                      'scope_note': 'All 39 requests and assertions execute. Only the explicitly reported A-owned outer-script marker is outside pure C. Full integration requires strict zero-failure acceptance.'}
+
+
+          if __name__ == '__main__':
+              directory = Path(os.environ['REPORT_DIR'])
+              destination = directory / 'issue-25-contribution-gate.json'
+              try:
+                  result = verify_contribution(directory, os.environ['CANDIDATE_SOURCE'],
+                                               os.environ['STOCK_SOURCE'], os.environ['DRIVER_SOURCE'])
+              except Exception as error:
+                  destination.write_text(json.dumps({'contribution_pass': False, 'error': str(error)}, indent=2) + '\n')
+                  raise
+              destination.write_text(json.dumps(result, indent=2) + '\n')
+          PYGATE
       - name: Verify integrated first-boot grants and same-store restart
         id: firstboot-candidate
-        if: always() && matrix.schema_only != true && matrix.extra_firstboot && steps.build-candidate.outcome == 'success'
+        if: always() && matrix.extra_firstboot && steps.build-candidate.outcome == 'success'
         continue-on-error: true
         working-directory: driver
         env:
@@ -356,7 +348,7 @@ jobs:
           BIFROST_FIXTURE_SCOPES: firstboot-grants
         run: .github/workflows/scripts/test-mcp-apps-fixture.sh "bifrost:candidate-${{ matrix.name }}-${{ github.run_id }}" "$REPORT_DIR/firstboot-grants"
       - name: Verify first-boot stock red and restart control
-        if: always() && matrix.schema_only != true && matrix.extra_firstboot && steps.build-stock.outcome == 'success' && steps.firstboot-candidate.outcome != 'skipped'
+        if: always() && matrix.extra_firstboot && steps.build-stock.outcome == 'success' && steps.firstboot-candidate.outcome != 'skipped'
         working-directory: driver
         env:
           BIFROST_STOCK_SOURCE: ${{ env.STOCK_SOURCE }}
@@ -374,5 +366,5 @@ jobs:
           if-no-files-found: error
           retention-days: 14
       - name: Remove local qualification images
-        if: always() && matrix.schema_only != true
+        if: always()
         run: docker image rm -f "bifrost:stock-${{ matrix.name }}-${{ github.run_id }}" "bifrost:candidate-${{ matrix.name }}-${{ github.run_id }}" >/dev/null 2>&1 || true
