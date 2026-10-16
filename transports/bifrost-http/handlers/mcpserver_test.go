@@ -304,9 +304,18 @@ func BenchmarkMCPToolCallResponse(b *testing.B) {
 // when the server has no App metadata. It includes gateway admission, dispatch,
 // and JSON response encoding so the no-App alias fast path is represented.
 func BenchmarkMCPHTTPNoApp(b *testing.B) {
-	tm := &markerToolManager{message: &schemas.ChatMessage{
-		Content: &schemas.ChatMessageContent{ContentStr: schemas.Ptr("tool response")},
-	}}
+	tm := &mcpAppsToolManager{
+		tools: []schemas.ChatTool{{
+			Type: schemas.ChatToolTypeFunction,
+			Function: &schemas.ChatToolFunction{
+				Name:       "lookup",
+				Parameters: &schemas.ToolFunctionParameters{Type: "object", Properties: schemas.NewOrderedMapFromPairs()},
+			},
+		}},
+		message: &schemas.ChatMessage{
+			Content: &schemas.ChatMessageContent{ContentStr: schemas.Ptr("tool response")},
+		},
+	}
 	h := &MCPServerHandler{
 		toolManager: tm,
 		config:      &lib.Config{ClientConfig: &configstore.ClientConfig{}},
@@ -316,6 +325,28 @@ func BenchmarkMCPHTTPNoApp(b *testing.B) {
 	ctx.Request.SetRequestURI("/mcp")
 	ctx.Request.Header.SetMethod(fasthttp.MethodPost)
 	ctx.Request.SetBody([]byte(`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"lookup","arguments":{}}}`))
+	ctx.Response.Reset()
+	h.handleMCPServer(ctx)
+	if ctx.Response.StatusCode() != fasthttp.StatusOK {
+		b.Fatalf("preflight returned HTTP status %d: %s", ctx.Response.StatusCode(), ctx.Response.Body())
+	}
+	var preflight struct {
+		Error  json.RawMessage `json:"error"`
+		Result struct {
+			Content []struct {
+				Text string `json:"text"`
+			} `json:"content"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(ctx.Response.Body(), &preflight); err != nil {
+		b.Fatalf("preflight response is not JSON: %v: %s", err, ctx.Response.Body())
+	}
+	if len(preflight.Error) != 0 && string(preflight.Error) != "null" {
+		b.Fatalf("preflight returned JSON-RPC error: %s", preflight.Error)
+	}
+	if len(preflight.Result.Content) != 1 || preflight.Result.Content[0].Text != "tool response" {
+		b.Fatalf("preflight returned unexpected tool result: %s", ctx.Response.Body())
+	}
 	b.ReportAllocs()
 	b.ResetTimer()
 	for b.Loop() {
