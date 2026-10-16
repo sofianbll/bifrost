@@ -18,7 +18,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: mcp-stack-qualification-${{ github.ref }}
+  group: mcp-stack-qualification-${{ github.ref }}-${{ github.sha }}
   cancel-in-progress: false
 
 jobs:
@@ -38,7 +38,7 @@ jobs:
             extra_firstboot: true
             reference_host: true
           - name: issue-25-layer
-            product_pin: 8c8867999500ec58073d62f802418f3b493b3455
+            product_pin: eefc3317b73477574563b0a21f6931959ac69ffd
             fixture_scopes: mcp-apps
             comparison_mode: strict
             extra_firstboot: false
