@@ -325,6 +325,85 @@ type hiddenMCPToolManager struct{ *mcpAppsToolManager }
 
 func (*hiddenMCPToolManager) GetAvailableMCPTools(context.Context) []schemas.ChatTool { return nil }
 
+type mcpAppAliasToolManager struct{ tools []schemas.ChatTool }
+
+func (m *mcpAppAliasToolManager) GetAvailableMCPTools(context.Context) []schemas.ChatTool {
+	return m.tools
+}
+
+func (*mcpAppAliasToolManager) GetMCPServerInstructions(context.Context) string { return "" }
+
+func (*mcpAppAliasToolManager) ExecuteChatMCPTool(context.Context, *schemas.ChatAssistantMessageToolCall) (*schemas.ChatMessage, *schemas.BifrostError) {
+	return nil, nil
+}
+
+func (*mcpAppAliasToolManager) ExecuteResponsesMCPTool(context.Context, *schemas.ResponsesToolMessage) (*schemas.ResponsesMessage, *schemas.BifrostError) {
+	return nil, nil
+}
+
+func (*mcpAppAliasToolManager) ExecuteMCPAppTool(_ *schemas.BifrostContext, call *schemas.ChatAssistantMessageToolCall) (*schemas.ChatMessage, json.RawMessage, *schemas.BifrostError) {
+	name := ""
+	if call != nil && call.Function.Name != nil {
+		name = *call.Function.Name
+	}
+	result := mcp.CallToolResult{
+		Content:           []mcp.Content{mcp.NewTextContent(name)},
+		StructuredContent: map[string]any{"tool": name},
+	}
+	raw, _ := json.Marshal(result)
+	return nil, raw, nil
+}
+
+func (*mcpAppAliasToolManager) ReadMCPAppResource(*schemas.BifrostContext, string, string) (*mcp.ReadResourceResult, error) {
+	return nil, nil
+}
+
+func appCallbackTool(source, callback string) schemas.ChatTool {
+	definition, _ := json.Marshal(mcp.Tool{
+		Name:        callback,
+		InputSchema: mcp.ToolInputSchema{Type: "object", Properties: map[string]any{}},
+		Meta:        &mcp.Meta{AdditionalFields: map[string]any{"ui": map[string]any{"visibility": []string{"app"}}}},
+	})
+	return schemas.ChatTool{
+		Type: schemas.ChatToolTypeFunction,
+		Function: &schemas.ChatToolFunction{
+			Name:       source + "-" + callback,
+			Parameters: &schemas.ToolFunctionParameters{Type: "object", Properties: schemas.NewOrderedMapFromPairs()},
+		},
+		Annotations: &schemas.MCPToolAnnotations{MCPApp: &schemas.MCPAppToolMetadata{
+			RawDefinition: definition,
+			SourceClient:  source,
+			Visibility:    []string{"app"},
+		}},
+	}
+}
+
+func TestMCPAppsBareCallbackSelectsUniqueAvailableSource(t *testing.T) {
+	tools := []schemas.ChatTool{appCallbackTool("first", "save_state")}
+	tm := &mcpAppAliasToolManager{tools: tools}
+	h := &MCPServerHandler{toolManager: tm, config: &lib.Config{ClientConfig: &configstore.ClientConfig{}}}
+	h.mcpServer.Store(h.buildServer(tools))
+	ctx := &fasthttp.RequestCtx{}
+	ctx.Request.SetRequestURI("/mcp")
+	ctx.Request.Header.SetMethod(fasthttp.MethodPost)
+	ctx.Request.SetBody([]byte(`{"jsonrpc":"2.0","id":11,"method":"tools/call","params":{"name":"save_state","arguments":{"state":"hello"}}}`))
+	h.handleMCPServer(ctx)
+
+	var response struct {
+		Result *struct {
+			Content []struct {
+				Text string `json:"text"`
+			} `json:"content"`
+			Structured map[string]string `json:"structuredContent"`
+		} `json:"result"`
+	}
+	require.NoError(t, json.Unmarshal(ctx.Response.Body(), &response))
+	require.NotNil(t, response.Result, "a unique admitted App callback alias should execute through the MCP HTTP endpoint")
+	require.Len(t, response.Result.Content, 1)
+	assert.Equal(t, "first-save_state", response.Result.Content[0].Text, "the alias should route to the canonical source-qualified tool")
+	assert.Equal(t, "first-save_state", response.Result.Structured["tool"], "the native execution path should receive the canonical name")
+}
+
 func TestCallToolRefusesHiddenToolWithoutDisclosingItsName(t *testing.T) {
 	tool := schemas.ChatTool{Type: schemas.ChatToolTypeFunction, Function: &schemas.ChatToolFunction{Name: "private-client-secret_tool", Parameters: &schemas.ToolFunctionParameters{Type: "object", Properties: schemas.NewOrderedMapFromPairs()}}, Annotations: &schemas.MCPToolAnnotations{MCPApp: &schemas.MCPAppToolMetadata{SourceClient: "private-client", Visibility: []string{"app"}}}}
 	tm := &hiddenMCPToolManager{mcpAppsToolManager: &mcpAppsToolManager{tools: []schemas.ChatTool{tool}}}
