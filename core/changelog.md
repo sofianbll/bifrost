@@ -4,3 +4,4 @@
 - feat: gateway-run tool search for deferred tools on models with no tool search of their own (Gemini, older GPT, Bedrock non-Claude, ...) — the deferred tools are held back behind a bifrost_tool_search function that Bifrost resolves in the gateway (select: or BM25), at most 3 model calls per request (non-streaming)
 - feat: the gateway-run tool search also serves streaming Responses requests, splicing the search turns into one client stream
 - feat: MCP Apps metadata and linked resources are relayed by the HTTP MCP gateway after explicit extension negotiation; app-only tools stay out of model catalogs, and source-qualified resource reads and native results pass through the existing authorization and hook paths
+- fix: Code Mode treats protocol-marked nested MCP errors as script values (including text beginning `Error: `), while sandbox and post-hook failures remain errors

@@ -407,9 +407,9 @@ func (s *StarlarkCodeMode) callMCPTool(ctx *schemas.BifrostContext, clientName, 
 		if err != nil {
 			return nil, err
 		}
-		// An "Error: ..." text result is still a result, so it has to reach the output
-		// guardrails: mark it here and raise after the pipeline, not before it.
-		isErrorResult := strings.HasPrefix(rawResult, "Error: ") || (toolResponse != nil && toolResponse.IsError)
+		// The protocol marker is metadata for hooks and callers; the content remains
+		// a value the script can inspect. Text prefixes alone do not define failure.
+		isErrorResult := toolResponse != nil && toolResponse.IsError
 		if isErrorResult {
 			s.logger.Debug("%s Tool returned error result: %s.%s", codemcp.CodeModeLogPrefix, clientName, effectiveToolName)
 		}
@@ -441,10 +441,6 @@ func (s *StarlarkCodeMode) callMCPTool(ctx *schemas.BifrostContext, clientName, 
 		if content := finalResp.ChatMessage.Content; content != nil && content.ContentStr != nil {
 			if err := chargeToolResult(ctx, len(*content.ContentStr)); err != nil {
 				return nil, err
-			}
-			// Raised below, so logging it too would duplicate it in the model's context.
-			if after, ok := strings.CutPrefix(*content.ContentStr, "Error: "); ok {
-				return nil, fmt.Errorf("%s", truncateDiagnostic(after))
 			}
 			// Post-pipeline text only: the wire result would put blocked and redacted
 			// content into this log, which the model receives verbatim.

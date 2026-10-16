@@ -113,7 +113,7 @@ func registerReturnErrorTool(s *server.MCPServer) {
 		mcp.WithString("error_type",
 			mcp.Required(),
 			mcp.Description("Type of error to return"),
-			mcp.Enum("validation", "runtime", "network", "timeout", "permission"),
+			mcp.Enum("validation", "runtime", "network", "timeout", "permission", "prefix"),
 		),
 	)
 
@@ -147,6 +147,8 @@ func registerReturnErrorTool(s *server.MCPServer) {
 			errorMessage = "Timeout Error: Operation exceeded maximum allowed time"
 		case "permission":
 			errorMessage = "Permission Error: Insufficient privileges to perform operation"
+		case "prefix":
+			errorMessage = "Error: synthetic fixture error value"
 		default:
 			errorMessage = fmt.Sprintf("Unknown error type: %s", args.ErrorType)
 		}
