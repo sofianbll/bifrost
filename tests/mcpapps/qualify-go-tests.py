@@ -12,7 +12,7 @@ import sys
 
 PINNED_SOURCES = {
     "stock": "9237ec06672406e437b3cb33fc793ffd0403b3ae",
-    "candidate": "e33b67ab6fd26e1e1b83fbc0a84c0b2f946fdb05",
+    "candidate": "b38fadec8d78ec64ffbefb53f650e6ef149d948e",
 }
 EXPECTED_BROAD_PACKAGES = {
     "github.com/maximhq/bifrost/core/mcp",
@@ -83,6 +83,8 @@ SUITES = {
         "cwd": "transports",
         "packages": ["./bifrost-http/handlers"],
         "expected": [
+            "TestSyncMCPServerSerialCatalogChanges",
+            "TestSyncMCPServerOverlappingRefreshKeepsLatestCatalog",
             "TestInitializeNegotiatesMCPAppsExtensionOnlyWhenRequested",
             "TestMCPAppsBareCallbackSelectsUniqueAvailableSource",
             "TestMCPAppsBareCallbackIsAmbiguousWithoutDisclosingSources",

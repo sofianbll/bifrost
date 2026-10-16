@@ -843,6 +843,17 @@ def failure_report_filename(args):
 
 
 def self_check():
+    with tempfile.TemporaryDirectory() as diagnostic_tmp:
+        with patch.dict(globals(), {"setup_request": lambda *args, **kwargs: (200, {"clients": [
+                {"config": {"name": "fixture"}, "state": "healthy", "tools": [{"name": "open_view"}]}]}),
+                "rpc": lambda *args, **kwargs: (200, {"result": {"tools": []}})}), patch("time.sleep"):
+            observation = preserve_failure_discovery("http://fixture.invalid", ("mcp-apps",),
+                Path(diagnostic_tmp), False, {"candidate": "0" * 40}, {"reason": "original readiness failed"})
+        assert len(observation["samples"]) == 3
+        assert all(route["tool_count"] == 0 for sample in observation["samples"] for route in sample["routes"])
+        saved = (Path(diagnostic_tmp) / "failure-source-discovery.json").read_text()
+        assert "original readiness failed" in saved and SETUP_TOKEN not in saved
+        assert all(key not in saved for key in KEYS.values())
     config = build_config()
     assert config["providers"] == {}
     assert config["setup_token"] == SETUP_TOKEN
@@ -1456,7 +1467,7 @@ def self_check():
     print("PASS fixture CI self-check (source identities, config scope, route/name guards, observed classification, URI seeds, report redaction, catalog readiness)")
 
 
-def rpc(url, path, method, params, token):
+def rpc(url, path, method, params, token, timeout=15):
     request = urllib.request.Request(
         url + path,
         data=json.dumps({"jsonrpc": "2.0", "id": 1, "method": method, "params": params}).encode(),
@@ -1464,7 +1475,7 @@ def rpc(url, path, method, params, token):
                  "Accept": "application/json, text/event-stream"},
     )
     try:
-        response = urllib.request.urlopen(request, timeout=15)
+        response = urllib.request.urlopen(request, timeout=timeout)
     except urllib.error.HTTPError as error:
         response = error
     with response:
@@ -1474,7 +1485,7 @@ def rpc(url, path, method, params, token):
         return response.status, json.loads(raw)
 
 
-def setup_request(url, path, method):
+def setup_request(url, path, method, timeout=15):
     request = urllib.request.Request(
         url + path,
         data=b"{}" if method == "POST" else None,
@@ -1482,7 +1493,7 @@ def setup_request(url, path, method):
         method=method,
     )
     try:
-        response = urllib.request.urlopen(request, timeout=15)
+        response = urllib.request.urlopen(request, timeout=timeout)
     except urllib.error.HTTPError as error:
         response = error
     with response:
@@ -1633,6 +1644,57 @@ def ready_firstboot_fixture_catalog(url, contract, diagnostic_path=None):
         time.sleep(1)
     raise RuntimeError(f"{contract['scope']} file-declared source discovery incomplete after 180 seconds: "
                        + json.dumps(last))
+
+
+def preserve_failure_discovery(url, scopes, report_dir, baseline, source_ids, context):
+    """Observe only after failure; never retry readiness or change the original verdict."""
+    started = time.monotonic()
+    deadline = started + 20
+    routes = [("/mcp", "full"), ("/mcp", "denied")]
+    if "mcp-apps" in scopes:
+        routes += [("/mcp/" + slug, role) for slug, role in (
+            ("mcp-apps-fixture", "full"), ("mcp-apps-fixture-second", "full"),
+            ("mcp-apps-fixture-modern", "full"), ("mcp-apps-full-virtual", "full"),
+            ("mcp-apps-limited-virtual", "limited"))]
+    if "codemode-errors" in scopes:
+        routes.append(("/mcp/error-test-server", "codemode_errors"))
+    if is_firstboot_scope(scopes):
+        routes.append(("/mcp/" + firstboot_contract(scopes)["virtual_mcp"], "full"))
+    payload = {"purpose": "post-failure diagnostic reads only; original failure unchanged",
+               "source_identities": source_ids, "scopes": scopes, "context": context,
+               "max_seconds": 20, "max_samples": 3, "samples": []}
+    path = report_dir / (("stock-" if baseline else "") + "failure-source-discovery.json")
+    for sample_id in range(3):
+        if time.monotonic() >= deadline:
+            break
+        sample = {"timestamp_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                  "elapsed_seconds": round(time.monotonic() - started, 3), "routes": []}
+        try:
+            status, body = setup_request(url, "/api/mcp/clients", "GET", timeout=min(2, deadline-time.monotonic()))
+            sample["client_discovery"] = {"status": status, "clients": [
+                {"name": client.get("config", {}).get("name", client.get("name")),
+                 "state": client.get("state"), "tool_names": [tool.get("name") for tool in client.get("tools", [])],
+                 "last_failure": client.get("last_failure"), "error": client.get("error")}
+                for client in body.get("clients", [])]}
+        except Exception as error:
+            sample["client_discovery_error"] = str(error)
+        for route, role in routes:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
+            observation = {"path": route, "credential_role": role}
+            try:
+                status, body = rpc(url, route, "tools/list", {}, KEYS[role], timeout=min(2, remaining))
+                names = sorted(tool.get("name", "") for tool in body.get("result", {}).get("tools", []))
+                observation.update(http_status=status, tool_count=len(names), tool_names=names, error=body.get("error"))
+            except Exception as error:
+                observation["transport_error"] = str(error)
+            sample["routes"].append(observation)
+        payload["samples"].append(sample)
+        path.write_text(json.dumps(redact(payload), indent=2) + "\n")
+        if sample_id < 2 and time.monotonic() < deadline:
+            time.sleep(min(2, deadline-time.monotonic()))
+    return payload
 
 
 def ready(url, scopes=DEFAULT_SCOPES):
@@ -2093,7 +2155,19 @@ def main(args):
                 if failures_ok:
                     print(f"Saved redacted {feature} failure report", flush=True)
             run_reference_host(report_dir, base_url, source_identities, baseline, scopes)
+            if pass_fail:
+                preserve_failure_discovery(base_url, scopes, report_dir, baseline, source_identities,
+                                           {"reason": "harness failed", "container": container})
             return pass_fail
+        except Exception as error:
+            if container_started and "base_url" in locals():
+                try:
+                    preserve_failure_discovery(base_url, scopes, report_dir, baseline, source_identities,
+                                               {"reason": str(error), "container": container,
+                                                "phase": locals().get("phase", "wire-or-host")})
+                except Exception as diagnostic_error:
+                    write_failure_report(report_dir, diagnostic_error, "failure-diagnostic-error.json")
+            raise
         finally:
             if container_started:
                 gateway_log = temp / "gateway.log"

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Bind independent zero-finding reviews to the exact stable qualification candidate."""
+"""Bind independent zero-actionable-finding reviews to the exact stable qualification candidate."""
 import argparse
 import hashlib
 import json
@@ -11,6 +11,8 @@ import sys
 SHA = re.compile(r"^[0-9a-f]{40}$")
 REVIEWERS = re.compile(r"(?m)^Independent reviewer:\s*([^\s#]+)\s*$")
 FINDINGS = re.compile(r"(?im)^Findings:\s*(\d+)\s*$")
+ACTIONABLE = re.compile(r"(?im)^Actionable findings:\s*(\d+)\s*$")
+NONBLOCKING = re.compile(r"(?im)^Nonblocking observations:\s*(\d+)\s*$")
 
 
 def digest(path):
@@ -40,10 +42,33 @@ def verify_review(axis, path, base, head):
     else:
         record["independent_reviewer"] = reviewers[0]
     findings = FINDINGS.findall(content)
-    if findings != ["0"]:
-        problems.append("report must declare exactly Findings: 0")
+    actionable = ACTIONABLE.findall(content)
+    nonblocking = NONBLOCKING.findall(content)
+    if len(findings) != 1:
+        problems.append("report must declare exactly one total Findings count")
+    elif actionable or nonblocking:
+        if len(actionable) != 1 or len(nonblocking) != 1:
+            problems.append("split counts must declare exactly one actionable and nonblocking count")
+        else:
+            record.update(findings=int(findings[0]), actionable_findings=int(actionable[0]),
+                          nonblocking_observations=int(nonblocking[0]))
+            if record["findings"] != record["actionable_findings"] + record["nonblocking_observations"]:
+                problems.append("total findings must equal actionable plus nonblocking counts")
+            if record["actionable_findings"] != 0:
+                problems.append("report has actionable findings")
+            marker = "## Verbatim independent review\n\n"
+            hashes = re.findall(r"(?im)^Verbatim review SHA256:\s*([0-9a-f]{64})\s*$", content)
+            if len(hashes) != 1 or content.count(marker) != 1:
+                problems.append("split-count report must bind the verbatim independent review")
+            else:
+                actual_hash = hashlib.sha256(content.split(marker, 1)[1].encode()).hexdigest()
+                record["verbatim_review_sha256"] = actual_hash
+                if actual_hash != hashes[0]:
+                    problems.append("verbatim independent review checksum mismatch")
+    elif findings != ["0"]:
+        problems.append("legacy report must declare Findings: 0; nonblocking observations require explicit split counts")
     else:
-        record["findings"] = 0
+        record.update(findings=0, actionable_findings=0, nonblocking_observations=0)
     record["status"] = "passed" if not problems else "failed"
     record["problems"] = problems
     return record
@@ -88,7 +113,24 @@ def self_check():
         duplicate_reviewers = build_manifest(base, head, standards_path, spec_path)
         assert duplicate_reviewers["status"] == "blocked"
         assert all(review["status"] == "failed" for review in duplicate_reviewers["reviews"])
-    print("PASS review provenance self-check: exact base/head, axes, distinct reviewers, zero findings, file digests")
+        spec_path.write_text(spec)
+        standards_path.write_text(standards.replace("Findings: 0", "Findings: 1"))
+        assert build_manifest(base, head, standards_path, spec_path)["status"] == "blocked"
+        original = "Accepted nonblocking lookup observation.\n"
+        split = standards.replace("Findings: 0", "Findings: 1\nActionable findings: 0\nNonblocking observations: 1")
+        split += "Verbatim review SHA256: " + hashlib.sha256(original.encode()).hexdigest() + "\n\n"
+        split += "## Verbatim independent review\n\n" + original
+        standards_path.write_text(split)
+        split_manifest = build_manifest(base, head, standards_path, spec_path)
+        assert split_manifest["status"] == "passed"
+        assert split_manifest["reviews"][0]["findings"] == 1
+        assert split_manifest["reviews"][0]["nonblocking_observations"] == 1
+        for invalid in (split.replace("Actionable findings: 0", "Actionable findings: 1"),
+                        split.replace("Findings: 1", "Findings: 2"),
+                        split.replace(original, "Altered review.\n")):
+            standards_path.write_text(invalid)
+            assert build_manifest(base, head, standards_path, spec_path)["status"] == "blocked"
+    print("PASS review provenance self-check: exact base/head, axes, distinct reviewers, zero actionable findings, disclosed observations, verbatim checksums")
 
 
 def main():

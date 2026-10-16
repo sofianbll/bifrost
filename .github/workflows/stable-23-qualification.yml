@@ -2,7 +2,7 @@ name: Stable 2.3 MCP Apps qualification
 
 on:
   push:
-    branches: [codex/stable23-driver]
+    branches: [codex/stable23-qualify-b38]
   workflow_dispatch:
 
 permissions:
@@ -21,9 +21,9 @@ jobs:
     env:
       STOCK_SOURCE: 9237ec06672406e437b3cb33fc793ffd0403b3ae
       STABLE_REFERENCE: 9237ec06672406e437b3cb33fc793ffd0403b3ae
-      CANDIDATE_SOURCE: e33b67ab6fd26e1e1b83fbc0a84c0b2f946fdb05
-      CANDIDATE_TREE: 702a0479d7f5dd6dbf5df0fa4c0b68fc74850dc0
-      CANDIDATE_PARENT: e949886eb5212db2dc0ac7857e9934527ecb5044
+      CANDIDATE_SOURCE: b38fadec8d78ec64ffbefb53f650e6ef149d948e
+      CANDIDATE_TREE: 43af221324ecb85d1c4b61a56c99dd6751fc293d
+      CANDIDATE_PARENT: eda04739a7bf77a9be50fc958acda0f455517bba
       DRIVER_SOURCE: ${{ github.sha }}
       FIXTURE_SCOPES: mcp-apps,codemode-errors
       COMPARISON_MODE: strict
@@ -70,7 +70,7 @@ jobs:
         run: |
           set -euo pipefail
           test "${GITHUB_REPOSITORY}" = "sofianbll/bifrost"
-          test "${GITHUB_REF}" = "refs/heads/codex/stable23-driver"
+          test "${GITHUB_REF}" = "refs/heads/codex/stable23-qualify-b38"
           for identity in "$STOCK_SOURCE" "$CANDIDATE_SOURCE" "$DRIVER_SOURCE"; do
             [[ "$identity" =~ ^[0-9a-f]{40}$ ]]
           done
@@ -479,7 +479,7 @@ jobs:
           if review_manifest_path.is_file():
               review_manifest = json.loads(review_manifest_path.read_text())
               if review_manifest.get('status') != 'passed' or review_manifest.get('base') != '9237ec06672406e437b3cb33fc793ffd0403b3ae' or review_manifest.get('head') != os.environ['CANDIDATE_SOURCE']:
-                  missing_reviews.append('review provenance manifest does not bind zero-finding reviews to exact sources')
+                  missing_reviews.append('review provenance manifest does not bind zero-actionable-finding reviews to exact sources')
           if missing_reviews:
               verdict = 'blocked'
           elif missing:
@@ -532,6 +532,15 @@ jobs:
               f"**{verdict.upper()}** for candidate `{payload['candidate_source']}` against stock `{payload['stock_source']}`.\n\n" +
               human_result +
               '\n\nThis verdict covers the accepted contract only; it does not claim native Codex rendering or live-model streaming.\n')
+          artifact_files = {}
+          for root in (report, Path(os.environ['GO_TEST_REPORT_DIR'])):
+              for path in sorted(root.rglob('*')):
+                  if path.is_file() and path.name != 'evidence-files.sha256.json':
+                      artifact_files[f'{root.name}/{path.relative_to(root)}'] = hashlib.sha256(path.read_bytes()).hexdigest()
+          for path in (*reviews.values(), Path('driver/docs/agents/stable23-qualification/qualification-b38-preflight.md')):
+              if path.is_file():
+                  artifact_files[str(path)] = hashlib.sha256(path.read_bytes()).hexdigest()
+          (report / 'evidence-files.sha256.json').write_text(json.dumps(artifact_files, indent=2) + '\n')
           print(json.dumps({'verdict': verdict, 'missing_steps': missing, 'missing_reviews': missing_reviews, 'limitations': limitations}))
           if verdict != 'supported':
               raise SystemExit(1)
@@ -546,7 +555,9 @@ jobs:
           path: |
             ${{ runner.temp }}/stable23-qualification/
             ${{ runner.temp }}/stable23-go-tests/
-            driver/docs/agents/stable23-qualification/
+            driver/docs/agents/stable23-qualification/review-standards.md
+            driver/docs/agents/stable23-qualification/review-spec.md
+            driver/docs/agents/stable23-qualification/qualification-b38-preflight.md
           if-no-files-found: error
           retention-days: 90
 

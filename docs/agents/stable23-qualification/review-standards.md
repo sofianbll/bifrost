@@ -1,13 +1,23 @@
 Review axis: Standards
 Base: 9237ec06672406e437b3cb33fc793ffd0403b3ae
-HEAD: e33b67ab6fd26e1e1b83fbc0a84c0b2f946fdb05
-Independent reviewer: /root/stable_review_standards
-Findings: 0
+HEAD: b38fadec8d78ec64ffbefb53f650e6ef149d948e
+Independent reviewer: /root/repair37_standards
+Findings: 1
+Actionable findings: 0
+Nonblocking observations: 1
+Review source: https://github.com/sofianbll/bifrost/blob/99b3338c5f58da22e017f342415601e13ebd640e/docs/agents/stable23-repair37/review-standards-b38fadec.md
+Verbatim review SHA256: 2fe269df535fc387b561c78cedcc9387debf497c2defb733bb8eada2a11f3ce7
 
-The base resolves and the full three-dot diff is nonempty: commits `e949886eb` and `e33b67ab6`; 42 files, 3,857 insertions and 129 deletions. I rechecked the full diff against `AGENTS.md`, `docs/contributing/code-conventions.mdx`, `docs/contributing/raising-a-pr.mdx`, and the complete twelve-smell baseline.
+Machine headers transcribe the approved exact-source review; the original text below is preserved byte-for-byte. Findings counts all observations; the acceptance gate requires zero actionable findings and discloses nonblocking observations.
 
-The prior finding is resolved. The repair changes only the existing `core/mcp/toolcall_recovery_test.go` and `transports/bifrost-http/handlers/mcpserver_test.go` files (+247 lines). It adds core native tool/resource benchmarks and public-handler `tools/call` and `resources/read` benchmarks, with untimed preflights confirming native App results, qualified resource data, and advertised tool/resource metadata. The issue37 repair record documents five-sample `-benchmem` results and why stable has no comparable successful native-App operation; it makes no unsupported before/after or speedup claim. No product/runtime source or public API changes were added.
+## Verbatim independent review
 
-I found no remaining documented-standard breach or actionable baseline smell in the full diff. Changelog guidance exempts minor test-only changes; the benchmark functions remain under the documented 100-line function guideline. Runtime Actions qualification is outside this Standards result and remains pending.
+Standards review — base `9237ec06672406e437b3cb33fc793ffd0403b3ae`, HEAD `b38fadec8d78ec64ffbefb53f650e6ef149d948e`
 
-Worst within Standards: none.
+The final diff is nonempty: 42 files, +4,046/-130; four commits since base. No documented-standard breaches found. Affected package changelogs, public API comments, tests, and benchmarks are present. The mutex remains confined to catalog refreshes, with request readers using the atomic snapshot. The assessment bounds its added retained state at one 8-byte mutex per handler, freed with the handler, and identifies refresh queuing under contention.
+
+The earlier regression scheduling concern is addressed within the approved bounded-assertion design: `start` now waits for the worker's acknowledgement immediately before the sync call, then observes the second-capture channel for a bounded interval. This substantially narrows the opportunity for the old implementation to pass because the second worker was never started. It still cannot prove the goroutine entered `Mutex.Lock` before the timer; retain that as a test limitation, not a deterministic lock-state proof. No remaining actionable finding on this point.
+
+Baseline smell (judgment call, nonblocking): possible Duplicated Code at [core/mcp/mcp.go:357](../stable23-integration/core/mcp/mcp.go:357) and [core/mcp/mcp.go:377](../stable23-integration/core/mcp/mcp.go:377). The before/after-hook traversals repeat the owner lookup predicate, but they straddle plugin hooks and the second lookup revalidates a potentially rewritten request. Keep this observation separate; an extraction is optional and not needed for the mutex repair. This smell remains unfixed by design.
+
+No other baseline smells identified. Findings: 1 nonblocking judgment-call smell, 0 actionable findings. Worst within Standards: the duplicated lookup observation, with the hook-revalidation rationale above.
