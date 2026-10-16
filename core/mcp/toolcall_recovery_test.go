@@ -2,6 +2,7 @@ package mcp
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -82,6 +83,145 @@ func executeEchoTool(m *MCPManager, toolName string) (*schemas.ChatMessage, *sch
 	})
 }
 
+type nativeResultMutationPipeline struct{ mutate bool }
+
+func (*nativeResultMutationPipeline) RunMCPPreHooks(_ *schemas.BifrostContext, req *schemas.BifrostMCPRequest) (*schemas.BifrostMCPRequest, *schemas.MCPPluginShortCircuit, int) {
+	return req, nil, 0
+}
+func (p *nativeResultMutationPipeline) RunMCPPostHooks(_ *schemas.BifrostContext, response *schemas.BifrostMCPResponse, err *schemas.BifrostError, _ int) (*schemas.BifrostMCPResponse, *schemas.BifrostError) {
+	if p.mutate && response != nil && response.ChatMessage != nil {
+		response.ChatMessage.Content = &schemas.ChatMessageContent{ContentStr: schemas.Ptr("redacted")}
+		response.ChatMessage.ChatToolMessage = &schemas.ChatToolMessage{IsError: schemas.Ptr(true)}
+	}
+	return response, err
+}
+func (*nativeResultMutationPipeline) RunMCPPreConnectionHooks(_ *schemas.BifrostContext, req *schemas.BifrostMCPConnectRequest) (*schemas.BifrostMCPConnectRequest, *schemas.MCPConnectionShortCircuit, int) {
+	return req, nil, 0
+}
+func (*nativeResultMutationPipeline) RunMCPPostConnectionHooks(_ *schemas.BifrostContext, response *schemas.BifrostMCPConnectResponse, err *schemas.BifrostError, _ int) (*schemas.BifrostMCPConnectResponse, *schemas.BifrostError) {
+	return response, err
+}
+
+func TestExecuteMCPAppToolPreservesNativeFieldsAndDropsStaleHookOutput(t *testing.T) {
+	s := server.NewMCPServer("native-result-fixture", "1.0.0", server.WithToolCapabilities(true))
+	appTool := mcpgo.NewTool("open_view", mcpgo.WithReadOnlyHintAnnotation(true))
+	appTool.Meta = &mcpgo.Meta{AdditionalFields: map[string]any{"ui": map[string]any{"resourceUri": "ui://fixture/view", "visibility": []string{"app"}}}}
+	s.AddTool(appTool, func(context.Context, mcpgo.CallToolRequest) (*mcpgo.CallToolResult, error) {
+		result := mcpgo.NewToolResultStructured(map[string]any{"ok": true}, "native output")
+		result.Meta = &mcpgo.Meta{AdditionalFields: map[string]any{"trace": "kept"}}
+		return result, nil
+	})
+	s.AddTool(mcpgo.NewTool("ordinary"), func(context.Context, mcpgo.CallToolRequest) (*mcpgo.CallToolResult, error) {
+		return mcpgo.NewToolResultText("ordinary"), nil
+	})
+	httpServer := httptest.NewServer(server.NewStreamableHTTPServer(s))
+	t.Cleanup(httpServer.Close)
+	m := NewMCPManager(context.Background(), schemas.MCPConfig{}, nil, &MockLogger{}, nil)
+	t.Cleanup(func() { _ = m.Cleanup() })
+	config := newRecoveryClientConfig("client-native-result", "native-client", httpServer.URL)
+	config.IsCodeModeClient = true
+	require.NoError(t, m.connectToMCPClient(context.Background(), config))
+	pipeline := &nativeResultMutationPipeline{}
+	m.SetPluginPipeline(func() PluginPipeline { return pipeline }, func(PluginPipeline) {})
+	ctx := schemas.NewBifrostContext(context.Background(), schemas.NoDeadline)
+	assert.Empty(t, toolNamesFromAvailable(m.GetAvailableTools(ctx)), "direct Code Mode client tools stay out of model catalogs")
+	assert.Equal(t, []string{"native-client-open_view"}, toolNamesFromAvailable(m.GetAvailableToolsForMCP(ctx)), "native MCP exposes the App but not an ordinary Code Mode client tool")
+	toolName := "native-client-open_view"
+	call := &schemas.ChatAssistantMessageToolCall{Function: schemas.ChatAssistantMessageToolCallFunction{Name: &toolName, Arguments: "{}"}}
+	message, native, bErr := m.ExecuteMCPAppTool(ctx, call)
+	require.Nil(t, bErr)
+	require.NotNil(t, message)
+	var nativeFields map[string]any
+	require.NoError(t, json.Unmarshal(native, &nativeFields))
+	assert.Equal(t, map[string]any{"ok": true}, nativeFields["structuredContent"])
+	assert.Equal(t, map[string]any{"trace": "kept"}, nativeFields["_meta"])
+
+	pipeline.mutate = true
+	message, native, bErr = m.ExecuteMCPAppTool(ctx, call)
+	require.Nil(t, bErr)
+	require.NotNil(t, message)
+	assert.Empty(t, native, "post-hook changes to the effective message must not leak the stale native result")
+	assert.Equal(t, "redacted", *message.Content.ContentStr)
+	assert.True(t, *message.ChatToolMessage.IsError)
+}
+
+// BenchmarkMCPAppCoreNativePaths exercises the real MCP client, permission,
+// execution, and plugin-pipeline paths behind App tool/resource requests. The
+// local upstream fixture and connection setup stay outside the timed loops.
+func BenchmarkMCPAppCoreNativePaths(b *testing.B) {
+	const (
+		clientName  = "native-app-benchmark"
+		toolName    = "open_view"
+		resourceURI = "ui://fixture/view"
+	)
+	s := server.NewMCPServer("native-app-benchmark", "1.0.0", server.WithToolCapabilities(true), server.WithResourceCapabilities(true, false))
+	appTool := mcpgo.NewTool(toolName)
+	appTool.Meta = &mcpgo.Meta{AdditionalFields: map[string]any{"ui": map[string]any{"resourceUri": resourceURI, "visibility": []string{"app"}}}}
+	s.AddTool(appTool, func(context.Context, mcpgo.CallToolRequest) (*mcpgo.CallToolResult, error) {
+		result := mcpgo.NewToolResultStructured(map[string]any{"accepted": true}, "native fixture result")
+		result.Meta = &mcpgo.Meta{AdditionalFields: map[string]any{"fixture": "native"}}
+		return result, nil
+	})
+	s.AddResource(mcpgo.NewResource(resourceURI, "Fixture App", mcpgo.WithMIMEType("text/html;profile=mcp-app")), func(_ context.Context, request mcpgo.ReadResourceRequest) ([]mcpgo.ResourceContents, error) {
+		if request.Params.URI != resourceURI {
+			return nil, fmt.Errorf("unexpected resource URI %q", request.Params.URI)
+		}
+		return []mcpgo.ResourceContents{mcpgo.TextResourceContents{URI: resourceURI, MIMEType: "text/html;profile=mcp-app", Text: "<html>native fixture</html>"}}, nil
+	})
+	httpServer := httptest.NewServer(server.NewStreamableHTTPServer(s))
+	b.Cleanup(httpServer.Close)
+	m := NewMCPManager(context.Background(), schemas.MCPConfig{}, nil, &MockLogger{}, nil)
+	b.Cleanup(func() { _ = m.Cleanup() })
+	noOpPipeline := &nativeResultMutationPipeline{}
+	m.SetPluginPipeline(func() PluginPipeline { return noOpPipeline }, func(PluginPipeline) {})
+	config := newRecoveryClientConfig("client-native-app-benchmark", clientName, httpServer.URL)
+	if err := m.connectToMCPClient(context.Background(), config); err != nil {
+		b.Fatalf("connect local native App fixture: %v", err)
+	}
+	canonicalName := clientName + "-" + toolName
+	ctx := schemas.NewBifrostContext(context.Background(), schemas.NoDeadline)
+	call := &schemas.ChatAssistantMessageToolCall{Function: schemas.ChatAssistantMessageToolCallFunction{Name: &canonicalName, Arguments: "{}"}}
+	message, native, bErr := m.ExecuteMCPAppTool(ctx, call)
+	if bErr != nil || message == nil {
+		b.Fatalf("native App tool preflight failed: message=%+v error=%v", message, bErr)
+	}
+	var nativeFields map[string]any
+	if err := json.Unmarshal(native, &nativeFields); err != nil {
+		b.Fatalf("native App result was not JSON: %v: %s", err, native)
+	}
+	if nativeFields["structuredContent"] == nil || nativeFields["_meta"] == nil {
+		b.Fatalf("native App execution did not return structuredContent and metadata: %s", native)
+	}
+	resource, err := m.ReadMCPAppResource(ctx, canonicalName, resourceURI)
+	if err != nil || resource == nil || len(resource.Contents) != 1 {
+		b.Fatalf("native App resource preflight failed: resource=%+v error=%v", resource, err)
+	}
+	contents, ok := resource.Contents[0].(mcpgo.TextResourceContents)
+	if !ok || contents.URI != resourceURI || contents.MIMEType != "text/html;profile=mcp-app" || contents.Text != "<html>native fixture</html>" {
+		b.Fatalf("native App resource preflight returned unexpected payload: %#v", resource.Contents[0])
+	}
+	b.Run("tools_call", func(b *testing.B) {
+		b.ReportAllocs()
+		b.ResetTimer()
+		for b.Loop() {
+			message, native, bErr := m.ExecuteMCPAppTool(ctx, call)
+			if bErr != nil || message == nil || len(native) == 0 {
+				b.Fatalf("native App tool request failed: message=%+v error=%v", message, bErr)
+			}
+		}
+	})
+	b.Run("resources_read", func(b *testing.B) {
+		b.ReportAllocs()
+		b.ResetTimer()
+		for b.Loop() {
+			resource, err := m.ReadMCPAppResource(ctx, canonicalName, resourceURI)
+			if err != nil || resource == nil || len(resource.Contents) != 1 {
+				b.Fatalf("native App resource request failed: resource=%+v error=%v", resource, err)
+			}
+		}
+	})
+}
+
 // TestExecuteTool_DeadSession_SalvagesTheCallForARetryableTool pins the
 // reactive half of MCP connection repair. A tool call is the strongest
 // evidence available that a connection is dead: a real request, over the real
@@ -117,14 +257,45 @@ func TestExecuteTool_DeadSession_SalvagesTheCallForARetryableTool(t *testing.T) 
 	// dial would still succeed, so this is recoverable with no human.
 	upstream.expireCurrentSession()
 
-	msg, bErr := executeEchoTool(m, toolName)
+	call := &schemas.ChatAssistantMessageToolCall{Function: schemas.ChatAssistantMessageToolCallFunction{Name: &toolName, Arguments: "{}"}}
+	msg, nativeResult, bErr := m.ExecuteMCPAppTool(schemas.NewBifrostContext(context.Background(), schemas.NoDeadline), call)
 	require.Nil(t, bErr, "a dead session must be reconnected and the call retried, not surfaced to the caller")
 	require.NotNil(t, msg)
+	assert.JSONEq(t, `{"content":[{"type":"text","text":"ok"}]}`, string(nativeResult), "the recovered retry's native result must be retained")
 
 	after, ok := snapshotClientState(m, config.ID)
 	require.True(t, ok)
 	assert.Greater(t, after.ConnGeneration, before.ConnGeneration, "recovery means a genuinely fresh connection, not a lucky retry")
 	assert.NotSame(t, before.Conn, after.Conn)
+}
+
+// BenchmarkExecuteChatToolNoApps records the regular MCP execution path with
+// a real local streamable HTTP server and no App metadata. The connection is
+// established before timing; each iteration measures one ordinary tool call.
+func BenchmarkExecuteChatToolNoApps(b *testing.B) {
+	s := server.NewMCPServer("ordinary-tool-benchmark", "1.0.0", server.WithToolCapabilities(true))
+	s.AddTool(mcpgo.NewTool("echo", mcpgo.WithReadOnlyHintAnnotation(true)), func(context.Context, mcpgo.CallToolRequest) (*mcpgo.CallToolResult, error) {
+		return mcpgo.NewToolResultText("ok"), nil
+	})
+	httpServer := httptest.NewServer(server.NewStreamableHTTPServer(s))
+	b.Cleanup(httpServer.Close)
+
+	manager := NewMCPManager(context.Background(), schemas.MCPConfig{}, nil, &MockLogger{}, nil)
+	b.Cleanup(func() { _ = manager.Cleanup() })
+	config := newRecoveryClientConfig("client-ordinary-benchmark", "ordinary-client", httpServer.URL)
+	if err := manager.connectToMCPClient(context.Background(), config); err != nil {
+		b.Fatal(err)
+	}
+	toolName := "ordinary-client-echo"
+	toolCall := &schemas.ChatAssistantMessageToolCall{Function: schemas.ChatAssistantMessageToolCallFunction{Name: &toolName, Arguments: "{}"}}
+	ctx := schemas.NewBifrostContext(context.Background(), schemas.NoDeadline)
+	b.ReportAllocs()
+	b.ResetTimer()
+	for b.Loop() {
+		if _, bErr := manager.ExecuteChatTool(ctx, toolCall); bErr != nil {
+			b.Fatal(bErr)
+		}
+	}
 }
 
 // TestExecuteTool_DeadSession_HealsEvenWhenTheRetryIsSuppressed covers the

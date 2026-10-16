@@ -3,6 +3,7 @@ package mcp
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/mark3labs/mcp-go/mcp"
@@ -96,6 +97,89 @@ func TestConvertMCPToolToBifrostSchema_WithAnnotations(t *testing.T) {
 	assert.NotContains(t, s, "annotations", "annotations must be absent from provider JSON")
 	assert.NotContains(t, s, "readOnlyHint", "readOnlyHint must be absent from provider JSON")
 	assert.NotContains(t, s, "Resource Reader", "annotation title must be absent from provider JSON")
+}
+
+func TestConvertMCPToolToBifrostSchema_PreservesMCPAppDefinition(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		metadata map[string]any
+		wantURI  string
+	}{
+		{
+			name:     "modern",
+			metadata: map[string]any{"ui": map[string]any{"resourceUri": "ui://modern/view", "visibility": []any{"app"}}},
+			wantURI:  "ui://modern/view",
+		},
+		{
+			name:     "legacy",
+			metadata: map[string]any{"ui/resourceUri": "ui://legacy/view"},
+			wantURI:  "ui://legacy/view",
+		},
+		{
+			name:     "dual-prefers-modern",
+			metadata: map[string]any{"ui": map[string]any{"resourceUri": "ui://modern/view"}, "ui/resourceUri": "ui://legacy/view"},
+			wantURI:  "ui://modern/view",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			tool := convertMCPToolToBifrostSchema(&mcp.Tool{
+				Name:        "open_view",
+				InputSchema: mcp.ToolInputSchema{Type: "object", Properties: map[string]any{}},
+				Meta:        &mcp.Meta{AdditionalFields: tc.metadata},
+			}, defaultLogger)
+			require.NotNil(t, tool.MCPAppMetadata())
+			assert.Equal(t, tc.wantURI, tool.MCPAppMetadata().ResourceURI)
+			var raw map[string]any
+			require.NoError(t, json.Unmarshal(tool.MCPAppMetadata().RawDefinition, &raw))
+			assert.Equal(t, "open_view", raw["name"])
+			assert.NotNil(t, raw["inputSchema"])
+			assert.NotNil(t, raw["_meta"])
+			providerJSON, err := json.Marshal(tool)
+			require.NoError(t, err)
+			assert.NotContains(t, string(providerJSON), "ui://")
+		})
+	}
+}
+
+func TestConvertMCPToolToBifrostSchemaBoundsRetainedMCPAppMetadata(t *testing.T) {
+	largeURI := "ui://mcp-apps/" + strings.Repeat("x", maxCachedMCPAppDefinitionBytes)
+	tool := convertMCPToolToBifrostSchema(&mcp.Tool{
+		Name:        "open_view",
+		InputSchema: mcp.ToolInputSchema{Type: "object", Properties: map[string]any{}},
+		Meta: &mcp.Meta{AdditionalFields: map[string]any{
+			"ui": map[string]any{"resourceUri": largeURI, "visibility": []string{"app"}},
+		}},
+	}, defaultLogger)
+
+	require.NotNil(t, tool.MCPAppMetadata())
+	assert.Empty(t, tool.MCPAppMetadata().RawDefinition, "an over-budget raw definition must not be retained")
+	assert.Empty(t, tool.MCPAppMetadata().ResourceURI, "an over-budget resource URI must not remain in the cache sidecar")
+	assert.Equal(t, []string{"app"}, tool.MCPAppMetadata().Visibility, "oversized metadata must fail closed for model visibility")
+	metadataJSON, err := json.Marshal(tool.MCPAppMetadata())
+	require.NoError(t, err)
+	assert.LessOrEqual(t, len(metadataJSON), maxCachedMCPAppDefinitionBytes)
+
+	visibility := make([]string, maxCachedMCPAppDefinitionBytes/2)
+	for i := range visibility {
+		visibility[i] = "app"
+	}
+	tool = convertMCPToolToBifrostSchema(&mcp.Tool{
+		Name:        "open_view",
+		InputSchema: mcp.ToolInputSchema{Type: "object", Properties: map[string]any{}},
+		Meta: &mcp.Meta{AdditionalFields: map[string]any{
+			"ui": map[string]any{"resourceUri": "ui://mcp-apps/view", "visibility": visibility},
+		}},
+	}, defaultLogger)
+
+	require.NotNil(t, tool.MCPAppMetadata())
+	assert.Equal(t, "ui://mcp-apps/view", tool.MCPAppMetadata().ResourceURI, "small resource URIs remain available when visibility is normalized")
+	assert.Len(t, tool.MCPAppMetadata().Visibility, 1, "oversized visibility lists must collapse to one fail-closed classification")
+	if len(tool.MCPAppMetadata().Visibility) == 1 {
+		assert.Equal(t, "app", tool.MCPAppMetadata().Visibility[0])
+	}
+	metadataJSON, err = json.Marshal(tool.MCPAppMetadata())
+	require.NoError(t, err)
+	assert.LessOrEqual(t, len(metadataJSON), maxCachedMCPAppDefinitionBytes)
 }
 
 // TestConvertMCPToolToBifrostSchema_NilAnnotationsWhenAllZero verifies the nil guard:

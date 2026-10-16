@@ -13,6 +13,40 @@
         "connection_string": "http://localhost:3012/sse",
         "tools_to_execute": ["echo", "add", "greet"],
         "tools_to_auto_execute": ["echo", "add", "greet"]
+      },
+      {
+        "name": "errorTestServer",
+        "endpoint_slug": "error-test-server",
+        "is_code_mode_client": true,
+        "connection_type": "stdio",
+        "stdio_config": {
+          "command": "go",
+          "args": ["-C", "../../examples/mcps/error-test-server", "run", "."],
+          "envs": ["GOWORK=off"]
+        },
+        "tools_to_execute": ["*"],
+        "tools_to_auto_execute": ["*"]
+      },
+      {
+        "name": "firstboot_grants_fixture",
+        "endpoint_slug": "firstboot-grants-source",
+        "connection_type": "stdio",
+        "stdio_config": {
+          "command": "../../examples/mcps/go-test-server/bin/go-test-server"
+        },
+        "tools_to_execute": ["string_transform"],
+        "tools_to_auto_execute": []
+      }
+    ],
+    "virtual_mcps": [
+      {
+        "name": "First-boot grants fixture",
+        "endpoint_slug": "firstboot-grants-fixture",
+        "enabled": true,
+        "tools": [
+          {"mcp_client_name": "firstboot_grants_fixture", "tool_names": ["string_transform"]}
+        ],
+        "virtual_key_ids": ["vk-firstboot-grants-fixture"]
       }
     ]
   },
@@ -1356,6 +1390,26 @@
             "key_ids": ["*"],
             "weight": 1.0
           }
+        ]
+      },
+      {
+        "name": "Code Mode errors fixture",
+        "id": "vk-codemode-errors",
+        "value": "sk-bf-codemode-errors",
+        "is_active": true,
+        "provider_configs": [],
+        "mcp_configs": [
+          {"mcp_client_name": "errorTestServer", "tools_to_execute": ["*"]}
+        ]
+      },
+      {
+        "name": "First-boot grants fixture",
+        "id": "vk-firstboot-grants-fixture",
+        "value": "sk-bf-firstboot-grants-fixture",
+        "is_active": true,
+        "provider_configs": [],
+        "mcp_configs": [
+          {"mcp_client_name": "firstboot_grants_fixture", "tools_to_execute": ["string_transform"]}
         ]
       },
       {

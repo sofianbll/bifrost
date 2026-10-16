@@ -262121,6 +262121,221 @@
           }
         }
       ]
+    },
+    {
+      "name": "144. Code Mode error semantics (codemode-errors)",
+      "description": "Pins Code Mode error handling through the MCP wire using the local error-test-server profile. A protocol-marked nested tool error remains a script value; a Starlark execution failure marks the outer executeToolCode result as an error.",
+      "item": [
+        {
+          "name": "Code Mode nested validation error remains a value (codemode-errors)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-codemode-errors"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"executeToolCode\",\"arguments\":{\"code\":\"message = errorTestServer.return_error(error_type=\\\"validation\\\")\\nresult = message\"}}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp/error-test-server",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp",
+                "error-test-server"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('executeToolCode succeeds when the nested tool returns an error value', function () {",
+                  "  pm.expect(pm.response.code, pm.response.text()).to.eql(200);",
+                  "  var body = pm.response.json();",
+                  "  pm.expect(body.error, pm.response.text()).to.not.exist;",
+                  "  pm.expect(body.result, pm.response.text()).to.exist;",
+                  "  pm.expect(body.result.isError, pm.response.text()).to.not.eql(true);",
+                  "  var text = JSON.stringify(body.result);",
+                  "  pm.expect(text).to.include('Validation Error');",
+                  "  pm.expect(text).to.include('Execution completed successfully');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Code Mode failed script sets outer isError (codemode-errors)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-codemode-errors"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"executeToolCode\",\"arguments\":{\"code\":\"result = definitely_not_defined + 1\"}}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp/error-test-server",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp",
+                "error-test-server"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Starlark execution failure marks the outer result as an error', function () {",
+                  "  pm.expect(pm.response.code, pm.response.text()).to.eql(200);",
+                  "  var body = pm.response.json();",
+                  "  pm.expect(body.error, pm.response.text()).to.not.exist;",
+                  "  pm.expect(body.result, pm.response.text()).to.exist;",
+                  "  pm.expect(body.result.isError, pm.response.text()).to.eql(true);",
+                  "  pm.expect(JSON.stringify(body.result)).to.include('definitely_not_defined');",
+                  "  pm.expect(JSON.stringify(body.result)).to.not.include('Execution completed successfully');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Code Mode nested Error prefix remains a value (codemode-errors)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-codemode-errors"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"executeToolCode\",\"arguments\":{\"code\":\"message = errorTestServer.return_error(error_type=\\\"prefix\\\")\\nresult = message\"}}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp/error-test-server",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp",
+                "error-test-server"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var text = pm.response.text() || \"\";",
+                  "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
+                  "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(200); });",
+                  "pm.test(\"Error: prefix payload stays a successful script value\", function () { var r=body.result||{}; pm.expect(r.isError,text).to.not.eql(true); pm.expect(r.content&&r.content[0]&&r.content[0].text,text).to.include(\"Error: synthetic fixture error value\"); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "251. First-boot Virtual MCP grants (firstboot-grants-standalone)",
+      "description": "Runs before any setup-token postseed on a disposable fresh config store. The shared Python profile declares a non-CodeMode stdio fixture, a Virtual MCP exposing only string_transform, and the virtual key that the Virtual MCP attaches to; no database pre-creation is permitted. This request proves the attached key reaches the fixture through the file-declared Virtual MCP route.",
+      "item": [
+        {
+          "name": "stdio fixture firstboot grant invokes string_transform (firstboot-grants-standalone)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var text = pm.response.text() || '';",
+                  "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
+                  "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(200); });",
+                  "pm.test('file-declared grant invokes the stdio fixture tool', function () { var result=body.result||{}; var content=result.content||[]; pm.expect(body.error,text).to.not.exist; pm.expect(result,text).to.be.an('object'); pm.expect(result.isError,text).to.not.equal(true); pm.expect(content.length,text).to.be.greaterThan(0); var toolResult={}; try { toolResult=JSON.parse(content[0].text||'{}'); } catch (e) {} pm.expect(toolResult.input,text).to.equal('firstboot-grant-204'); pm.expect(toolResult.operation,text).to.equal('uppercase'); pm.expect(toolResult.result,text).to.equal('FIRSTBOOT-GRANT-204'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-firstboot-grants-fixture"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"firstboot_grants_fixture-string_transform\",\"arguments\":{\"input\":\"firstboot-grant-204\",\"operation\":\"uppercase\"}}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp/firstboot-grants-fixture",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp",
+                "firstboot-grants-fixture"
+              ]
+            }
+          }
+        }
+      ]
     }
   ]
 }

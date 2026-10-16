@@ -5,6 +5,7 @@ package bifrost
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"slices"
@@ -15,6 +16,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	mcpsdk "github.com/mark3labs/mcp-go/mcp"
 
 	"github.com/maximhq/bifrost/core/keyselectors"
 	"github.com/maximhq/bifrost/core/mcp"
@@ -3311,6 +3313,28 @@ func (bifrost *Bifrost) ExecuteChatMCPTool(ctx *schemas.BifrostContext, toolCall
 	return bifrost.MCPManager.ExecuteChatTool(ctx, toolCall)
 }
 
+// ExecuteMCPAppTool executes an App-linked tool through the MCP plugin pipeline and
+// returns its native MCP result when no post-hook redacted the effective result.
+func (bifrost *Bifrost) ExecuteMCPAppTool(ctx *schemas.BifrostContext, toolCall *schemas.ChatAssistantMessageToolCall) (*schemas.ChatMessage, json.RawMessage, *schemas.BifrostError) {
+	if ctx == nil {
+		ctx = bifrost.ctx
+	} else {
+		ensureMCPRawStorageContext(ctx)
+		ensureMCPTracerContext(ctx, bifrost.getTracer())
+		bifrost.setModelCatalogOnContext(ctx)
+	}
+	if bifrost.MCPManager == nil {
+		return nil, nil, &schemas.BifrostError{IsBifrostError: false, Error: &schemas.ErrorField{Message: "mcp is not configured in this bifrost instance"}, ExtraFields: schemas.BifrostErrorExtraFields{RequestType: schemas.ChatCompletionRequest}}
+	}
+	if nativeExecutor, ok := bifrost.MCPManager.(interface {
+		ExecuteMCPAppTool(*schemas.BifrostContext, *schemas.ChatAssistantMessageToolCall) (*schemas.ChatMessage, json.RawMessage, *schemas.BifrostError)
+	}); ok {
+		return nativeExecutor.ExecuteMCPAppTool(ctx, toolCall)
+	}
+	message, bErr := bifrost.MCPManager.ExecuteChatTool(ctx, toolCall)
+	return message, nil, bErr
+}
+
 // ExecuteResponsesMCPTool executes an MCP tool call and returns the result as a responses
 // message. Thin delegator — see ExecuteChatMCPTool for the rationale.
 func (bifrost *Bifrost) ExecuteResponsesMCPTool(ctx *schemas.BifrostContext, toolCall *schemas.ResponsesToolMessage) (*schemas.ResponsesMessage, *schemas.BifrostError) {
@@ -4609,7 +4633,27 @@ func (bifrost *Bifrost) GetAvailableMCPTools(ctx *schemas.BifrostContext) []sche
 	if bifrost.MCPManager == nil {
 		return nil
 	}
+	if nativeAppLister, ok := bifrost.MCPManager.(interface {
+		GetAvailableToolsForMCP(ctx *schemas.BifrostContext) []schemas.ChatTool
+	}); ok {
+		return nativeAppLister.GetAvailableToolsForMCP(ctx)
+	}
 	return bifrost.MCPManager.GetAvailableTools(ctx)
+}
+
+// ReadMCPAppResource relays an authorized App resource through the MCP
+// manager's source-specific client connection.
+func (bifrost *Bifrost) ReadMCPAppResource(ctx *schemas.BifrostContext, toolName, upstreamURI string) (*mcpsdk.ReadResourceResult, error) {
+	if bifrost.MCPManager == nil {
+		return nil, fmt.Errorf("resource is unavailable")
+	}
+	reader, ok := bifrost.MCPManager.(interface {
+		ReadMCPAppResource(*schemas.BifrostContext, string, string) (*mcpsdk.ReadResourceResult, error)
+	})
+	if !ok {
+		return nil, fmt.Errorf("resource is unavailable")
+	}
+	return reader.ReadMCPAppResource(ctx, toolName, upstreamURI)
 }
 
 // GetMCPServerInstructions returns the aggregated initialize `instructions` of every MCP

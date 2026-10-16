@@ -1,3 +1,5 @@
+- feat: preserve nested MCP protocol error results through Code Mode tool calls and retain their MCP `isError` marker at the gateway boundary
+- feat: expose bounded MCP App tool metadata and app resources through source-qualified MCP Apps responses while keeping app-only tools out of model catalogs
 - feat: agent gateway runtime with A2A request, event and trace contracts, card discovery, A2A plugin pipeline, streaming, durable push delivery and opt-in private push callbacks; `schemas.Tracer` gains `ReleaseTrace`
 - feat: gpt live session schemas, live provider interface and openai implementation, with sideband attach routes, the `live_sideband` request type and delegation error recording
 - feat: add cloudflare workers ai provider with chat, responses, embeddings, model listing and native clef decisions

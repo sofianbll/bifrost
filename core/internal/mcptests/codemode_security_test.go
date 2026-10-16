@@ -359,8 +359,8 @@ func TestReadToolFile_EmptyFileName(t *testing.T) {
 					assert.True(t, strings.Contains(content, "error") ||
 						strings.Contains(content, "required") ||
 						strings.Contains(content, "invalid") ||
-						strings.Contains(content, "found") ||  // Updated to just "found" not "not found"
-						strings.Contains(content, "Available virtual files"),  // Also accept list of available files
+						strings.Contains(content, "found") || // Updated to just "found" not "not found"
+						strings.Contains(content, "Available virtual files"), // Also accept list of available files
 						"Should return error message, got: %s", content)
 				}
 			}
@@ -710,15 +710,18 @@ func TestExecuteToolCode_GuardrailedResultNeverReachesModel(t *testing.T) {
 	body := secret + " " + strings.Repeat("CONFIDENTIAL-BODY ", 200)
 
 	for _, tc := range []struct {
-		name   string
-		tool   string
-		text   string
-		redact bool
+		name        string
+		tool        string
+		text        string
+		redact      bool
+		markedError bool
 	}{
 		{name: "blocked text result", tool: "leak_page", text: body},
 		{name: "blocked error result", tool: "leak_error", text: "Error: " + body},
 		{name: "redacted text result", tool: "leak_page", text: body, redact: true},
 		{name: "redacted error result", tool: "leak_error", text: "Error: " + body, redact: true},
+		{name: "blocked protocol error result", tool: "leak_error", text: body, markedError: true},
+		{name: "redacted protocol error result", tool: "leak_error", text: body, redact: true, markedError: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			manager := setupMCPManager(t)
@@ -734,7 +737,12 @@ func TestExecuteToolCode_GuardrailedResultNeverReachesModel(t *testing.T) {
 				},
 			}
 			require.NoError(t, manager.RegisterTool(tc.tool, "returns a large confidential body",
-				func(any) (string, error) { return tc.text, nil }, toolSchema))
+				func(any) (string, error) {
+					if tc.markedError {
+						return "", fmt.Errorf("%s", tc.text)
+					}
+					return tc.text, nil
+				}, toolSchema))
 
 			for _, client := range manager.GetClients() {
 				if client.ExecutionConfig.ID == "bifrostInternal" {
