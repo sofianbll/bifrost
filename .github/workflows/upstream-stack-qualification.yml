@@ -32,12 +32,11 @@ jobs:
       matrix:
         include:
           - name: issue-25
-            product_pin: b7cf1a878395998c361b955a627e1cb9a18548fe
+            product_pin: 6b77e5e175632d31b50a35901fa94f0ae7574160
             fixture_scopes: mcp-apps
-            comparison_mode: characterize
+            comparison_mode: strict
             extra_firstboot: false
             reference_host: true
-            contribution_scope: true
     env:
       STOCK_SOURCE: 83258b776c68e1e3d2c1ca0d08a31c2e5811344f
       STABLE_REFERENCE: 9237ec06672406e437b3cb33fc793ffd0403b3ae
@@ -232,7 +231,6 @@ jobs:
       - name: Require completed comparison and actual reference-host evidence
         if: always() && steps.build-stock.outcome == 'success' && steps.build-candidate.outcome == 'success'
         env:
-          C_CONTRIBUTION_SCOPE: ${{ matrix.contribution_scope }}
           CANDIDATE_FIXTURE_OUTCOME: ${{ steps.candidate-fixture.outcome }}
           STOCK_FIXTURE_OUTCOME: ${{ steps.stock-fixture.outcome }}
         run: |
@@ -262,79 +260,10 @@ jobs:
 
           if __name__ == '__main__':
               assert os.environ['STOCK_FIXTURE_OUTCOME'] == 'success', 'stock comparison did not complete'
-              if os.environ['C_CONTRIBUTION_SCOPE'] != 'true':
-                  assert os.environ['CANDIDATE_FIXTURE_OUTCOME'] == 'success', 'integrated candidate fixture failed'
+              assert os.environ['CANDIDATE_FIXTURE_OUTCOME'] == 'success', 'candidate fixture failed'
               verify_host(Path(os.environ['REPORT_DIR']), os.environ['CANDIDATE_SOURCE'])
               print('PASS exact candidate fixture/reference-host checks; controlled replay is not native Codex streaming')
           PYHOST
-      - name: Verify independent C contribution ownership and complete assertions
-        if: always() && matrix.contribution_scope == true && steps.stock-fixture.outcome == 'success'
-        run: |
-          python3 - <<'PYGATE'
-          import json
-          import os
-          from pathlib import Path
-
-
-          def verify_contribution(report_dir, candidate_source, stock_source, driver_source):
-              load = lambda name: json.loads((report_dir / name).read_text())
-              sources = load('source-identities.json')
-              comparison = load('mcp-apps-comparison.json')
-              assert sources['candidate_source'] == candidate_source, 'candidate source mismatch'
-              assert sources['stock_source'] == stock_source, 'stock source mismatch'
-              assert sources['harness_source'] == driver_source, 'driver source mismatch'
-              assert sources['fixture_scopes'] == 'mcp-apps', 'unexpected contribution scope'
-              assert sources['comparison_mode'] == 'characterize', 'contribution must retain full characterization'
-              assert sources['candidate_tracked_status'] == sources['harness_tracked_status'] == 'clean'
-              assert comparison['candidate_source'] == candidate_source and comparison['stock_source'] == stock_source
-              assert comparison['stock_failure_scope_valid'] and comparison['candidate_failure_scope_valid']
-              assert not comparison['regressions'] and not comparison['unrelated_stock_failures']
-              assert not comparison['unrelated_candidate_failures']
-              assert comparison['strict_pass'] is False, 'pure C retains the explicitly reported A-owned failure'
-              assert comparison['candidate_exit_code'] != 0
-              assert all(row['classification'] in ('fixed', 'invariant', 'green-control')
-                         for row in comparison['named_checks']), 'C-owned named check is not green'
-              allowed = {('MCP Apps fixture Code Mode script failure sets isError',
-                          'only sandbox script failure marks outer result isError')}
-              names = []
-              candidate_failures = set()
-              for prefix in ('stock-', ''):
-                  report = load(prefix + 'mcp-apps-newman-report.json')
-                  executions = report['run']['executions']
-                  request_names = [row['item']['name'] for row in executions]
-                  assert len(request_names) == len(set(request_names)) == 39, 'missing/duplicate requests'
-                  names.append(set(request_names))
-                  for row in executions:
-                      assert not row.get('skipped') and 100 <= row['response']['code'] <= 599
-                      assertions = row.get('assertions')
-                      assert assertions and all(not item.get('skipped') for item in assertions), 'missing/skipped assertions'
-                      if not prefix:
-                          candidate_failures.update((row['item']['name'], item['assertion'])
-                                                    for item in assertions if item.get('error') is not None)
-              assert names[0] == names[1], 'stock/candidate request inventory mismatch'
-              assert candidate_failures == allowed, 'unexpected candidate failure or missing A-owned control'
-              reported_failures = {(row['request'], row['assertion']) for row in comparison['candidate_failed_assertions']}
-              assert reported_failures == candidate_failures, 'comparison disagrees with raw assertions'
-              return {'contribution_pass': True, 'strict_pass': False, 'candidate_source': candidate_source,
-                      'stock_source': stock_source, 'harness_source': driver_source,
-                      'candidate_exit_code': comparison['candidate_exit_code'], 'comparison_mode': 'characterize',
-                      'executed_requests_per_source': 39,
-                      'reported_A_owned_failures': [{'request': request, 'assertion': assertion}
-                                                    for request, assertion in sorted(allowed)],
-                      'scope_note': 'All 39 requests and assertions execute. Only the explicitly reported A-owned outer-script marker is outside pure C. Full integration requires strict zero-failure acceptance.'}
-
-
-          if __name__ == '__main__':
-              directory = Path(os.environ['REPORT_DIR'])
-              destination = directory / 'issue-25-contribution-gate.json'
-              try:
-                  result = verify_contribution(directory, os.environ['CANDIDATE_SOURCE'],
-                                               os.environ['STOCK_SOURCE'], os.environ['DRIVER_SOURCE'])
-              except Exception as error:
-                  destination.write_text(json.dumps({'contribution_pass': False, 'error': str(error)}, indent=2) + '\n')
-                  raise
-              destination.write_text(json.dumps(result, indent=2) + '\n')
-          PYGATE
       - name: Verify integrated first-boot grants and same-store restart
         id: firstboot-candidate
         if: always() && matrix.extra_firstboot && steps.build-candidate.outcome == 'success'
