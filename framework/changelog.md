@@ -1,3 +1,4 @@
+- feat: persist MCP App tool metadata in the MCP tool cache and reconcile Virtual MCP grants after first-boot governance configuration loads
 - feat: persist agent registrations, virtual-key agent grants, push configs and push delivery outbox, and store and query agent operation and event logs
 - feat: add Warp agent, read-only log/metric/governance tools, chat history and asker-scoped visibility
 - feat: index completed logs for Warp semantic search with sidekiq backfill and visibility prefiltering

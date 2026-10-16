@@ -2,8 +2,15 @@ package configstore
 
 import (
 	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"sync"
 	"testing"
 
+	mcpgo "github.com/mark3labs/mcp-go/mcp"
+	"github.com/mark3labs/mcp-go/server"
+	bifrostmcp "github.com/maximhq/bifrost/core/mcp"
 	"github.com/maximhq/bifrost/core/schemas"
 	"github.com/maximhq/bifrost/framework/configstore/tables"
 	"github.com/stretchr/testify/assert"
@@ -28,6 +35,14 @@ func TestUpdateMCPClientTools_TargetedColumnUpdate(t *testing.T) {
 
 	tools := map[string]schemas.ChatTool{
 		"echo": {Type: "function"},
+		"app-open": {
+			Type:     "function",
+			Function: &schemas.ChatToolFunction{Name: "app-open"},
+			Annotations: &schemas.MCPToolAnnotations{MCPApp: &schemas.MCPAppToolMetadata{
+				RawDefinition: []byte(`{"name":"open","inputSchema":{"type":"object","properties":{}},"_meta":{"ui":{"resourceUri":"ui://app/open"}}}`),
+				ResourceURI:   "ui://app/open",
+			}},
+		},
 	}
 	mapping := map[string]string{"echo": "echo-server"}
 
@@ -36,6 +51,12 @@ func TestUpdateMCPClientTools_TargetedColumnUpdate(t *testing.T) {
 	got, err := s.GetMCPClientByID(ctx, "mcp-tools-client")
 	require.NoError(t, err)
 	assert.Equal(t, tools, got.DiscoveredTools)
+	var stored tables.TableMCPClient
+	require.NoError(t, s.DB().WithContext(ctx).Where("client_id = ?", "mcp-tools-client").Take(&stored).Error)
+	var storedTools map[string]map[string]json.RawMessage
+	require.NoError(t, json.Unmarshal([]byte(stored.DiscoveredToolsJSON), &storedTools))
+	assert.Contains(t, storedTools["app-open"], "_bifrost_mcp_app")
+	assert.Contains(t, storedTools["app-open"], "function", "the additive sidecar preserves the flat tool-map shape")
 	assert.Equal(t, mapping, got.DiscoveredToolNameMapping)
 	// Untouched column proves this was a targeted update, not a full-row one.
 	assert.Equal(t, "original_name", got.Name)
@@ -89,4 +110,161 @@ func TestMCPClientConfigUnknownIDReturnsNotFound(t *testing.T) {
 	err = s.UpdateMCPClientConfig(ctx, "does-not-exist", &tables.TableMCPClient{Name: "renamed"})
 	assert.ErrorIs(t, err, ErrNotFound)
 	assert.ErrorContains(t, err, "does-not-exist")
+}
+
+func TestMCPAppToolMetadataSurvivesRefreshAndManagerReload(t *testing.T) {
+	ctx := context.Background()
+	store := setupRDBTestStore(t)
+	const (
+		clientID   = "cache-lifecycle-app"
+		clientName = "cache_lifecycle"
+		oldURI     = "ui://catalog/old"
+		newURI     = "ui://catalog/new"
+	)
+
+	upstream := server.NewMCPServer("cache-lifecycle-fixture", "1.0.0", server.WithToolCapabilities(true))
+	toolHandler := func(context.Context, mcpgo.CallToolRequest) (*mcpgo.CallToolResult, error) {
+		return mcpgo.NewToolResultText("opened"), nil
+	}
+	upstream.AddTool(cacheLifecycleAppTool(oldURI), toolHandler)
+	streamable := server.NewStreamableHTTPServer(upstream)
+	httpServer := httptest.NewServer(http.HandlerFunc(streamable.ServeHTTP))
+	t.Cleanup(func() {
+		httpServer.CloseClientConnections()
+		httpServer.Close()
+	})
+
+	config := &schemas.MCPClientConfig{
+		ID:                     clientID,
+		Name:                   clientName,
+		ConnectionType:         schemas.MCPConnectionTypeHTTP,
+		AuthType:               schemas.MCPAuthTypeNone,
+		ConnectionString:       schemas.NewSecretVar(httpServer.URL),
+		ToolsToExecute:         schemas.WhiteList{"*"},
+		NeedsSessionStickiness: schemas.Ptr(false),
+	}
+	require.NoError(t, store.CreateMCPClientConfig(ctx, config))
+
+	manager := bifrostmcp.NewMCPManager(ctx, schemas.MCPConfig{}, nil, nil, nil)
+	t.Cleanup(func() { require.NoError(t, manager.Cleanup()) })
+	var callbackMu sync.Mutex
+	var callbackWrites int
+	var callbackErr error
+	manager.SetToolsChangeCallback(func(id, _ string, tools map[string]schemas.ChatTool, mapping map[string]string, instructions string) {
+		err := store.UpdateMCPClientTools(ctx, id, tools, mapping, instructions)
+		callbackMu.Lock()
+		defer callbackMu.Unlock()
+		callbackWrites++
+		if err != nil {
+			callbackErr = err
+		}
+	})
+	assertCallbackWrites := func(want int) {
+		t.Helper()
+		callbackMu.Lock()
+		defer callbackMu.Unlock()
+		require.NoError(t, callbackErr)
+		assert.Equal(t, want, callbackWrites)
+	}
+
+	// AddClient performs a real tools/list request. The callback writes its
+	// discovered catalog through the SQLite ConfigStore API.
+	require.NoError(t, manager.AddClient(ctx, config))
+	assertCallbackWrites(1)
+	initial, err := store.GetMCPClientConfigByID(ctx, clientID)
+	require.NoError(t, err)
+	initialTool := requireCacheLifecycleAppTool(t, initial.DiscoveredTools, clientName+"-open_view")
+	assert.Equal(t, oldURI, initialTool.MCPAppMetadata().ResourceURI)
+	assert.Contains(t, string(initialTool.MCPAppMetadata().RawDefinition), oldURI)
+	assert.Equal(t, []string{"app"}, initialTool.MCPAppMetadata().Visibility)
+	assert.Equal(t, "Open application", *initialTool.Function.Description)
+
+	initialRow, err := store.GetMCPClientByID(ctx, clientID)
+	require.NoError(t, err)
+	count, err := manager.RefreshClientTools(ctx, clientID)
+	require.NoError(t, err)
+	assert.Equal(t, 1, count)
+	assertCallbackWrites(1)
+	unchangedRow, err := store.GetMCPClientByID(ctx, clientID)
+	require.NoError(t, err)
+	assert.Equal(t, initialRow.UpdatedAt, unchangedRow.UpdatedAt,
+		"an unchanged tools/list must not issue another cache write")
+
+	// Only the UI URI changes: name, description and input schema are the same.
+	// This still changes the public native catalog and therefore must persist.
+	upstream.AddTool(cacheLifecycleAppTool(newURI), toolHandler)
+	count, err = manager.RefreshClientTools(ctx, clientID)
+	require.NoError(t, err)
+	assert.Equal(t, 1, count)
+	assertCallbackWrites(2)
+
+	reloaded, err := store.GetMCPConfig(ctx)
+	require.NoError(t, err)
+	var reloadedClient *schemas.MCPClientConfig
+	for _, candidate := range reloaded.ClientConfigs {
+		if candidate.ID == clientID {
+			reloadedClient = candidate
+			break
+		}
+	}
+	require.NotNil(t, reloadedClient)
+	reloadedTool := requireCacheLifecycleAppTool(t, reloadedClient.DiscoveredTools, clientName+"-open_view")
+	assert.Equal(t, newURI, reloadedTool.MCPAppMetadata().ResourceURI)
+	assert.Contains(t, string(reloadedTool.MCPAppMetadata().RawDefinition), newURI)
+	assert.Equal(t, []string{"app"}, reloadedTool.MCPAppMetadata().Visibility)
+	assert.Equal(t, "Open application", *reloadedTool.Function.Description)
+	assert.Equal(t, initialTool.Function.Parameters, reloadedTool.Function.Parameters,
+		"metadata-only refresh must leave the ordinary tool schema unchanged")
+
+	// The second manager is restored from the ConfigStore cache after the
+	// upstream goes away. This proves catalog retention does not depend on a
+	// fresh tools/list succeeding at startup.
+	httpServer.CloseClientConnections()
+	httpServer.Close()
+	restarted := bifrostmcp.NewMCPManager(ctx, schemas.MCPConfig{}, nil, nil, nil)
+	t.Cleanup(func() { require.NoError(t, restarted.Cleanup()) })
+	require.NoError(t, restarted.AddClient(ctx, reloadedClient))
+	publicCatalog := restarted.GetAvailableToolsForMCP(schemas.NewBifrostContext(ctx, schemas.NoDeadline))
+	publicTool := findCacheLifecycleTool(publicCatalog, clientName+"-open_view")
+	require.NotNil(t, publicTool, "reloaded manager must serve the cached app tool")
+	require.NotNil(t, publicTool.MCPAppMetadata())
+	assert.Equal(t, newURI, publicTool.MCPAppMetadata().ResourceURI)
+	assert.Contains(t, string(publicTool.MCPAppMetadata().RawDefinition), newURI)
+	assert.Equal(t, []string{"app"}, publicTool.MCPAppMetadata().Visibility)
+	assert.Equal(t, "Open application", *publicTool.Function.Description)
+	assert.Equal(t, initialTool.Function.Parameters, publicTool.Function.Parameters)
+}
+
+func cacheLifecycleAppTool(uri string) mcpgo.Tool {
+	tool := mcpgo.NewTool("open_view",
+		mcpgo.WithDescription("Open application"),
+		mcpgo.WithString("query", mcpgo.Required(), mcpgo.Description("Search query")),
+	)
+	tool.Meta = &mcpgo.Meta{AdditionalFields: map[string]any{
+		"ui": map[string]any{
+			"resourceUri": uri,
+			"visibility":  []string{"app"},
+		},
+	}}
+	return tool
+}
+
+func requireCacheLifecycleAppTool(t *testing.T, tools map[string]schemas.ChatTool, name string) schemas.ChatTool {
+	t.Helper()
+	tool, ok := tools[name]
+	require.True(t, ok, "discovered catalog must include %s", name)
+	require.NotNil(t, tool.Function)
+	require.NotNil(t, tool.Function.Description)
+	require.NotNil(t, tool.Function.Parameters)
+	require.NotNil(t, tool.MCPAppMetadata())
+	return tool
+}
+
+func findCacheLifecycleTool(tools []schemas.ChatTool, name string) *schemas.ChatTool {
+	for i := range tools {
+		if tools[i].Function != nil && tools[i].Function.Name == name {
+			return &tools[i]
+		}
+	}
+	return nil
 }

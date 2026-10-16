@@ -375,6 +375,7 @@ import (
 	configstoreTables "github.com/maximhq/bifrost/framework/configstore/tables"
 	"github.com/maximhq/bifrost/framework/encrypt"
 	"github.com/maximhq/bifrost/framework/featureflags"
+	"github.com/maximhq/bifrost/framework/grant"
 	"github.com/maximhq/bifrost/framework/logstore"
 	"github.com/maximhq/bifrost/framework/modelcatalog"
 	"github.com/maximhq/bifrost/framework/objectstore"
@@ -25218,4 +25219,102 @@ func TestReconcileProviderKeys_LegacyAliasHashKeepsStoredEdits(t *testing.T) {
 		require.Len(t, merged, 1)
 		require.Equal(t, float64(2), merged[0].Weight, "a changed config.json must still replace the stored key")
 	})
+}
+
+func TestLoadConfig_FirstBootVirtualMCPAttachesFileDeclaredVirtualKey(t *testing.T) {
+	initTestLogger()
+	ctx := context.Background()
+	tempDir := createTempDir(t)
+	configData := makeMinimalConfigData(tempDir)
+	configData.MCP = &schemas.MCPConfig{
+		ClientConfigs: []*schemas.MCPClientConfig{{
+			ID: "fixture-client", Name: "fixture", ConnectionType: schemas.MCPConnectionTypeSTDIO,
+			StdioConfig: &schemas.MCPStdioConfig{Command: "/bin/true"},
+		}},
+		VirtualMCPs: []schemas.VirtualMCPConfig{{
+			Name: "Fixture tools", EndpointSlug: "fixture-tools", Enabled: schemas.Ptr(true),
+			Tools:         []schemas.MCPToolSpecConfig{{MCPClientName: "fixture", ToolNames: []string{"echo"}}},
+			VirtualKeyIDs: []string{"vk-first-boot"},
+		}},
+	}
+	configData.Governance = &configstore.GovernanceConfig{
+		VirtualKeys: []tables.TableVirtualKey{makeVirtualKey("vk-first-boot", "first-boot", "sk-bf-first-boot")},
+	}
+	createConfigFile(t, tempDir, configData)
+
+	for boot := 1; boot <= 2; boot++ {
+		t.Run(fmt.Sprintf("boot_%d", boot), func(t *testing.T) {
+			config, err := LoadConfig(ctx, tempDir)
+			require.NoError(t, err)
+			require.NotNil(t, config)
+			t.Cleanup(func() { config.Close(ctx) })
+
+			virtualMCPs, _, err := config.ConfigStore.GetVirtualMCPsPaginated(ctx, configstore.VirtualMCPsQueryParams{Limit: 100})
+			require.NoError(t, err)
+			require.Len(t, virtualMCPs, 1)
+			attachedVirtualKeyIDs, err := config.ConfigStore.GetVirtualKeyIDsForVirtualMCP(ctx, virtualMCPs[0].ID)
+			require.NoError(t, err)
+			require.Equal(t, []string{"vk-first-boot"}, attachedVirtualKeyIDs,
+				"the same config file declares this Virtual MCP and virtual key, so first boot and restart must attach the key")
+			storedVirtualKey, err := config.ConfigStore.GetVirtualKey(ctx, "vk-first-boot")
+			require.NoError(t, err)
+			require.NotNil(t, storedVirtualKey)
+			virtualKeyValue := storedVirtualKey.Value.GetValue()
+			require.NotEmpty(t, virtualKeyValue, "use the runtime key value persisted from the config declaration")
+
+			governancePlugin, err := governance.Init(ctx, nil, &testLogger{}, config.ConfigStore, config.GovernanceConfig, nil, nil, firstBootGovernanceInMemoryStore{config: config})
+			require.NoError(t, err)
+			t.Cleanup(func() { require.NoError(t, governancePlugin.Cleanup()) })
+			requestCtx := schemas.NewBifrostContext(ctx, schemas.NoDeadline)
+			requestCtx.SetGrant(grant.New())
+			requestCtx.SetValue(schemas.BifrostContextKeyIsMCPGateway, true)
+			requestCtx.SetValue(schemas.BifrostContextKeyVirtualKey, virtualKeyValue)
+			requestCtx.Grant().SetIdentity(grant.NewIdentity(grant.NewCredential(grant.CredentialVirtualKey, virtualKeyValue), nil, nil, nil, nil, nil, nil))
+			_, refusal := governancePlugin.Evaluate(requestCtx, &governance.EvaluationRequest{RequestType: schemas.MCPToolExecutionRequest})
+			if refusal != nil {
+				t.Fatalf("the file-declared key must be admitted by the real governance store: %s", refusal.Error.Message)
+			}
+			access := requestCtx.Grant().Access()
+			require.NotNil(t, access)
+			require.Equal(t, []string{"fixture-echo"}, access.MCPToolIncludeList(), "the declared key must receive the configured fixture tool")
+
+			resolver, ok := governancePlugin.GetGovernanceStore().(interface {
+				VirtualMCPToolAccess(*schemas.BifrostContext, string, schemas.Access) ([]string, bool)
+			})
+			require.True(t, ok)
+			servedTools, assigned := resolver.VirtualMCPToolAccess(requestCtx, "fixture-tools", access)
+			require.True(t, assigned, "the configured virtual-key context must address the declared /mcp/fixture-tools route")
+			require.Equal(t, []string{"fixture-echo"}, servedTools, "the route must expose its admitted fixture tool")
+		})
+	}
+}
+
+type firstBootGovernanceInMemoryStore struct{ config *Config }
+
+func (s firstBootGovernanceInMemoryStore) GetConfiguredProviders() map[schemas.ModelProvider]configstore.ProviderConfig {
+	return s.config.Providers
+}
+
+func (s firstBootGovernanceInMemoryStore) GetConfiguredProviderNames() []string {
+	providers := make([]string, 0, len(s.config.Providers))
+	for provider := range s.config.Providers {
+		providers = append(providers, string(provider))
+	}
+	return providers
+}
+
+func (s firstBootGovernanceInMemoryStore) GetMCPClientsAllowedByDefault() map[string]string {
+	return s.config.GetMCPClientsAllowedByDefault()
+}
+
+func (s firstBootGovernanceInMemoryStore) GetMCPClientNames() map[string]string {
+	return s.config.GetMCPClientNames()
+}
+
+func (s firstBootGovernanceInMemoryStore) GetMCPClientBySlug(slug string) (string, string, bool) {
+	return s.config.GetMCPClientBySlug(slug)
+}
+
+func (s firstBootGovernanceInMemoryStore) GetEnabledAgents() map[string]bool {
+	return s.config.GetEnabledAgents()
 }

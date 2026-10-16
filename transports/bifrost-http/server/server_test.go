@@ -38,6 +38,14 @@ import (
 	"gorm.io/gorm"
 )
 
+func TestBifrostHTTPServerImplementsMCPAppsRelaySeams(t *testing.T) {
+	var manager any = (*BifrostHTTPServer)(nil)
+	_, executesNative := manager.(handlers.MCPAppToolExecutor)
+	_, readsResources := manager.(handlers.MCPAppResourceReader)
+	assert.True(t, executesNative, "the concrete server manager must expose the effective native MCP result")
+	assert.True(t, readsResources, "the concrete server manager must expose authorized resource reads")
+}
+
 func TestAgentRegistrationCallbacksRejectUninitializedGateway(t *testing.T) {
 	t.Parallel()
 

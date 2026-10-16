@@ -1,0 +1,57 @@
+{
+  "$schema": "https://www.getbifrost.ai/schema",
+  "version": 2,
+  "setup_token": "mcp-apps-native-standalone-setup",
+  "mcp": {
+    "tool_manager_config": {
+      "disable_auto_tool_inject": true
+    },
+    "client_configs": [
+      {
+        "name": "mcp_apps_native_standalone",
+        "endpoint_slug": "mcp-apps-native-standalone",
+        "connection_type": "stdio",
+        "stdio_config": {
+          "command": "go",
+          "args": [
+            "-C",
+            "../../examples/mcps/mcp-apps-test-server",
+            "run",
+            ".",
+            "standalone",
+            "dual",
+            "mcp_apps_native_standalone"
+          ],
+          "envs": [
+            "GOWORK=off"
+          ]
+        },
+        "tools_to_execute": ["*"],
+        "tools_to_auto_execute": [],
+        "is_code_mode_client": false
+      }
+    ]
+  },
+  "providers": {},
+  "governance": {
+    "virtual_keys": [
+      {
+        "name": "MCP Apps native standalone fixture",
+        "id": "vk-mcp-apps-native-standalone",
+        "value": "sk-bf-mcp-apps-native-standalone",
+        "is_active": true,
+        "provider_configs": [],
+        "mcp_configs": [
+          {
+            "mcp_client_name": "mcp_apps_native_standalone",
+            "tools_to_execute": ["*"]
+          }
+        ]
+      }
+    ]
+  },
+  "client": {
+    "mcp_server_auth_mode": "headers",
+    "allowed_headers": ["MCP-Protocol-Version"]
+  }
+}
