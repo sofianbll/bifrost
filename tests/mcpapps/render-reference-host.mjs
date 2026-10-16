@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
+import { createHash } from "node:crypto";
 import { spawn } from "node:child_process";
 import { createServer } from "node:net";
 import { readFile } from "node:fs/promises";
@@ -23,6 +24,9 @@ if (!gatewayUrl || !bearer || !expectedInstance || !fixtureClientName || !candid
 if (!/^sk-bf-mcp-apps-(full|limited|limited-no-app|denied)$/.test(bearer)) throw new Error("Only a synthetic MCP Apps fixture key is accepted");
 if (!/^[0-9a-f]{40}$/.test(candidateSource)) throw new Error("BIFROST_CANDIDATE_SOURCE must be an immutable commit SHA");
 if (!/^[A-Za-z0-9_-]+$/.test(fixtureClientName)) throw new Error("BIFROST_FIXTURE_CLIENT_NAME is invalid");
+if (expectedInstance !== "first" || fixtureClientName !== "mcp_apps_fixture") {
+  throw new Error("Reference-host qualification must use the first source and its exact client identity");
+}
 
 function assertNotificationOrder(actual, partial) {
   const expected = partial ? ["partial", "partial", "input", "result"] : ["input", "result"];
@@ -42,12 +46,21 @@ for (const invalid of [
 }
 
 const manifest = JSON.parse(await readFile(join(hostDirectory, ".bifrost-reference-host.json"), "utf8"));
+const hashSha256 = (value) => createHash("sha256").update(value).digest("hex");
 if (manifest.commit !== "82221c0c8ce7661efa6771c9d461511b1650495f" || manifest.version !== "2.0.3") {
   throw new Error("Reference host does not match the approved ext-apps source pin");
 }
 if (!manifest.hostFixtureAuthAdapter?.patchSha256 || !manifest.hostFixtureNegotiationAdapter?.patchSha256 ||
-    !manifest.controlledPartialReplay?.patchSha256 || !manifest.appBundle?.sha256) {
-  throw new Error("Reference host manifest is missing auth, negotiation, partial replay, or generated SDK artifact identity");
+    !manifest.controlledPartialReplay?.patchSha256 || !manifest.appBundle?.sha256 ||
+    manifest.faviconAsset?.path !== "examples/basic-host/dist/favicon.ico" || manifest.faviconAsset.bytes !== 70 ||
+    manifest.faviconAsset.sha256 !== "5bfe18012b31dfdba82299e1e2f69c5f6ca42e17928ffa8ee25079d55a24df0a") {
+  throw new Error("Reference host manifest is missing adapter, generated SDK artifact, or deterministic favicon identity");
+}
+const faviconBytes = await readFile(join(hostDirectory, manifest.faviconAsset.path));
+if (faviconBytes.byteLength !== manifest.faviconAsset.bytes || hashSha256(faviconBytes) !== manifest.faviconAsset.sha256 ||
+    faviconBytes.readUInt16LE(0) !== 0 || faviconBytes.readUInt16LE(2) !== 1 ||
+    faviconBytes.readUInt16LE(4) !== 1 || faviconBytes.readUInt32LE(18) !== 22) {
+  throw new Error("Pinned reference host favicon file does not match its validated ICO manifest");
 }
 
 const require = createRequire(join(hostDirectory, "package.json"));
@@ -123,8 +136,12 @@ try {
   let initializeEvidence;
   let toolListEvidence;
   const mcpNetworkEvents = [];
+  const bundleNetworkEvents = [];
   page.on("request", (request) => {
     const requestUrl = new URL(request.url());
+    if (requestUrl.pathname.endsWith("/mcp-app-fixture.js")) {
+      bundleNetworkEvents.push({ direction: "request", method: request.method(), origin: requestUrl.origin, path: requestUrl.pathname });
+    }
     if (requestUrl.origin !== serverUrl.origin) return;
     mcpNetworkEvents.push({ direction: "request", method: request.method(), path: requestUrl.pathname });
     if (requestUrl.pathname !== serverUrl.pathname || request.method() !== "POST") return;
@@ -142,6 +159,9 @@ try {
   });
   page.on("response", async (response) => {
     const responseUrl = new URL(response.url());
+    if (responseUrl.pathname.endsWith("/mcp-app-fixture.js")) {
+      bundleNetworkEvents.push({ direction: "response", method: response.request().method(), origin: responseUrl.origin, path: responseUrl.pathname, status: response.status(), contentType: response.headers()["content-type"], allowOrigin: response.headers()["access-control-allow-origin"] });
+    }
     if (responseUrl.origin !== serverUrl.origin) return;
     const responseHeaders = response.headers();
     mcpNetworkEvents.push({
@@ -175,13 +195,20 @@ try {
   });
   page.on("requestfailed", (request) => {
     const requestUrl = new URL(request.url());
-    pageErrors.push(`requestfailed ${request.method()} ${requestUrl.origin}${requestUrl.pathname}: ${request.failure()?.errorText ?? "unknown"}`);
+    const failure = request.failure()?.errorText ?? "unknown";
+    if (requestUrl.pathname.endsWith("/mcp-app-fixture.js")) {
+      bundleNetworkEvents.push({ direction: "requestfailed", method: request.method(), origin: requestUrl.origin, path: requestUrl.pathname, failure });
+    }
+    pageErrors.push(`requestfailed ${request.method()} ${requestUrl.origin}${requestUrl.pathname}: ${failure}`);
   });
   if (partialReplay) {
+    const observedPartialMessages = [];
     await page.exposeFunction("__bifrostWaitForPartialInput", async (message) => {
       const appFrame = page.frameLocator("iframe").frameLocator("iframe");
       await appFrame.getByTestId("tool-partial-input").getByText(`\"message\": \"${message}\"`, { exact: false }).waitFor();
+      observedPartialMessages.push(message);
     });
+    page.__bifrostObservedPartialMessages = observedPartialMessages;
     await page.addInitScript((messages) => {
       window.__bifrostReplayPartialInput = async (bridge, input) => {
         for (const message of messages) {
@@ -207,24 +234,43 @@ try {
   await page.getByLabel("Input").fill('{"message":"host-input"}');
   const callButton = page.getByRole("button", { name: "Call Tool" });
   await callButton.waitFor({ state: "visible" });
-  await callButton.waitFor({ state: "enabled", timeout: 10000 });
-  await callButton.click();
+  await callButton.click({ timeout: 10000 });
 
   const app = page.frameLocator("iframe").frameLocator("iframe");
   const inputView = app.getByTestId("tool-input");
   const partialInputView = app.getByTestId("tool-partial-input");
   const resultView = app.getByTestId("tool-result");
   await inputView.waitFor();
-  if (partialReplay) {
-    await partialInputView.getByText('"message": "partial-one"', { exact: false }).waitFor();
-  }
   let input;
   for (let attempt = 0; attempt < 100; attempt++) {
     try { input = JSON.parse(await inputView.textContent()); } catch {}
     if (input?.message === "host-input") break;
     await delay(100);
   }
-  assert.deepEqual(input, { message: "host-input" }, "Pinned host must deliver its full final input to the App SDK");
+  try {
+    assert.deepEqual(input, { message: "host-input" }, "Pinned host must deliver its full final input to the App SDK");
+  } catch (error) {
+    const safeText = async (locator) => {
+      try { return redact(await locator.textContent({ timeout: 1000 })); }
+      catch (readError) { return `unavailable: ${redact(readError.message)}`; }
+    };
+    const [fixtureStatus, inputText, resultText] = await Promise.all([
+      app.getByTestId("fixture-status").evaluate((element) => ({ text: element.textContent, rootStatus: element.closest("[data-testid='mcp-app-fixture']")?.getAttribute("data-status") })).catch((readError) => `unavailable: ${redact(readError.message)}`),
+      safeText(inputView),
+      safeText(resultView),
+    ]);
+    const diagnostic = {
+      assertion: redact(error.message),
+      fixtureStatus,
+      toolInputText: inputText,
+      toolResultText: resultText,
+      frameUrls: page.frames().map((frame) => redact(frame.url())),
+      bundleNetworkEvents,
+      mcpNetworkEvents,
+      pageErrors,
+    };
+    throw new Error(`Pinned host full-input assertion failed; diagnostic=${JSON.stringify(diagnostic)}`);
+  }
   let result;
   for (let attempt = 0; attempt < 100; attempt++) {
     try { result = JSON.parse(await resultView.textContent()); } catch {}
@@ -245,6 +291,8 @@ try {
   const notificationOrder = JSON.parse(await appRoot.getAttribute("data-notification-order"));
   assertNotificationOrder(notificationOrder, partialReplay);
   if (partialReplay) {
+    assert.deepEqual(page.__bifrostObservedPartialMessages, ["partial-one", "partial-two"],
+      "Both controlled partial notifications must render before their replay bridge calls complete");
     assert.deepEqual(JSON.parse(await app.getByTestId("tool-partial-input").textContent()), { message: "partial-two" },
       "The second controlled partial update must render before final input/result");
   }
@@ -260,6 +308,7 @@ try {
     assert.equal(callback.content?.[0]?.text, `${expectedInstance}:read_state`);
     return callback;
   };
+  await app.getByTestId("state-input").fill("first-state");
   await app.getByTestId("save-state").click();
   await callbackResult.getByText("first-state", { exact: false }).waitFor();
   await readState("first-state");
@@ -288,6 +337,7 @@ try {
     hostCommit: manifest.commit,
     hostFixtureAuthPatchSha256: manifest.hostFixtureAuthAdapter.patchSha256,
     hostFixtureNegotiationPatchSha256: manifest.hostFixtureNegotiationAdapter.patchSha256,
+    hostFaviconAsset: manifest.faviconAsset,
     sdkBundleAccessControlAllowOrigin: assetAllowOrigin,
     appBundleSha256: manifest.appBundle.sha256,
     candidateSource,

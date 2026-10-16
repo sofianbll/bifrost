@@ -106,6 +106,15 @@ await run("./node_modules/.bin/esbuild", [
 ], directory);
 
 const generatedBundle = await readFile(join(directory, "examples/basic-host/dist/mcp-app-fixture.js"));
+const faviconBytes = Buffer.from("AAABAAEAAQEAAAEAIAAwAAAAFgAAACgAAAABAAAAAgAAAAEAIAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==", "base64");
+const faviconPath = "examples/basic-host/dist/favicon.ico";
+const faviconSha256 = "5bfe18012b31dfdba82299e1e2f69c5f6ca42e17928ffa8ee25079d55a24df0a";
+if (faviconBytes.byteLength !== 70 || sha256(faviconBytes) !== faviconSha256 ||
+    faviconBytes.readUInt16LE(0) !== 0 || faviconBytes.readUInt16LE(2) !== 1 ||
+    faviconBytes.readUInt16LE(4) !== 1 || faviconBytes.readUInt32LE(18) !== 22) {
+  throw new Error("Deterministic test-host favicon bytes are invalid");
+}
+await writeFile(join(directory, faviconPath), faviconBytes);
 const adapter = {
   serveFile: servePath,
   serveSourceSha256: sha256(serveSource),
@@ -150,6 +159,13 @@ const output = {
     sha256: sha256(generatedBundle),
     bytes: generatedBundle.byteLength,
     source: "@modelcontextprotocol/ext-apps 2.0.3 App built from the pinned repository workspace link",
+  },
+  faviconAsset: {
+    path: faviconPath,
+    bytes: faviconBytes.byteLength,
+    sha256: faviconSha256,
+    mediaType: "image/x-icon",
+    purpose: "Deterministic transparent test-host favicon for Chromium's default /favicon.ico request",
   },
 };
 await writeFile(join(directory, ".bifrost-reference-host.json"), `${JSON.stringify(output, null, 2)}\n`, { mode: 0o600 });

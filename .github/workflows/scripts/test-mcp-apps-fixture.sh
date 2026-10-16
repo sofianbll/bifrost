@@ -5,6 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -P)"
 export BIFROST_REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd -P)"
 exec python3 - "$@" <<'PY'
 import base64
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -17,6 +18,7 @@ import tempfile
 import time
 import urllib.error
 import urllib.request
+from unittest.mock import patch
 
 ROOT = Path(os.environ["BIFROST_REPO_ROOT"])
 FIXTURE_NAMES = ("mcp_apps_fixture", "mcp_apps_fixture_second", "mcp_apps_fixture_modern", "errorTestServer")
@@ -289,6 +291,91 @@ def require_same_container(before, after):
     return True
 
 
+def parse_published_endpoint(output):
+    if not isinstance(output, str):
+        raise RuntimeError("docker port returned a non-text published endpoint")
+    lines = [line.strip() for line in output.splitlines() if line.strip()]
+    if len(lines) != 1:
+        raise RuntimeError(f"expected one published loopback endpoint for 8080/tcp, got {len(lines)}")
+    match = re.fullmatch(r"127\.0\.0\.1:(\d+)", lines[0])
+    if not match:
+        raise RuntimeError(f"published endpoint is not bound to the expected loopback address: {lines[0]}")
+    port = int(match.group(1))
+    if not 1 <= port <= 65535:
+        raise RuntimeError(f"published endpoint port is outside the valid range: {port}")
+    return {"host": "127.0.0.1", "port": port, "url": f"http://127.0.0.1:{port}"}
+
+
+def published_endpoint(container, env):
+    output = subprocess.check_output(["docker", "port", container, "8080/tcp"], text=True, env=env)
+    return parse_published_endpoint(output)
+
+
+def parse_fixture_module_info(go_info, expected_module, driver_head):
+    module_match = re.search(r"(?m)^\s*path\s+(\S+)\s*$", go_info)
+    revision_match = re.search(r"(?m)^\s*build\s+vcs\.revision=(\S+)\s*$", go_info)
+    modified_match = re.search(r"(?m)^\s*build\s+vcs\.modified=(\S+)\s*$", go_info)
+    module_path = module_match.group(1) if module_match else ""
+    vcs_revision = revision_match.group(1) if revision_match else ""
+    vcs_modified = modified_match.group(1) if modified_match else ""
+    problems = []
+    if not module_path or module_path != expected_module:
+        problems.append(f"module path {module_path!r} differs from go.mod {expected_module!r}")
+    if vcs_revision != driver_head:
+        problems.append(f"binary VCS revision {vcs_revision!r} differs from driver HEAD {driver_head!r}")
+    if vcs_modified != "false":
+        problems.append(f"binary VCS modified marker is {vcs_modified!r}, expected 'false'")
+    return {"module_path": module_path, "vcs_revision": vcs_revision,
+            "vcs_modified": vcs_modified, "validation_errors": problems}
+
+
+def fixture_build_provenance(modules, report_dir, baseline, expected_driver_source):
+    driver_head = subprocess.check_output(["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True).strip()
+    tracked_status = subprocess.check_output(
+        ["git", "-C", str(ROOT), "status", "--porcelain", "--untracked-files=no"], text=True).strip()
+    failures = []
+    if driver_head != expected_driver_source:
+        failures.append(f"driver HEAD {driver_head} differs from pinned harness source {expected_driver_source}")
+    if tracked_status:
+        failures.append(f"driver tracked worktree is dirty: {tracked_status}")
+    fixtures = []
+    text_sections = [f"driver_head={driver_head}",
+                     f"expected_driver_source={expected_driver_source}",
+                     f"driver_tracked_status={'clean' if not tracked_status else tracked_status}"]
+    for module, name in modules:
+        binary = module / "bin" / name
+        info = subprocess.check_output(["go", "version", "-m", str(binary)], text=True)
+        module_source = (module / "go.mod").read_text()
+        expected_module_match = re.search(r"(?m)^module\s+(\S+)\s*$", module_source)
+        expected_module = expected_module_match.group(1) if expected_module_match else ""
+        parsed_info = parse_fixture_module_info(info, expected_module, driver_head)
+        module_path = parsed_info["module_path"]
+        vcs_revision = parsed_info["vcs_revision"]
+        vcs_modified = parsed_info["vcs_modified"]
+        binary_sha256 = hashlib.sha256(binary.read_bytes()).hexdigest()
+        problems = parsed_info["validation_errors"]
+        if problems:
+            failures.append(f"{name}: " + "; ".join(problems))
+        fixtures.append({"name": name, "binary": str(binary.relative_to(ROOT)),
+                         "binary_sha256": binary_sha256, "module_path": module_path,
+                         "expected_module_path": expected_module, "vcs_revision": vcs_revision,
+                         "vcs_modified": vcs_modified, "go_version_m": info,
+                         "validation_errors": problems})
+        text_sections.extend([f"\nfixture={name}", f"binary={binary.relative_to(ROOT)}",
+                              f"binary_sha256={binary_sha256}", f"module_path={module_path}",
+                              f"vcs_revision={vcs_revision}", f"vcs_modified={vcs_modified}",
+                              "go_version -m:", info.rstrip()])
+    evidence = {"driver_head": driver_head, "expected_driver_source": expected_driver_source,
+                "driver_tracked_status": tracked_status, "source_role": "stock" if baseline else "candidate",
+                "fixtures": fixtures, "validation_errors": failures}
+    prefix = "stock-" if baseline else ""
+    (report_dir / f"{prefix}fixture-build-info.json").write_text(json.dumps(evidence, indent=2) + "\n")
+    (report_dir / f"{prefix}fixture-build-info.txt").write_text("\n".join(text_sections) + "\n")
+    if failures:
+        raise RuntimeError("fixture build provenance verification failed: " + " | ".join(failures))
+    return evidence
+
+
 def firstboot_comparison_classification(phase, candidate_gate):
     if phase == "firstboot":
         if candidate_gate == "candidate-green":
@@ -301,6 +388,80 @@ def firstboot_comparison_classification(phase, candidate_gate):
             return "green-control"
         raise RuntimeError(f"restart phase has an invalid candidate gate: {candidate_gate}")
     raise RuntimeError(f"unknown firstboot-grants phase: {phase}")
+
+
+def reference_host_status_filename(baseline):
+    return "stock-reference-host-status.json" if baseline else "reference-host-status.json"
+
+
+def run_reference_host(report_dir, base_url, source_identities, baseline, scopes):
+    host_directory = os.environ.get("BIFROST_REFERENCE_HOST_DIRECTORY", "").strip()
+    status_path = report_dir / reference_host_status_filename(baseline)
+    if baseline:
+        if host_directory:
+            raise RuntimeError("pinned reference-host qualification is candidate-only")
+        status_path.write_text(json.dumps({"status": "skipped-stock",
+                                           "reason": "reference-host qualification runs only against the candidate"}, indent=2) + "\n")
+        return
+    if not host_directory:
+        status_path.write_text(json.dumps({"status": "not-requested",
+                                           "reason": "matrix row did not opt into pinned reference-host qualification"}, indent=2) + "\n")
+        return
+    if "mcp-apps" not in scopes or is_firstboot_scope(scopes):
+        raise RuntimeError("pinned reference-host qualification requires a non-firstboot MCP Apps scope")
+    host_path = Path(host_directory).resolve()
+    manifest_path = host_path / ".bifrost-reference-host.json"
+    renderer = ROOT / "tests/mcpapps/render-reference-host.mjs"
+    if not manifest_path.is_file() or not renderer.is_file():
+        raise RuntimeError("pinned reference-host bootstrap or renderer is missing")
+    manifest = json.loads(manifest_path.read_text())
+    if manifest.get("commit") != "82221c0c8ce7661efa6771c9d461511b1650495f" or manifest.get("version") != "2.0.3":
+        raise RuntimeError("pinned reference-host source identity differs from the approved host")
+    shutil.copy2(manifest_path, report_dir / "reference-host-manifest.json")
+    host_env_base = {
+        "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
+        "HOME": os.environ.get("HOME", str(report_dir)),
+        "MCP_APP_HOST_DIRECTORY": str(host_path),
+        "BIFROST_FIXTURE_SERVER_URL": f"{base_url}/mcp/mcp-apps-full-virtual",
+        "BIFROST_FIXTURE_BEARER": KEYS["full"],
+        "BIFROST_FIXTURE_EXPECTED_INSTANCE": "first",
+        "BIFROST_FIXTURE_CLIENT_NAME": "mcp_apps_fixture",
+        "BIFROST_CANDIDATE_SOURCE": source_identities["candidate"],
+    }
+    if os.environ.get("PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH"):
+        host_env_base["PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH"] = os.environ["PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH"]
+    outcomes = []
+    for name, replay in (("normal", "false"), ("controlled-replay", "true")):
+        host_env = {**host_env_base, "BIFROST_FIXTURE_PARTIAL_REPLAY": replay}
+        run_result = subprocess.run(["node", str(renderer)], cwd=ROOT, env=host_env,
+                                    capture_output=True, text=True)
+        stdout = run_result.stdout.replace(KEYS["full"], "[REDACTED]")
+        stderr = run_result.stderr.replace(KEYS["full"], "[REDACTED]")
+        stem = f"reference-host-{name}"
+        (report_dir / f"{stem}-exit-code.txt").write_text(f"{run_result.returncode}\n")
+        (report_dir / f"{stem}-runner.log").write_text(stdout + stderr)
+        if run_result.returncode:
+            failure = {"status": "failed", "mode": name, "exit_code": run_result.returncode,
+                       "log": f"{stem}-runner.log", "candidate_source": source_identities["candidate"],
+                       "host_commit": manifest["commit"], "app_bundle_sha256": manifest["appBundle"]["sha256"]}
+            (report_dir / f"{stem}.json").write_text(json.dumps(failure, indent=2) + "\n")
+            status_path.write_text(json.dumps({"status": "failed", "failed_mode": name}, indent=2) + "\n")
+            raise RuntimeError(f"pinned reference-host {name} qualification failed; see {stem}-runner.log")
+        try:
+            evidence = json.loads(stdout)
+        except json.JSONDecodeError as error:
+            raise RuntimeError(f"pinned reference-host {name} emitted invalid JSON evidence") from error
+        if (evidence.get("hostCommit") != manifest["commit"] or
+                evidence.get("candidateSource") != source_identities["candidate"] or
+                evidence.get("expectedInstance") != "first" or
+                evidence.get("fixtureClientName") != "mcp_apps_fixture" or
+                evidence.get("checks", {}).get("controlledPartialInputDelivered") != (replay == "true")):
+            raise RuntimeError(f"pinned reference-host {name} evidence does not match the requested source and mode")
+        (report_dir / f"reference-host-{name}.json").write_text(json.dumps(evidence, indent=2) + "\n")
+        outcomes.append({"mode": name, "passed": True, "host_commit": manifest["commit"],
+                         "app_bundle_sha256": manifest["appBundle"]["sha256"]})
+    status_path.write_text(json.dumps({"status": "passed", "candidate_source": source_identities["candidate"],
+                                       "host_commit": manifest["commit"], "runs": outcomes}, indent=2) + "\n")
 
 
 def build_config(scopes=None):
@@ -329,6 +490,8 @@ def build_config(scopes=None):
         else:
             binary = "mcp-apps-test-server"
             args = entry["stdio_config"]["args"]
+            if os.environ.get("BIFROST_REFERENCE_HOST_DIRECTORY") and entry["name"] in FIXTURE_NAMES[:3]:
+                args = [*args, entry["name"]]
         entry["stdio_config"] = {"command": f"/repo/examples/mcps/{binary}/bin/{binary}", "args": args}
         entry["allow_by_default"] = False
     if firstboot:
@@ -358,7 +521,7 @@ def build_config(scopes=None):
     keys = [entry for entry in profile["governance"]["virtual_keys"] if entry["value"] in wanted_key_values]
     if {entry["value"] for entry in keys} != wanted_key_values or len(virtual_mcps) != len(wanted_vmcps):
         raise RuntimeError("shared profile is missing fixture grants after stack integration")
-    return {
+    config = {
         "setup_token": SETUP_TOKEN,
         "client": {"enable_logging": False, "enforce_governance_header": True,
                    "enforce_auth_on_inference": True},
@@ -367,6 +530,9 @@ def build_config(scopes=None):
                 "tool_manager_config": {"code_mode_binding_level": "server"}},
         "governance": {"virtual_keys": keys},
     }
+    if os.environ.get("BIFROST_REFERENCE_HOST_DIRECTORY"):
+        config["client"]["allowed_headers"] = ["MCP-Protocol-Version"]
+    return config
 
 
 def requests_in(node):
@@ -620,6 +786,29 @@ def self_check():
     modern = next(c for c in config["mcp"]["client_configs"] if c["name"] == "mcp_apps_fixture_modern")
     assert modern["stdio_config"]["args"] == ["modern", "modern"]
     assert not modern.get("is_code_mode_client", False)
+    assert "allowed_headers" not in config["client"]
+    assert all("allowed_headers" not in client for client in config["mcp"]["client_configs"])
+    original_host_directory = os.environ.get("BIFROST_REFERENCE_HOST_DIRECTORY")
+    try:
+        os.environ["BIFROST_REFERENCE_HOST_DIRECTORY"] = "/tmp/pinned-reference-host-self-check"
+        host_config = build_config(("mcp-apps",))
+    finally:
+        if original_host_directory is None:
+            os.environ.pop("BIFROST_REFERENCE_HOST_DIRECTORY", None)
+        else:
+            os.environ["BIFROST_REFERENCE_HOST_DIRECTORY"] = original_host_directory
+    host_clients = {client["name"]: client for client in host_config["mcp"]["client_configs"]}
+    assert host_clients["mcp_apps_fixture"]["stdio_config"]["args"] == ["first", "dual", "mcp_apps_fixture"]
+    assert host_clients["mcp_apps_fixture_second"]["stdio_config"]["args"] == ["second", "legacy", "mcp_apps_fixture_second"]
+    assert "allowed_headers" not in host_clients["mcp_apps_fixture_second"]
+    assert host_clients["mcp_apps_fixture_modern"]["stdio_config"]["args"] == ["modern", "modern", "mcp_apps_fixture_modern"]
+    assert "allowed_headers" not in host_clients["mcp_apps_fixture_modern"]
+    assert host_config["client"]["allowed_headers"] == ["MCP-Protocol-Version"]
+    assert all("allowed_headers" not in client for client in host_config["mcp"]["client_configs"])
+    assert host_config["providers"] == {}
+    assert reference_host_status_filename(False) == "reference-host-status.json"
+    assert reference_host_status_filename(True) == "stock-reference-host-status.json"
+    assert reference_host_status_filename(False) != reference_host_status_filename(True)
     vmcps = {entry["endpoint_slug"]: entry for entry in config["mcp"]["virtual_mcps"]}
     full_vmcp = vmcps["mcp-apps-full-virtual"]
     limited_vmcp = vmcps["mcp-apps-limited-virtual"]
@@ -678,6 +867,40 @@ def self_check():
         pass
     else:
         raise AssertionError("firstboot restart self-check accepted a replacement container")
+    mocked_env = {"PATH": "/usr/bin:/bin"}
+    port_outputs = ["127.0.0.1:32768\n", "127.0.0.1:32769\n",
+                    "127.0.0.1:32769\n", "127.0.0.1:32769\n"]
+    with patch.object(subprocess, "check_output", side_effect=port_outputs) as mocked_docker_port:
+        initial_endpoint = published_endpoint("fixture-container", mocked_env)
+        changed_endpoint = published_endpoint("fixture-container", mocked_env)
+        same_endpoint = published_endpoint("fixture-container", mocked_env)
+        same_endpoint_again = published_endpoint("fixture-container", mocked_env)
+    assert initial_endpoint["url"] == "http://127.0.0.1:32768"
+    assert changed_endpoint["url"] == "http://127.0.0.1:32769"
+    assert same_endpoint["url"] == same_endpoint_again["url"]
+    assert mocked_docker_port.call_count == 4
+    for malformed_endpoint in ("", "0.0.0.0:32768\n", "127.0.0.1:0\n",
+                               "127.0.0.1:65536\n", "127.0.0.1:32768\n127.0.0.1:32769\n"):
+        with patch.object(subprocess, "check_output", return_value=malformed_endpoint):
+            try:
+                published_endpoint("fixture-container", mocked_env)
+            except RuntimeError:
+                pass
+            else:
+                raise AssertionError(f"malformed Docker port mapping was accepted: {malformed_endpoint!r}")
+    pinned_driver = "a" * 40
+    pinned_module = "example.test/fixture"
+    valid_build_info = (f"/tmp/fixture: go1.27.2\n\tpath {pinned_module}\n"
+                        f"\tbuild vcs=git\n\tbuild vcs.revision={pinned_driver}\n"
+                        "\tbuild vcs.modified=false\n")
+    assert parse_fixture_module_info(valid_build_info, pinned_module, pinned_driver)["validation_errors"] == []
+    for invalid_info, expected_module in (
+            (valid_build_info.replace(f"path {pinned_module}", "path example.test/other"), pinned_module),
+            (valid_build_info.replace(pinned_driver, "b" * 40), pinned_module),
+            (valid_build_info.replace("vcs.modified=false", "vcs.modified=true"), pinned_module),
+            (valid_build_info.replace("vcs.modified=false\n", ""), pinned_module)):
+        if not parse_fixture_module_info(invalid_info, expected_module, pinned_driver)["validation_errors"]:
+            raise AssertionError("fixture build provenance accepted an incorrect module or VCS identity")
     assert firstboot_comparison_classification("firstboot", "candidate-green") == "fixed"
     assert firstboot_comparison_classification("firstboot", "expected-stock-red") == "unresolved"
     assert firstboot_comparison_classification("restart", "candidate-green") == "green-control"
@@ -1176,7 +1399,7 @@ def wait_health(url):
         except (OSError, urllib.error.URLError):
             time.sleep(1)
     else:
-        raise RuntimeError("gateway /health did not become ready within 180 seconds")
+        raise RuntimeError(f"gateway /health did not become ready at {url} within 180 seconds")
 
 
 def ready_characterization(url):
@@ -1389,6 +1612,7 @@ def main(args):
     if mode not in ("characterize", "strict"):
         raise RuntimeError("BIFROST_COMPARISON_MODE must be characterize or strict")
     source_identities = {
+        "driver": os.environ.get("DRIVER_SOURCE", ""),
         "stock": os.environ.get("BIFROST_STOCK_SOURCE", ""),
         "candidate": os.environ.get("BIFROST_CANDIDATE_SOURCE", ""),
         "stable_reference": os.environ.get("BIFROST_STABLE_REFERENCE", ""),
@@ -1482,6 +1706,7 @@ def main(args):
                 output.chmod(0o755)
                 created_bins.append(output)
 
+            fixture_build_provenance(modules, report_dir, baseline, source_identities["driver"])
             base_config = json.loads(config_path.read_text())
             expected_clients = expected_fixture_client_count(scopes)
             # The selected stdio clients must exist in the read-only repo mount at exact paths.
@@ -1497,29 +1722,61 @@ def main(args):
                             "-w", "/repo/transports/bifrost-http", image],
                            cwd=ROOT, env=env, check=True, stdout=subprocess.DEVNULL)
             container_started = True
-            port_line = subprocess.check_output(["docker", "port", container, "8080/tcp"], text=True).splitlines()[0]
-            port = int(port_line.rsplit(":", 1)[1])
-            base_url = f"http://127.0.0.1:{port}"
+            initial_endpoint = published_endpoint(container, env)
+            base_url = initial_endpoint["url"]
             if firstboot:
+                run_reference_host(report_dir, base_url, source_identities, baseline, scopes)
                 observations = {}
                 container_ids = {}
                 classifications = {}
                 for phase in ("firstboot", "restart"):
-                    if phase == "restart":
-                        container_ids["before_restart"] = container_identity(container, app_dir, env)
-                        subprocess.check_output(["docker", "restart", container], text=True, env=env)
-                        container_ids["after_restart"] = container_identity(container, app_dir, env)
-                        require_same_container(container_ids["before_restart"], container_ids["after_restart"])
                     prefix = "stock-" if baseline else ""
+                    phase_stem = f"{contract['scope']}-{phase}"
+                    endpoint_transition = {}
+                    if phase == "restart":
+                        before_state = {"container_id": container_identity(container, app_dir, env),
+                                        "published_endpoint": published_endpoint(container, env)}
+                        base_url = before_state["published_endpoint"]["url"]
+                        container_ids["before_restart"] = before_state["container_id"]
+                        after_state = {}
+                        try:
+                            subprocess.check_output(["docker", "restart", container], text=True, env=env)
+                            container_ids["after_restart"] = container_identity(container, app_dir, env)
+                            after_state["container_id"] = container_ids["after_restart"]
+                            after_state["published_endpoint"] = published_endpoint(container, env)
+                            require_same_container(container_ids["before_restart"], container_ids["after_restart"])
+                        except Exception as error:
+                            failed_transition = {"phase": phase, "before_restart": before_state,
+                                                 "after_restart": after_state,
+                                                 "after_restart_error": redact(str(error)),
+                                                 "app_dir": str(app_dir.resolve()),
+                                                 "source_identities": source_identities}
+                            (report_dir / f"{prefix}{phase_stem}-endpoint.json").write_text(
+                                json.dumps(failed_transition, indent=2) + "\n")
+                            raise
+                        endpoint_transition = {"before_restart": before_state, "after_restart": after_state,
+                                               "same_container": True}
+                        base_url = after_state["published_endpoint"]["url"]
+                        container_ids["after_restart"] = after_state["container_id"]
+                    else:
+                        endpoint_transition = {"current": {"container_id": container_identity(container, app_dir, env),
+                                                            "published_endpoint": initial_endpoint}}
+                    endpoint_evidence = {"phase": phase, "endpoint_transition": endpoint_transition,
+                                         "app_dir": str(app_dir.resolve()),
+                                         "source_identities": source_identities}
+                    # Preserve the endpoint and container identity even if a
+                    # subsequent health or source-discovery wait times out.
+                    (report_dir / f"{prefix}{phase_stem}-endpoint.json").write_text(
+                        json.dumps(endpoint_evidence, indent=2) + "\n")
                     readiness_path = report_dir / f"{prefix}{contract['scope']}-{phase}-source-discovery.json"
                     ready_firstboot_fixture_catalog(base_url, contract, readiness_path)
                     snapshot = wait_file_declared_virtual_mcp(base_url, contract)
-                    phase_stem = f"{contract['scope']}-{phase}"
                     observation_path = report_dir / (("stock-" if baseline else "") +
                                                      f"{phase_stem}-setup.json")
                     observation_path.write_text(json.dumps({"phase": phase, "setup_api_read_only": True,
                                                             "virtual_mcp": snapshot,
                                                             "container_id": container_identity(container, app_dir, env),
+                                                            "endpoint_transition": endpoint_transition,
                                                             "app_dir": str(app_dir.resolve()),
                                                             "source_identities": source_identities}, indent=2) + "\n")
                     report_data, rc = run_firstboot_harness_phase(
@@ -1671,6 +1928,7 @@ def main(args):
                     print(f"PASS {feature} harness; redacted reports: {report_dir}", flush=True)
                 if failures_ok:
                     print(f"Saved redacted {feature} failure report", flush=True)
+            run_reference_host(report_dir, base_url, source_identities, baseline, scopes)
             return pass_fail
         finally:
             if container_started:
