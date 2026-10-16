@@ -36,16 +36,19 @@ jobs:
             fixture_scopes: mcp-apps,codemode-errors
             comparison_mode: characterize
             extra_firstboot: true
+            reference_host: false
           - name: issue-23
             product_pin: e804bbcaf49305d49704f29d94733a126c88b9bd
             fixture_scopes: codemode-errors
             comparison_mode: strict
             extra_firstboot: false
+            reference_host: false
           - name: issue-24
             product_pin: 1194291f60bf0894d8b0998e2725b583bfdf1b5c
             fixture_scopes: firstboot-grants-standalone
             comparison_mode: strict
             extra_firstboot: false
+            reference_host: false
     env:
       STOCK_SOURCE: 83258b776c68e1e3d2c1ca0d08a31c2e5811344f
       STABLE_REFERENCE: 9237ec06672406e437b3cb33fc793ffd0403b3ae
@@ -105,6 +108,18 @@ jobs:
           node-version: "25"
       - name: Install the existing API harness dependencies
         run: npm ci --prefix driver/tests/e2e
+      - name: Bootstrap the pinned MCP Apps reference host
+        if: matrix.reference_host == true
+        working-directory: driver
+        env:
+          MATRIX_NAME: ${{ matrix.name }}
+        run: |
+          HOST_DIRECTORY="$RUNNER_TEMP/mcpapps-reference-host-${GITHUB_RUN_ID}-${MATRIX_NAME}"
+          test ! -e "$HOST_DIRECTORY"
+          node tests/mcpapps/bootstrap-reference-host.mjs --directory "$HOST_DIRECTORY"
+          "$HOST_DIRECTORY/node_modules/.bin/playwright" install chromium
+          echo "REFERENCE_HOST_DIRECTORY=$HOST_DIRECTORY" >> "$GITHUB_ENV"
+          cp "$HOST_DIRECTORY/.bifrost-reference-host.json" "$REPORT_DIR/reference-host-bootstrap-manifest.json"
       - uses: step-security/setup-buildx-action@f931205d68723ad9589fd2a7e2ece238bf9de341 # v4.0.0
       - name: Build pinned stock image with its local modules
         id: build-stock
@@ -189,6 +204,7 @@ jobs:
           BIFROST_STABLE_REFERENCE: ${{ env.STABLE_REFERENCE }}
           BIFROST_COMPARISON_MODE: ${{ env.COMPARISON_MODE }}
           BIFROST_FIXTURE_SCOPES: ${{ env.FIXTURE_SCOPES }}
+          BIFROST_REFERENCE_HOST_DIRECTORY: ${{ matrix.reference_host == true && env.REFERENCE_HOST_DIRECTORY || '' }}
         run: .github/workflows/scripts/test-mcp-apps-fixture.sh "bifrost:candidate-${{ matrix.name }}-${{ github.run_id }}" "$REPORT_DIR"
       - name: Run pinned stock fixtures and compare observed assertions
         id: stock-fixture
@@ -201,6 +217,7 @@ jobs:
           BIFROST_STABLE_REFERENCE: ${{ env.STABLE_REFERENCE }}
           BIFROST_COMPARISON_MODE: ${{ env.COMPARISON_MODE }}
           BIFROST_FIXTURE_SCOPES: ${{ env.FIXTURE_SCOPES }}
+          BIFROST_REFERENCE_HOST_DIRECTORY: ""
         run: .github/workflows/scripts/test-mcp-apps-fixture.sh --baseline "bifrost:stock-${{ matrix.name }}-${{ github.run_id }}" "$REPORT_DIR"
       - name: Verify integrated first-boot grants and same-store restart
         id: firstboot-candidate

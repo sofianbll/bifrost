@@ -23,6 +23,9 @@ if (!gatewayUrl || !bearer || !expectedInstance || !fixtureClientName || !candid
 if (!/^sk-bf-mcp-apps-(full|limited|limited-no-app|denied)$/.test(bearer)) throw new Error("Only a synthetic MCP Apps fixture key is accepted");
 if (!/^[0-9a-f]{40}$/.test(candidateSource)) throw new Error("BIFROST_CANDIDATE_SOURCE must be an immutable commit SHA");
 if (!/^[A-Za-z0-9_-]+$/.test(fixtureClientName)) throw new Error("BIFROST_FIXTURE_CLIENT_NAME is invalid");
+if (expectedInstance !== "first" || fixtureClientName !== "mcp_apps_fixture") {
+  throw new Error("Reference-host qualification must use the first source and its exact client identity");
+}
 
 function assertNotificationOrder(actual, partial) {
   const expected = partial ? ["partial", "partial", "input", "result"] : ["input", "result"];
@@ -261,6 +264,7 @@ try {
     assert.equal(callback.content?.[0]?.text, `${expectedInstance}:read_state`);
     return callback;
   };
+  await app.getByTestId("state-input").fill("first-state");
   await app.getByTestId("save-state").click();
   await callbackResult.getByText("first-state", { exact: false }).waitFor();
   await readState("first-state");
