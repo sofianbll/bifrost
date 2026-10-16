@@ -15,6 +15,11 @@ import (
 const resourceURI = "ui://mcp-apps-test-server/view.html"
 const maxSyntheticStateBytes = 256
 
+type openViewOutput struct {
+	Instance string `json:"instance"`
+	Message  string `json:"message"`
+}
+
 // The pinned reference-host bootstrap builds the SDK entry in
 // tests/mcpapps/fixture-app.ts with the official ext-apps 2.0.3 package, then
 // serves it from its existing static directory as /mcp-app-fixture.js. Keeping
@@ -74,6 +79,7 @@ func main() {
 	tool := mcp.NewTool("open_view",
 		mcp.WithDescription("Open the fixture MCP App"),
 		mcp.WithString("message", mcp.Description("Message to return")),
+		mcp.WithOutputSchema[openViewOutput](),
 	)
 	toolMeta, err := appToolMetadata(metadataVariant)
 	if err != nil {
