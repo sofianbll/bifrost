@@ -1,0 +1,10 @@
+{
+  "candidate": "b38fadec8d78ec64ffbefb53f650e6ef149d948e",
+  "parent": "eda04739a7bf77a9be50fc958acda0f455517bba",
+  "original_candidate": "e33b67ab6fd26e1e1b83fbc0a84c0b2f946fdb05",
+  "base": "9237ec06672406e437b3cb33fc793ffd0403b3ae",
+  "driver": "b838f2e5c3d3cf2340b7fee6c0cfcf2ec1ad0efb",
+  "diagnostic": "2474aa7bc08c602d792dcc02b902ef5c3241f83a",
+  "tree": "43af221324ecb85d1c4b61a56c99dd6751fc293d",
+  "parent_overlay_sha256": "6a0387753c5c2f73adcc3f0ce9674e3204acf8ecd6648ec0dde798f9da9b78ce"
+}

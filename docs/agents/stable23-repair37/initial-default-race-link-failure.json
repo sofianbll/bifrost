@@ -1,0 +1,23 @@
+{
+  "status": "infrastructure failure retained; not a test assertion failure",
+  "original_log_sha256": "70b836a31b8a287fb6b863af164ca0a621a4e40a28470092869cb6ff9bf51345",
+  "events": [
+    {
+      "ImportPath": "github.com/maximhq/bifrost/transports/bifrost-http/handlers.test",
+      "Action": "build-output",
+      "Output": "/workspace/.cache/bifrost-go/1.27.2/pkg/tool/linux_amd64/link: running gcc failed: exit status 1\n"
+    },
+    {
+      "ImportPath": "github.com/maximhq/bifrost/transports/bifrost-http/handlers.test",
+      "Action": "build-output",
+      "Output": "/usr/bin/ld: final link failed: No space left on device\n"
+    },
+    {
+      "Time": "2026-10-16T20:34:55.236820573Z",
+      "Action": "fail",
+      "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+      "Elapsed": 0.002,
+      "FailedBuild": "github.com/maximhq/bifrost/transports/bifrost-http/handlers.test"
+    }
+  ]
+}

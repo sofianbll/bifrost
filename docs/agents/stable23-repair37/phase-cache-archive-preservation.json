@@ -1,0 +1,26 @@
+{
+  "purpose": "Preserve only three obsolete phase-owned round1 test build cache artifacts after scheduling-test change; all old cache backing untouched",
+  "archive": "/tmp/stable23-repair37-preserved-cache/inactive-round1-test-archives.tar.gz",
+  "archive_sha256": "edbae962ca1caca3d1486cfb1e0587868d9dc1c81e7ded5df1a851513409e541",
+  "entries": [
+    {
+      "original_path": "/workspace/.cache/go-build/cf/cffda20761d24c659119c96eb7dd8e8be74244711a9b587e507a0ac84ede31d1-d",
+      "member": "cf/cffda20761d24c659119c96eb7dd8e8be74244711a9b587e507a0ac84ede31d1-d",
+      "bytes": 109844190,
+      "sha256": "cffda20761d24c659119c96eb7dd8e8be74244711a9b587e507a0ac84ede31d1"
+    },
+    {
+      "original_path": "/workspace/.cache/go-build/d6/d60cdfe504984a010b3c295e56788c0ec2d93b75000ad807e46566f19aea667d-d",
+      "member": "d6/d60cdfe504984a010b3c295e56788c0ec2d93b75000ad807e46566f19aea667d-d",
+      "bytes": 109828496,
+      "sha256": "d60cdfe504984a010b3c295e56788c0ec2d93b75000ad807e46566f19aea667d"
+    },
+    {
+      "original_path": "/workspace/.cache/go-build/b7/b756472edd02ca9c2e6dc57a6a1c8adde8445bc25c3e5823eb4fec1a40f21f27-d",
+      "member": "b7/b756472edd02ca9c2e6dc57a6a1c8adde8445bc25c3e5823eb4fec1a40f21f27-d",
+      "bytes": 109846978,
+      "sha256": "b756472edd02ca9c2e6dc57a6a1c8adde8445bc25c3e5823eb4fec1a40f21f27"
+    }
+  ],
+  "restore": "Extract members under an owned cache root; hashes are original bytes. No source/evidence removed."
+}

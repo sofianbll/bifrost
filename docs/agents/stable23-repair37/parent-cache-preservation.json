@@ -1,0 +1,13 @@
+{
+  "archive": "/tmp/stable23-repair37-preserved-cache/parent-red-benchmark-cache.tar.gz",
+  "entries": [
+    {
+      "path": "/tmp/stable23-repair37-cache-view/5c/5cc84eede17a2a9020215925f5343aed7a1370a7ff84101c236c38a81bc39551-d",
+      "member": "5c/5cc84eede17a2a9020215925f5343aed7a1370a7ff84101c236c38a81bc39551-d",
+      "sha256": "5cc84eede17a2a9020215925f5343aed7a1370a7ff84101c236c38a81bc39551",
+      "bytes": 109846096
+    }
+  ],
+  "archive_sha256": "282e8afef91d7b11bb883212d86fab0c39157f4453e2304fd116192895b27c1a",
+  "scope": "Only own cache-view data created by completed frozen-parent reproduction/benchmarks. Original cache never deleted."
+}

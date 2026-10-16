@@ -1,0 +1,7 @@
+{
+  "source_cache": "/workspace/.cache/go-build",
+  "task_owned_cache_view": "/tmp/stable23-repair37-cache-view",
+  "immutable_data_links": 13801,
+  "copied_action_entries": 45826,
+  "purpose": "Read existing cached data; write future build entries only to owned /tmp cache. Original cache/backing remains preserved."
+}

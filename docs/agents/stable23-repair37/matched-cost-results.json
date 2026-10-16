@@ -1,0 +1,140 @@
+{
+  "toolchain": "go1.27.2",
+  "GOMAXPROCS": 4,
+  "flags": "-p 1 -ldflags=-w -benchmem -benchtime=200ms -count=3",
+  "before": "Only mcpserver.go overlaid from frozen e33 parent; final identical benchmark/test functions",
+  "after": "Clean b38fadec8d78ec64ffbefb53f650e6ef149d948e; no overlay",
+  "measurements": {
+    "before": [
+      {
+        "name": "BenchmarkMCPHTTPNoApp-4",
+        "iterations": 19166,
+        "ns_per_op": 12841,
+        "bytes_per_op": 2424,
+        "allocs_per_op": 50
+      },
+      {
+        "name": "BenchmarkMCPHTTPNoApp-4",
+        "iterations": 20055,
+        "ns_per_op": 12811,
+        "bytes_per_op": 2380,
+        "allocs_per_op": 50
+      },
+      {
+        "name": "BenchmarkMCPHTTPNoApp-4",
+        "iterations": 19858,
+        "ns_per_op": 12065,
+        "bytes_per_op": 2392,
+        "allocs_per_op": 50
+      },
+      {
+        "name": "BenchmarkSyncMCPServerCatalog/parallel=false-4",
+        "iterations": 13317,
+        "ns_per_op": 17720,
+        "bytes_per_op": 7182,
+        "allocs_per_op": 95
+      },
+      {
+        "name": "BenchmarkSyncMCPServerCatalog/parallel=false-4",
+        "iterations": 14475,
+        "ns_per_op": 16611,
+        "bytes_per_op": 7182,
+        "allocs_per_op": 95
+      },
+      {
+        "name": "BenchmarkSyncMCPServerCatalog/parallel=false-4",
+        "iterations": 14324,
+        "ns_per_op": 17708,
+        "bytes_per_op": 7181,
+        "allocs_per_op": 95
+      },
+      {
+        "name": "BenchmarkSyncMCPServerCatalog/parallel=true-4",
+        "iterations": 24666,
+        "ns_per_op": 8604,
+        "bytes_per_op": 7181,
+        "allocs_per_op": 95
+      },
+      {
+        "name": "BenchmarkSyncMCPServerCatalog/parallel=true-4",
+        "iterations": 25681,
+        "ns_per_op": 8869,
+        "bytes_per_op": 7180,
+        "allocs_per_op": 95
+      },
+      {
+        "name": "BenchmarkSyncMCPServerCatalog/parallel=true-4",
+        "iterations": 24306,
+        "ns_per_op": 10117,
+        "bytes_per_op": 7182,
+        "allocs_per_op": 95
+      }
+    ],
+    "after": [
+      {
+        "name": "BenchmarkMCPHTTPNoApp-4",
+        "iterations": 20726,
+        "ns_per_op": 11176,
+        "bytes_per_op": 2428,
+        "allocs_per_op": 50
+      },
+      {
+        "name": "BenchmarkMCPHTTPNoApp-4",
+        "iterations": 24205,
+        "ns_per_op": 10969,
+        "bytes_per_op": 2410,
+        "allocs_per_op": 50
+      },
+      {
+        "name": "BenchmarkMCPHTTPNoApp-4",
+        "iterations": 21930,
+        "ns_per_op": 9905,
+        "bytes_per_op": 2381,
+        "allocs_per_op": 50
+      },
+      {
+        "name": "BenchmarkSyncMCPServerCatalog/parallel=false-4",
+        "iterations": 14308,
+        "ns_per_op": 19892,
+        "bytes_per_op": 7182,
+        "allocs_per_op": 95
+      },
+      {
+        "name": "BenchmarkSyncMCPServerCatalog/parallel=false-4",
+        "iterations": 12056,
+        "ns_per_op": 16688,
+        "bytes_per_op": 7184,
+        "allocs_per_op": 95
+      },
+      {
+        "name": "BenchmarkSyncMCPServerCatalog/parallel=false-4",
+        "iterations": 15619,
+        "ns_per_op": 17205,
+        "bytes_per_op": 7181,
+        "allocs_per_op": 95
+      },
+      {
+        "name": "BenchmarkSyncMCPServerCatalog/parallel=true-4",
+        "iterations": 10414,
+        "ns_per_op": 21784,
+        "bytes_per_op": 7186,
+        "allocs_per_op": 95
+      },
+      {
+        "name": "BenchmarkSyncMCPServerCatalog/parallel=true-4",
+        "iterations": 10000,
+        "ns_per_op": 20512,
+        "bytes_per_op": 7187,
+        "allocs_per_op": 95
+      },
+      {
+        "name": "BenchmarkSyncMCPServerCatalog/parallel=true-4",
+        "iterations": 10000,
+        "ns_per_op": 21301,
+        "bytes_per_op": 7187,
+        "allocs_per_op": 95
+      }
+    ]
+  },
+  "interpretation": "No speedup claim. Request allocs50 on both. Refresh allocs95 on both. Parallel refresh throughput decreases intentionally due to full capture/build/publication serialization; shared-Cloud timing is observational."
+}

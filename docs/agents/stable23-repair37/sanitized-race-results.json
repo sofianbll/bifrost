@@ -1,0 +1,712 @@
+{
+  "candidate": "b38fadec8d78ec64ffbefb53f650e6ef149d948e",
+  "toolchain": "go1.27.2 linux/amd64 CGO_ENABLED=1",
+  "race_detector": true,
+  "compile_parallelism": 1,
+  "linker_flags": "-w (omit DWARF only)",
+  "full_qualification_executed": false,
+  "suites": [
+    {
+      "suite": "handler-race-final",
+      "raw_cloud_log_sha256": "8fd03a5c71fff794dbd44481584398814defafe1a8c0d8670b3c96880b8f3f5e",
+      "shell_exit_code": 0,
+      "top_level_test_passes": 26,
+      "all_test_and_subtest_passes": 76,
+      "failures": 0,
+      "skips": 0,
+      "events": [
+        {
+          "Time": "2026-10-16T20:40:11.486092933Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestGetVKFromRequest/x-bf-vk_header",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:11.486509529Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestGetVKFromRequest/Authorization_Bearer_header",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:11.490212376Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestGetVKFromRequest/x-api-key_header",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:11.490229339Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestGetVKFromRequest/x-goog-api-key_header",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:11.490533065Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestGetVKFromRequest/no_header_returns_empty_string",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:11.491322805Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestGetVKFromRequest/non-VK_Bearer_token_returns_empty_string",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:11.491344398Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestGetVKFromRequest/non-VK_x-goog-api-key_returns_empty_string",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:11.491361853Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestGetVKFromRequest/x-bf-vk_takes_priority_over_x-goog-api-key",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:11.494380697Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestGetVKFromRequest",
+          "Elapsed": 0.01
+        },
+        {
+          "Time": "2026-10-16T20:40:11.887238812Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestAuthenticate_JWTPath/oauth_mode:_vk_JWT_stamps_the_key's_value_for_governance_to_resolve",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:11.892530559Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestAuthenticate_JWTPath/vk_JWT_with_an_inactive_key_is_stamped_rather_than_refused_here",
+          "Elapsed": 0.01
+        },
+        {
+          "Time": "2026-10-16T20:40:11.894682253Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestAuthenticate_JWTPath/vk_JWT_for_an_unknown_key_is_rejected",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:11.897656977Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestAuthenticate_JWTPath/vk_JWT_is_rejected_once_virtual-key_identity_is_disabled_and_user_mode_is_offered",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:11.900132251Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestAuthenticate_JWTPath/user_JWT_without_a_session_stamps_the_user",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:11.902831576Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestAuthenticate_JWTPath/user_JWT_is_rejected_when_the_user_is_no_longer_active",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:11.905611853Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestAuthenticate_JWTPath/user_JWT_with_a_matching_session_is_accepted",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:11.932718139Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestAuthenticate_JWTPath/user_JWT_with_a_mismatched_session_is_rejected",
+          "Elapsed": 0.03
+        },
+        {
+          "Time": "2026-10-16T20:40:11.934708112Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestAuthenticate_JWTPath/both_mode:_a_bearer_an_upstream_auth_layer_authenticated_is_accepted_as_the_stamped_user",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:11.935481077Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestAuthenticate_JWTPath/both_mode:_a_bearer_no_upstream_auth_layer_authenticated_is_refused_on_its_key_id",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:11.936306556Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestAuthenticate_JWTPath/oauth_strict_mode_verifies_the_bearer_even_when_an_identity_is_stamped_upstream",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:11.961686551Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestAuthenticate_JWTPath/session_JWT_is_rejected_when_auth_is_enforced",
+          "Elapsed": 0.03
+        },
+        {
+          "Time": "2026-10-16T20:40:11.979095628Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestAuthenticate_JWTPath/session_JWT_stamps_the_session_when_auth_is_not_enforced",
+          "Elapsed": 0.02
+        },
+        {
+          "Time": "2026-10-16T20:40:11.981012085Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestAuthenticate_JWTPath/both_mode:_session_token_with_a_header_VK_is_rejected",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:11.989102019Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestAuthenticate_JWTPath/both_mode:_vk_token_with_a_header_VK_is_rejected",
+          "Elapsed": 0.01
+        },
+        {
+          "Time": "2026-10-16T20:40:11.989114261Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestAuthenticate_JWTPath",
+          "Elapsed": 0.49
+        },
+        {
+          "Time": "2026-10-16T20:40:12.280310191Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestAuthenticate_HeaderAndAnonPath/headers_mode:_a_header_VK_is_accepted_without_being_looked_up",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:12.280643992Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestAuthenticate_HeaderAndAnonPath/anonymous_access_is_accepted_when_auth_is_not_enforced",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:12.280658103Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestAuthenticate_HeaderAndAnonPath/no_credentials_rejected_when_auth_is_enforced",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:12.281104614Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestAuthenticate_HeaderAndAnonPath/headers_mode:_an_identity_stamped_upstream_satisfies_enforced_auth",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:12.281122478Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestAuthenticate_HeaderAndAnonPath/both_mode:_an_identity_stamped_upstream_satisfies_enforced_auth",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:12.282064909Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestAuthenticate_HeaderAndAnonPath/oauth_strict_mode_ignores_an_identity_stamped_upstream",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:12.282220335Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestAuthenticate_HeaderAndAnonPath/oauth_strict_mode_rejects_a_header_VK_with_WWW-Authenticate",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:12.282408417Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestAuthenticate_HeaderAndAnonPath/oauth_strict_mode_with_no_credentials_sets_WWW-Authenticate",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:12.283120254Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestAuthenticate_HeaderAndAnonPath/headers_mode:_a_JWT_bearer_is_not_treated_as_a_credential",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:12.283145832Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestAuthenticate_HeaderAndAnonPath",
+          "Elapsed": 0.29
+        },
+        {
+          "Time": "2026-10-16T20:40:12.343178923Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestAdmit/a_refusal_is_answered_with_the_status_it_carries",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:12.343478016Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestAdmit/a_401_refusal_points_at_the_authorization_server_when_discovery_is_enabled",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:12.343745225Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestAdmit/a_refusal_without_a_status_is_forbidden",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:12.344046676Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestAdmit/restricted_access_stamps_the_tools_it_grants",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:12.344262327Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestAdmit/access_granting_no_tool_stamps_an_empty_list,_which_permits_none",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:12.344440717Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestAdmit/a_caller's_list_narrows_within_the_access_and_cannot_widen_it",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:12.344571581Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestAdmit/no_access_leaves_the_caller's_list_alone_and_stamps_nothing_of_its_own",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:12.34472987Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestAdmit/nothing_resolved_stamps_nothing",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:12.344872045Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestAdmit/governance_is_asked_about_the_request's_own_context,_after_authentication",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:12.345186432Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestAdmit/a_request_that_fails_authentication_is_refused_before_governance_is_asked",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:12.345235939Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestAdmit",
+          "Elapsed": 0.06
+        },
+        {
+          "Time": "2026-10-16T20:40:12.345500786Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestConvertToolFunctionParametersToMCPInputSchemaPreservesDefs",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:12.35316341Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestCallToolPreservesCodeModeErrorMarker",
+          "Elapsed": 0.01
+        },
+        {
+          "Time": "2026-10-16T20:40:12.353500236Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestConvertToolFunctionParametersToMCPInputSchemaPreservesLegacyDefinitionsAsDefs",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:12.355653357Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestInitializeForwardsInstructionsOnTheHandshake",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:12.356833852Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestInitializeOmitsInstructionsWhenNoUpstreamAdvertisesAny",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:12.406051395Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestInitializeNegotiatesMCPAppsExtensionOnlyWhenRequested",
+          "Elapsed": 0.05
+        },
+        {
+          "Time": "2026-10-16T20:40:12.410324881Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestInitializeResolvesInstructionsFromTheRequestContext",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:12.415905771Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestInitializeResolvesInstructionsForSlugNarrowedRequests",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:12.424683516Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestMCPAppsBareCallbackSelectsUniqueAvailableSource",
+          "Elapsed": 0.01
+        },
+        {
+          "Time": "2026-10-16T20:40:12.437332503Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestMCPAppsBareCallbackIsAmbiguousWithoutDisclosingSources",
+          "Elapsed": 0.01
+        },
+        {
+          "Time": "2026-10-16T20:40:12.438443454Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestMCPAppsAmbiguousCallbackWithNullIDReturnsJSONRPCError",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:12.452181976Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestMCPAppsBareCallbackUsesOnlyAdmittedSourceAndCatalogStaysQualified",
+          "Elapsed": 0.01
+        },
+        {
+          "Time": "2026-10-16T20:40:12.45433369Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestMCPAppsBareCallbackCannotBypassDeniedGatewayRequest",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:12.457323661Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestCallToolRefusesHiddenToolWithoutDisclosingItsName",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:12.461486394Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestCallToolPreservesNativeMCPAppResultAndUsesEffectiveFallback/native_result",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:12.463349205Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestCallToolPreservesNativeMCPAppResultAndUsesEffectiveFallback/effective_post_hook_fallback",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:12.463597983Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestCallToolPreservesNativeMCPAppResultAndUsesEffectiveFallback",
+          "Elapsed": 0.01
+        },
+        {
+          "Time": "2026-10-16T20:40:12.475187003Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestMCPAppsMixedCatalogKeepsNativeResultScopedToAppTools",
+          "Elapsed": 0.01
+        },
+        {
+          "Time": "2026-10-16T20:40:12.479521231Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestToolsListPreservesAndQualifiesMCPAppMetadata",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:12.481624865Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestMCPAppsPreservesSupportedOutputSchema",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:12.483764713Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestResourcesListAndReadAreSourceQualified",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:12.509130867Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestSyncMCPServerSerialCatalogChanges",
+          "Elapsed": 0.03
+        },
+        {
+          "Time": "2026-10-16T20:40:12.622680162Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestSyncMCPServerOverlappingRefreshKeepsLatestCatalog",
+          "Elapsed": 0.11
+        },
+        {
+          "Time": "2026-10-16T20:40:12.622871891Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestMCPAuthRequiredToolResult/per-user_oauth_opens_the_authorize_page",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:12.622965345Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestMCPAuthRequiredToolResult/per-user_headers_opens_the_submit_page",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:12.623161124Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestMCPAuthRequiredToolResult/exchange_carries_the_resolver_message_as_written",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:12.623283477Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestMCPAuthRequiredToolResult/an_interactive_kind_with_no_page_falls_back_to_its_message",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:12.62341335Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestMCPAuthRequiredToolResult/nothing_to_say_still_names_the_server",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:12.6235415Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestMCPAuthRequiredToolResult/a_temp-token_fragment_keeps_its_reminder",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:12.623590274Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Test": "TestMCPAuthRequiredToolResult",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:13.64721637Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/handlers",
+          "Elapsed": 2.358
+        }
+      ]
+    },
+    {
+      "suite": "server-race-final",
+      "raw_cloud_log_sha256": "c9ba26f116647211117ab29804f28f71cabd954c53d3a4a1268c6b10dd332cc6",
+      "shell_exit_code": 0,
+      "top_level_test_passes": 7,
+      "all_test_and_subtest_passes": 7,
+      "failures": 0,
+      "skips": 0,
+      "events": [
+        {
+          "Time": "2026-10-16T20:40:48.586121396Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/server",
+          "Test": "TestPersistMCPClientTools_WritesThroughConfigStore",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:48.586488074Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/server",
+          "Test": "TestPersistMCPClientTools_NilConfigStore_NoOp",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:48.586826736Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/server",
+          "Test": "TestPersistMCPClientTools_StoreErrorLogsAndDoesNotPanic",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:48.586897146Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/server",
+          "Test": "TestSyncMCPServersAfterToolsChange_NilHandler_NoOp",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:48.587963726Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/server",
+          "Test": "TestBifrostHTTPServerImplementsMCPAppsRelaySeams",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:48.587993196Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/server",
+          "Test": "TestReloadVirtualKeyAvoidsGovernanceSnapshot",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:48.589729697Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/server",
+          "Test": "TestReloadVirtualKeysMatchesPerKeyReload",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:40:49.605876562Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/transports/bifrost-http/server",
+          "Elapsed": 1.179
+        }
+      ]
+    },
+    {
+      "suite": "core-race-final",
+      "raw_cloud_log_sha256": "cec27a2273b9d1087d1d6f417fafc06e1be2926f4865d6a96e00ecf6f7bd6797",
+      "shell_exit_code": 0,
+      "top_level_test_passes": 7,
+      "all_test_and_subtest_passes": 10,
+      "failures": 0,
+      "skips": 0,
+      "events": [
+        {
+          "Time": "2026-10-16T20:41:22.651928224Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/core/mcp",
+          "Test": "TestReadMCPAppResourceUsesMCPHooksAndHidesDenials",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:41:22.824908693Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/core/mcp",
+          "Test": "TestExecuteMCPAppToolPreservesNativeFieldsAndDropsStaleHookOutput",
+          "Elapsed": 0.17
+        },
+        {
+          "Time": "2026-10-16T20:41:22.827158679Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/core/mcp",
+          "Test": "TestComputeToolsHash_IncludesCachedMCPAppsMetadata",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:41:22.835924608Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/core/mcp",
+          "Test": "TestSetClientTools_MetadataOnlyChangeRefreshesCatalog",
+          "Elapsed": 0.01
+        },
+        {
+          "Time": "2026-10-16T20:41:22.83753947Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/core/mcp",
+          "Test": "TestSetClientTools_UnchangedTools_DoesNotFireCallback",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:41:22.841335064Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/core/mcp",
+          "Test": "TestConvertMCPToolToBifrostSchema_PreservesMCPAppDefinition/modern",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:41:22.842523336Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/core/mcp",
+          "Test": "TestConvertMCPToolToBifrostSchema_PreservesMCPAppDefinition/legacy",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:41:22.843810278Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/core/mcp",
+          "Test": "TestConvertMCPToolToBifrostSchema_PreservesMCPAppDefinition/dual-prefers-modern",
+          "Elapsed": 0
+        },
+        {
+          "Time": "2026-10-16T20:41:22.843871519Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/core/mcp",
+          "Test": "TestConvertMCPToolToBifrostSchema_PreservesMCPAppDefinition",
+          "Elapsed": 0.01
+        },
+        {
+          "Time": "2026-10-16T20:41:23.776516893Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/core/mcp",
+          "Test": "TestConvertMCPToolToBifrostSchemaBoundsRetainedMCPAppMetadata",
+          "Elapsed": 0.93
+        },
+        {
+          "Time": "2026-10-16T20:41:24.781929625Z",
+          "Action": "pass",
+          "Package": "github.com/maximhq/bifrost/core/mcp",
+          "Elapsed": 2.187
+        }
+      ]
+    }
+  ]
+}
