@@ -664,9 +664,13 @@ func (h *MCPServerHandler) buildServer(availableTools []schemas.ChatTool) *serve
 		}
 		if appMetadata := tool.MCPAppMetadata(); appMetadata != nil {
 			if len(appMetadata.RawDefinition) > 0 {
-				var original mcp.Tool
+				var original struct {
+					Meta         *mcp.Meta       `json:"_meta"`
+					OutputSchema json.RawMessage `json:"outputSchema"`
+				}
 				if json.Unmarshal(appMetadata.RawDefinition, &original) == nil {
 					serverTool.Meta = original.Meta
+					serverTool.RawOutputSchema = original.OutputSchema
 				}
 			}
 			gatewayURI := ""
