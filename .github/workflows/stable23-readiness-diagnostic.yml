@@ -1,0 +1,100 @@
+name: Stable 2.3 readiness diagnostic only
+
+on:
+  push:
+    branches: [codex/diagnose37-readiness]
+
+permissions:
+  contents: read
+
+jobs:
+  observe:
+    if: github.repository == 'sofianbll/bifrost'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      DRIVER_SOURCE: b838f2e5c3d3cf2340b7fee6c0cfcf2ec1ad0efb
+      BIFROST_STOCK_SOURCE: 9237ec06672406e437b3cb33fc793ffd0403b3ae
+      BIFROST_CANDIDATE_SOURCE: e33b67ab6fd26e1e1b83fbc0a84c0b2f946fdb05
+      BIFROST_STABLE_REFERENCE: 9237ec06672406e437b3cb33fc793ffd0403b3ae
+      BIFROST_COMPARISON_MODE: strict
+      BIFROST_FIXTURE_SCOPES: mcp-apps,codemode-errors
+      BIFROST_STABLE_LANE: '1'
+      BIFROST_REFERENCE_HOST_DIRECTORY: ''
+    steps:
+      - name: Initialize isolated observation report
+        run: |
+          mkdir -p "$RUNNER_TEMP/diagnostic37"
+          echo "DIAGNOSTIC_REPORT=$RUNNER_TEMP/diagnostic37" >> "$GITHUB_ENV"
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          ref: e33b67ab6fd26e1e1b83fbc0a84c0b2f946fdb05
+          path: candidate
+          persist-credentials: false
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          ref: b838f2e5c3d3cf2340b7fee6c0cfcf2ec1ad0efb
+          path: driver
+          persist-credentials: false
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          path: orchestration
+          persist-credentials: false
+      - name: Record exact clean source identities
+        run: |
+          set -euo pipefail
+          test "$(git -C candidate rev-parse HEAD)" = "$BIFROST_CANDIDATE_SOURCE"
+          test "$(git -C driver rev-parse HEAD)" = "$DRIVER_SOURCE"
+          test "$(git -C orchestration rev-parse HEAD)" = "$GITHUB_SHA"
+          for source in candidate driver orchestration; do
+            test -z "$(git -C "$source" status --porcelain)"
+            test ! -e "$source/.env"
+            git -C "$source" log -1 --format='%H %T %P' > "$DIAGNOSTIC_REPORT/$source-source.txt"
+          done
+      - uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417
+        with:
+          go-version: '1.27.2'
+          cache: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '25'
+      - uses: step-security/setup-buildx-action@f931205d68723ad9589fd2a7e2ece238bf9de341
+      - name: Build exact unchanged candidate image for observation
+        uses: step-security/docker-build-push-action@846549baaf047e867d038826129a64d81df0f704
+        with:
+          context: candidate
+          file: candidate/transports/Dockerfile.local
+          platforms: linux/amd64
+          load: true
+          tags: bifrost:diagnose37-${{ github.run_id }}
+      - name: Record image binary provenance
+        run: |
+          set -euo pipefail
+          docker image inspect "bifrost:diagnose37-$GITHUB_RUN_ID" --format '{{.Id}}' > "$DIAGNOSTIC_REPORT/image-id.txt"
+          docker create --name diagnostic37-binary "bifrost:diagnose37-$GITHUB_RUN_ID" >/dev/null
+          docker cp diagnostic37-binary:/app/main "$RUNNER_TEMP/diagnostic37-main"
+          docker rm diagnostic37-binary >/dev/null
+          go version -m "$RUNNER_TEMP/diagnostic37-main" > "$DIAGNOSTIC_REPORT/gateway-build-info.txt"
+          sha256sum "$RUNNER_TEMP/diagnostic37-main" > "$DIAGNOSTIC_REPORT/gateway-binary.sha256"
+          rm "$RUNNER_TEMP/diagnostic37-main"
+          python3 - <<'PY'
+          import os, runpy
+          from pathlib import Path
+          parser = runpy.run_path('driver/.github/workflows/scripts/verify-stable-image-provenance.py')
+          info = (Path(os.environ['DIAGNOSTIC_REPORT']) / 'gateway-build-info.txt').read_text()
+          assert not parser['parse_build_info'](info)['validation_errors']
+          PY
+      - name: Observe frozen readiness then stop before qualification
+        run: >-
+          python3 orchestration/.github/workflows/scripts/diagnose-stable23-readiness.py
+          --driver-root driver
+          --image "bifrost:diagnose37-$GITHUB_RUN_ID"
+          --report-dir "$DIAGNOSTIC_REPORT"
+      - name: Preserve diagnostic evidence even when the original gate reproduces
+        if: always()
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
+        with:
+          name: diagnostic37-readiness-${{ github.sha }}
+          path: ${{ runner.temp }}/diagnostic37
+          if-no-files-found: error
+          retention-days: 90
