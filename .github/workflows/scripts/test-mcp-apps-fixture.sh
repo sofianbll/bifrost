@@ -18,7 +18,7 @@ import tempfile
 import time
 import urllib.error
 import urllib.request
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 ROOT = Path(os.environ["BIFROST_REPO_ROOT"])
 FIXTURE_NAMES = ("mcp_apps_fixture", "mcp_apps_fixture_second", "mcp_apps_fixture_modern", "errorTestServer")
@@ -854,6 +854,10 @@ def self_check():
         saved = (Path(diagnostic_tmp) / "failure-source-discovery.json").read_text()
         assert "original readiness failed" in saved and SETUP_TOKEN not in saved
         assert all(key not in saved for key in KEYS.values())
+        with patch.dict(globals(), {"observe_failure_discovery": Mock(side_effect=OSError("diagnostic failed")),
+                                   "write_failure_report": Mock(side_effect=OSError("report failed"))}):
+            assert preserve_failure_discovery("http://fixture.invalid", ("mcp-apps",),
+                Path(diagnostic_tmp), False, {}, {"reason": "original failure"}) is None
     config = build_config()
     assert config["providers"] == {}
     assert config["setup_token"] == SETUP_TOKEN
@@ -1647,6 +1651,18 @@ def ready_firstboot_fixture_catalog(url, contract, diagnostic_path=None):
 
 
 def preserve_failure_discovery(url, scopes, report_dir, baseline, source_ids, context):
+    """Diagnostic failures must never replace the original failing result or exception."""
+    try:
+        return observe_failure_discovery(url, scopes, report_dir, baseline, source_ids, context)
+    except Exception as diagnostic_error:
+        try:
+            write_failure_report(report_dir, diagnostic_error, "failure-diagnostic-error.json")
+        except Exception:
+            print("Post-failure discovery diagnostic could not be saved; original failure retained", file=sys.stderr, flush=True)
+        return None
+
+
+def observe_failure_discovery(url, scopes, report_dir, baseline, source_ids, context):
     """Observe only after failure; never retry readiness or change the original verdict."""
     started = time.monotonic()
     deadline = started + 20
@@ -2161,12 +2177,9 @@ def main(args):
             return pass_fail
         except Exception as error:
             if container_started and "base_url" in locals():
-                try:
-                    preserve_failure_discovery(base_url, scopes, report_dir, baseline, source_identities,
-                                               {"reason": str(error), "container": container,
-                                                "phase": locals().get("phase", "wire-or-host")})
-                except Exception as diagnostic_error:
-                    write_failure_report(report_dir, diagnostic_error, "failure-diagnostic-error.json")
+                preserve_failure_discovery(base_url, scopes, report_dir, baseline, source_identities,
+                                           {"reason": str(error), "container": container,
+                                            "phase": locals().get("phase", "wire-or-host")})
             raise
         finally:
             if container_started:

@@ -26,6 +26,10 @@ The single Actions artifact includes only this campaign's runtime/Go evidence an
 
 ## Preflight controls
 
+### Driver repair cycle 2: preserve original failure under diagnostic errors
+
+Independent preflight reviews of initial driver `680dc40a225a4189991013ed63df4df0d6db7195` found no Standards violation and one actionable Spec issue: an observation/write error could replace the original harness failure. A single guarded diagnostic entry point now catches both observation and error-report failures; callers retain their original return code or exception. The existing self-check injects both failures and requires the diagnostic to return without throwing. Qualification assertions/readiness remain unchanged. Both permitted driver adaptation/repair cycles are recorded here; no further automatic driver repair cycle is assumed.
+
 - `bash .github/workflows/scripts/test-mcp-apps-fixture.sh --self-check`
 - `python3 tests/mcpapps/qualify-go-tests.py --self-check`
 - `python3 tests/mcpapps/verify-stable-review-provenance.py --self-check`
