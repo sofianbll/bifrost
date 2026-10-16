@@ -266,10 +266,19 @@ func BenchmarkMCPToolCallResponse(b *testing.B) {
 			if !tc.isError {
 				isError = nil
 			}
-			tm := &markerToolManager{message: &schemas.ChatMessage{
-				Content:         &schemas.ChatMessageContent{ContentStr: schemas.Ptr("tool response")},
-				ChatToolMessage: &schemas.ChatToolMessage{IsError: isError},
-			}}
+			tm := &mcpAppsToolManager{
+				tools: []schemas.ChatTool{{
+					Type: schemas.ChatToolTypeFunction,
+					Function: &schemas.ChatToolFunction{
+						Name:       "lookup",
+						Parameters: &schemas.ToolFunctionParameters{Type: "object", Properties: schemas.NewOrderedMapFromPairs()},
+					},
+				}},
+				message: &schemas.ChatMessage{
+					Content:         &schemas.ChatMessageContent{ContentStr: schemas.Ptr("tool response")},
+					ChatToolMessage: &schemas.ChatToolMessage{IsError: isError},
+				},
+			}
 			h := &MCPServerHandler{
 				toolManager: tm,
 				config:      &lib.Config{ClientConfig: &configstore.ClientConfig{}},
