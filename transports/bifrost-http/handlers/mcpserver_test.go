@@ -1117,7 +1117,17 @@ func TestSyncMCPServerOverlappingRefreshKeepsLatestCatalog(t *testing.T) {
 	}
 	start := func() chan error {
 		done := make(chan error, 1)
-		go func() { done <- h.SyncMCPServer(context.Background()); close(done) }()
+		started := make(chan struct{})
+		go func() {
+			close(started)
+			done <- h.SyncMCPServer(context.Background())
+			close(done)
+		}()
+		select {
+		case <-started:
+		case <-time.After(3 * time.Second):
+			t.Fatal("refresh worker did not reach the sync call")
+		}
 		return done
 	}
 	t.Cleanup(func() {
