@@ -178,10 +178,13 @@ try {
     pageErrors.push(`requestfailed ${request.method()} ${requestUrl.origin}${requestUrl.pathname}: ${request.failure()?.errorText ?? "unknown"}`);
   });
   if (partialReplay) {
+    const observedPartialMessages = [];
     await page.exposeFunction("__bifrostWaitForPartialInput", async (message) => {
       const appFrame = page.frameLocator("iframe").frameLocator("iframe");
       await appFrame.getByTestId("tool-partial-input").getByText(`\"message\": \"${message}\"`, { exact: false }).waitFor();
+      observedPartialMessages.push(message);
     });
+    page.__bifrostObservedPartialMessages = observedPartialMessages;
     await page.addInitScript((messages) => {
       window.__bifrostReplayPartialInput = async (bridge, input) => {
         for (const message of messages) {
@@ -207,17 +210,13 @@ try {
   await page.getByLabel("Input").fill('{"message":"host-input"}');
   const callButton = page.getByRole("button", { name: "Call Tool" });
   await callButton.waitFor({ state: "visible" });
-  await callButton.waitFor({ state: "enabled", timeout: 10000 });
-  await callButton.click();
+  await callButton.click({ timeout: 10000 });
 
   const app = page.frameLocator("iframe").frameLocator("iframe");
   const inputView = app.getByTestId("tool-input");
   const partialInputView = app.getByTestId("tool-partial-input");
   const resultView = app.getByTestId("tool-result");
   await inputView.waitFor();
-  if (partialReplay) {
-    await partialInputView.getByText('"message": "partial-one"', { exact: false }).waitFor();
-  }
   let input;
   for (let attempt = 0; attempt < 100; attempt++) {
     try { input = JSON.parse(await inputView.textContent()); } catch {}
@@ -245,6 +244,8 @@ try {
   const notificationOrder = JSON.parse(await appRoot.getAttribute("data-notification-order"));
   assertNotificationOrder(notificationOrder, partialReplay);
   if (partialReplay) {
+    assert.deepEqual(page.__bifrostObservedPartialMessages, ["partial-one", "partial-two"],
+      "Both controlled partial notifications must render before their replay bridge calls complete");
     assert.deepEqual(JSON.parse(await app.getByTestId("tool-partial-input").textContent()), { message: "partial-two" },
       "The second controlled partial update must render before final input/result");
   }
