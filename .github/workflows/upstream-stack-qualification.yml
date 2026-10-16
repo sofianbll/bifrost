@@ -314,11 +314,11 @@ jobs:
           fi
 
           probe_stage='go-test'
+          trap - ERR
           set +e
           go test -v -count=1 -run "^${test_name}$" ./bifrost-http/handlers > "$raw_log" 2>&1
           probe_status=$?
           set -e
-          trap - ERR
           python3 - "$raw_log" "$probe_log" "$status_report" "$probe_status" <<'PY'
           import re, sys
           from pathlib import Path
