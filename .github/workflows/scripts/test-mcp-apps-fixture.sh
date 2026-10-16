@@ -303,6 +303,80 @@ def firstboot_comparison_classification(phase, candidate_gate):
     raise RuntimeError(f"unknown firstboot-grants phase: {phase}")
 
 
+def reference_host_status_filename(baseline):
+    return "stock-reference-host-status.json" if baseline else "reference-host-status.json"
+
+
+def run_reference_host(report_dir, base_url, source_identities, baseline, scopes):
+    host_directory = os.environ.get("BIFROST_REFERENCE_HOST_DIRECTORY", "").strip()
+    status_path = report_dir / reference_host_status_filename(baseline)
+    if baseline:
+        if host_directory:
+            raise RuntimeError("pinned reference-host qualification is candidate-only")
+        status_path.write_text(json.dumps({"status": "skipped-stock",
+                                           "reason": "reference-host qualification runs only against the candidate"}, indent=2) + "\n")
+        return
+    if not host_directory:
+        status_path.write_text(json.dumps({"status": "not-requested",
+                                           "reason": "matrix row did not opt into pinned reference-host qualification"}, indent=2) + "\n")
+        return
+    if "mcp-apps" not in scopes or is_firstboot_scope(scopes):
+        raise RuntimeError("pinned reference-host qualification requires a non-firstboot MCP Apps scope")
+    host_path = Path(host_directory).resolve()
+    manifest_path = host_path / ".bifrost-reference-host.json"
+    renderer = ROOT / "tests/mcpapps/render-reference-host.mjs"
+    if not manifest_path.is_file() or not renderer.is_file():
+        raise RuntimeError("pinned reference-host bootstrap or renderer is missing")
+    manifest = json.loads(manifest_path.read_text())
+    if manifest.get("commit") != "82221c0c8ce7661efa6771c9d461511b1650495f" or manifest.get("version") != "2.0.3":
+        raise RuntimeError("pinned reference-host source identity differs from the approved host")
+    shutil.copy2(manifest_path, report_dir / "reference-host-manifest.json")
+    host_env_base = {
+        "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
+        "HOME": os.environ.get("HOME", str(report_dir)),
+        "MCP_APP_HOST_DIRECTORY": str(host_path),
+        "BIFROST_FIXTURE_SERVER_URL": f"{base_url}/mcp/mcp-apps-full-virtual",
+        "BIFROST_FIXTURE_BEARER": KEYS["full"],
+        "BIFROST_FIXTURE_EXPECTED_INSTANCE": "first",
+        "BIFROST_FIXTURE_CLIENT_NAME": "mcp_apps_fixture",
+        "BIFROST_CANDIDATE_SOURCE": source_identities["candidate"],
+    }
+    if os.environ.get("PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH"):
+        host_env_base["PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH"] = os.environ["PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH"]
+    outcomes = []
+    for name, replay in (("normal", "false"), ("controlled-replay", "true")):
+        host_env = {**host_env_base, "BIFROST_FIXTURE_PARTIAL_REPLAY": replay}
+        run_result = subprocess.run(["node", str(renderer)], cwd=ROOT, env=host_env,
+                                    capture_output=True, text=True)
+        stdout = run_result.stdout.replace(KEYS["full"], "[REDACTED]")
+        stderr = run_result.stderr.replace(KEYS["full"], "[REDACTED]")
+        stem = f"reference-host-{name}"
+        (report_dir / f"{stem}-exit-code.txt").write_text(f"{run_result.returncode}\n")
+        (report_dir / f"{stem}-runner.log").write_text(stdout + stderr)
+        if run_result.returncode:
+            failure = {"status": "failed", "mode": name, "exit_code": run_result.returncode,
+                       "log": f"{stem}-runner.log", "candidate_source": source_identities["candidate"],
+                       "host_commit": manifest["commit"], "app_bundle_sha256": manifest["appBundle"]["sha256"]}
+            (report_dir / f"{stem}.json").write_text(json.dumps(failure, indent=2) + "\n")
+            status_path.write_text(json.dumps({"status": "failed", "failed_mode": name}, indent=2) + "\n")
+            raise RuntimeError(f"pinned reference-host {name} qualification failed; see {stem}-runner.log")
+        try:
+            evidence = json.loads(stdout)
+        except json.JSONDecodeError as error:
+            raise RuntimeError(f"pinned reference-host {name} emitted invalid JSON evidence") from error
+        if (evidence.get("hostCommit") != manifest["commit"] or
+                evidence.get("candidateSource") != source_identities["candidate"] or
+                evidence.get("expectedInstance") != "first" or
+                evidence.get("fixtureClientName") != "mcp_apps_fixture" or
+                evidence.get("checks", {}).get("controlledPartialInputDelivered") != (replay == "true")):
+            raise RuntimeError(f"pinned reference-host {name} evidence does not match the requested source and mode")
+        (report_dir / f"reference-host-{name}.json").write_text(json.dumps(evidence, indent=2) + "\n")
+        outcomes.append({"mode": name, "passed": True, "host_commit": manifest["commit"],
+                         "app_bundle_sha256": manifest["appBundle"]["sha256"]})
+    status_path.write_text(json.dumps({"status": "passed", "candidate_source": source_identities["candidate"],
+                                       "host_commit": manifest["commit"], "runs": outcomes}, indent=2) + "\n")
+
+
 def build_config(scopes=None):
     scopes = tuple(scopes or DEFAULT_SCOPES)
     firstboot = is_firstboot_scope(scopes)
@@ -329,6 +403,8 @@ def build_config(scopes=None):
         else:
             binary = "mcp-apps-test-server"
             args = entry["stdio_config"]["args"]
+            if os.environ.get("BIFROST_REFERENCE_HOST_DIRECTORY") and entry["name"] in FIXTURE_NAMES[:3]:
+                args = [*args, entry["name"]]
         entry["stdio_config"] = {"command": f"/repo/examples/mcps/{binary}/bin/{binary}", "args": args}
         entry["allow_by_default"] = False
     if firstboot:
@@ -358,7 +434,7 @@ def build_config(scopes=None):
     keys = [entry for entry in profile["governance"]["virtual_keys"] if entry["value"] in wanted_key_values]
     if {entry["value"] for entry in keys} != wanted_key_values or len(virtual_mcps) != len(wanted_vmcps):
         raise RuntimeError("shared profile is missing fixture grants after stack integration")
-    return {
+    config = {
         "setup_token": SETUP_TOKEN,
         "client": {"enable_logging": False, "enforce_governance_header": True,
                    "enforce_auth_on_inference": True},
@@ -367,6 +443,9 @@ def build_config(scopes=None):
                 "tool_manager_config": {"code_mode_binding_level": "server"}},
         "governance": {"virtual_keys": keys},
     }
+    if os.environ.get("BIFROST_REFERENCE_HOST_DIRECTORY"):
+        config["client"]["allowed_headers"] = ["MCP-Protocol-Version"]
+    return config
 
 
 def requests_in(node):
@@ -620,6 +699,29 @@ def self_check():
     modern = next(c for c in config["mcp"]["client_configs"] if c["name"] == "mcp_apps_fixture_modern")
     assert modern["stdio_config"]["args"] == ["modern", "modern"]
     assert not modern.get("is_code_mode_client", False)
+    assert "allowed_headers" not in config["client"]
+    assert all("allowed_headers" not in client for client in config["mcp"]["client_configs"])
+    original_host_directory = os.environ.get("BIFROST_REFERENCE_HOST_DIRECTORY")
+    try:
+        os.environ["BIFROST_REFERENCE_HOST_DIRECTORY"] = "/tmp/pinned-reference-host-self-check"
+        host_config = build_config(("mcp-apps",))
+    finally:
+        if original_host_directory is None:
+            os.environ.pop("BIFROST_REFERENCE_HOST_DIRECTORY", None)
+        else:
+            os.environ["BIFROST_REFERENCE_HOST_DIRECTORY"] = original_host_directory
+    host_clients = {client["name"]: client for client in host_config["mcp"]["client_configs"]}
+    assert host_clients["mcp_apps_fixture"]["stdio_config"]["args"] == ["first", "dual", "mcp_apps_fixture"]
+    assert host_clients["mcp_apps_fixture_second"]["stdio_config"]["args"] == ["second", "legacy", "mcp_apps_fixture_second"]
+    assert "allowed_headers" not in host_clients["mcp_apps_fixture_second"]
+    assert host_clients["mcp_apps_fixture_modern"]["stdio_config"]["args"] == ["modern", "modern", "mcp_apps_fixture_modern"]
+    assert "allowed_headers" not in host_clients["mcp_apps_fixture_modern"]
+    assert host_config["client"]["allowed_headers"] == ["MCP-Protocol-Version"]
+    assert all("allowed_headers" not in client for client in host_config["mcp"]["client_configs"])
+    assert host_config["providers"] == {}
+    assert reference_host_status_filename(False) == "reference-host-status.json"
+    assert reference_host_status_filename(True) == "stock-reference-host-status.json"
+    assert reference_host_status_filename(False) != reference_host_status_filename(True)
     vmcps = {entry["endpoint_slug"]: entry for entry in config["mcp"]["virtual_mcps"]}
     full_vmcp = vmcps["mcp-apps-full-virtual"]
     limited_vmcp = vmcps["mcp-apps-limited-virtual"]
@@ -1501,6 +1603,7 @@ def main(args):
             port = int(port_line.rsplit(":", 1)[1])
             base_url = f"http://127.0.0.1:{port}"
             if firstboot:
+                run_reference_host(report_dir, base_url, source_identities, baseline, scopes)
                 observations = {}
                 container_ids = {}
                 classifications = {}
@@ -1671,6 +1774,7 @@ def main(args):
                     print(f"PASS {feature} harness; redacted reports: {report_dir}", flush=True)
                 if failures_ok:
                     print(f"Saved redacted {feature} failure report", flush=True)
+            run_reference_host(report_dir, base_url, source_identities, baseline, scopes)
             return pass_fail
         finally:
             if container_started:
