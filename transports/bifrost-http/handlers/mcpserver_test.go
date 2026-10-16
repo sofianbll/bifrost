@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/mark3labs/mcp-go/mcp"
@@ -402,6 +403,22 @@ type mcpAppsToolManager struct {
 	message      *schemas.ChatMessage
 }
 
+type mixedMCPAppsToolManager struct {
+	*mcpAppsToolManager
+	chatCalls   int
+	nativeCalls int
+}
+
+func (m *mixedMCPAppsToolManager) ExecuteChatMCPTool(context.Context, *schemas.ChatAssistantMessageToolCall) (*schemas.ChatMessage, *schemas.BifrostError) {
+	m.chatCalls++
+	return &schemas.ChatMessage{Content: &schemas.ChatMessageContent{ContentStr: schemas.Ptr("ordinary compatibility result")}}, nil
+}
+
+func (m *mixedMCPAppsToolManager) ExecuteMCPAppTool(ctx *schemas.BifrostContext, call *schemas.ChatAssistantMessageToolCall) (*schemas.ChatMessage, json.RawMessage, *schemas.BifrostError) {
+	m.nativeCalls++
+	return m.mcpAppsToolManager.ExecuteMCPAppTool(ctx, call)
+}
+
 func (m *mcpAppsToolManager) GetAvailableMCPTools(context.Context) []schemas.ChatTool { return m.tools }
 func (m *mcpAppsToolManager) GetMCPServerInstructions(context.Context) string         { return "" }
 func (m *mcpAppsToolManager) ExecuteChatMCPTool(context.Context, *schemas.ChatAssistantMessageToolCall) (*schemas.ChatMessage, *schemas.BifrostError) {
@@ -681,6 +698,63 @@ func TestCallToolPreservesNativeMCPAppResultAndUsesEffectiveFallback(t *testing.
 			}
 		})
 	}
+}
+
+func TestMCPAppsMixedCatalogKeepsNativeResultScopedToAppTools(t *testing.T) {
+	const ordinaryName = "client-ordinary"
+	ordinary := schemas.ChatTool{
+		Type: schemas.ChatToolTypeFunction,
+		Function: &schemas.ChatToolFunction{
+			Name:       ordinaryName,
+			Parameters: &schemas.ToolFunctionParameters{Type: "object", Properties: schemas.NewOrderedMapFromPairs()},
+		},
+	}
+	app := appCallbackTool("client", "save_state")
+	appName := app.Function.Name
+	manager := &mixedMCPAppsToolManager{mcpAppsToolManager: &mcpAppsToolManager{
+		tools:        []schemas.ChatTool{ordinary, app},
+		nativeResult: json.RawMessage(`{"content":[{"type":"text","text":"native app result"}],"structuredContent":{"source":"app"},"_meta":{"source":"app"}}`),
+	}}
+	h := &MCPServerHandler{
+		toolManager: manager,
+		config:      &lib.Config{ClientConfig: &configstore.ClientConfig{}},
+	}
+	h.mcpServer.Store(h.buildServer(manager.tools))
+
+	call := func(id int, name string) []byte {
+		ctx := &fasthttp.RequestCtx{}
+		ctx.Request.SetRequestURI("/mcp")
+		ctx.Request.Header.SetMethod(fasthttp.MethodPost)
+		ctx.Request.SetBody([]byte(fmt.Sprintf(`{"jsonrpc":"2.0","id":%d,"method":"tools/call","params":{"name":%q,"arguments":{}}}`, id, name)))
+		h.handleMCPServer(ctx)
+		return append([]byte(nil), ctx.Response.Body()...)
+	}
+	type resultEnvelope struct {
+		Result struct {
+			Content []struct {
+				Text string `json:"text"`
+			} `json:"content"`
+			Structured json.RawMessage `json:"structuredContent"`
+			Meta       json.RawMessage `json:"_meta"`
+		} `json:"result"`
+	}
+	var ordinaryResponse resultEnvelope
+	require.NoError(t, json.Unmarshal(call(21, ordinaryName), &ordinaryResponse))
+	require.Len(t, ordinaryResponse.Result.Content, 1)
+	assert.Equal(t, "ordinary compatibility result", ordinaryResponse.Result.Content[0].Text)
+	assert.Empty(t, ordinaryResponse.Result.Structured, "ordinary results must not expose native fields merely because an App shares the catalog")
+	assert.Empty(t, ordinaryResponse.Result.Meta)
+	assert.Equal(t, 1, manager.chatCalls, "ordinary calls must retain the compatibility ExecuteChatMCPTool path")
+	assert.Equal(t, 0, manager.nativeCalls)
+
+	var appResponse resultEnvelope
+	require.NoError(t, json.Unmarshal(call(22, appName), &appResponse))
+	require.Len(t, appResponse.Result.Content, 1)
+	assert.Equal(t, "native app result", appResponse.Result.Content[0].Text)
+	assert.JSONEq(t, `{"source":"app"}`, string(appResponse.Result.Structured))
+	assert.JSONEq(t, `{"source":"app"}`, string(appResponse.Result.Meta))
+	assert.Equal(t, 1, manager.chatCalls)
+	assert.Equal(t, 1, manager.nativeCalls, "App calls must continue to relay native results")
 }
 
 func TestToolsListPreservesAndQualifiesMCPAppMetadata(t *testing.T) {
