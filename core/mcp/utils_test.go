@@ -127,10 +127,10 @@ func TestConvertMCPToolToBifrostSchema_PreservesMCPAppDefinition(t *testing.T) {
 				InputSchema: mcp.ToolInputSchema{Type: "object", Properties: map[string]any{}},
 				Meta:        &mcp.Meta{AdditionalFields: tc.metadata},
 			}, defaultLogger)
-			require.NotNil(t, tool.MCPApp)
-			assert.Equal(t, tc.wantURI, tool.MCPApp.ResourceURI)
+			require.NotNil(t, tool.MCPAppMetadata())
+			assert.Equal(t, tc.wantURI, tool.MCPAppMetadata().ResourceURI)
 			var raw map[string]any
-			require.NoError(t, json.Unmarshal(tool.MCPApp.RawDefinition, &raw))
+			require.NoError(t, json.Unmarshal(tool.MCPAppMetadata().RawDefinition, &raw))
 			assert.Equal(t, "open_view", raw["name"])
 			assert.NotNil(t, raw["inputSchema"])
 			assert.NotNil(t, raw["_meta"])
@@ -151,11 +151,11 @@ func TestConvertMCPToolToBifrostSchemaBoundsRetainedMCPAppMetadata(t *testing.T)
 		}},
 	}, defaultLogger)
 
-	require.NotNil(t, tool.MCPApp)
-	assert.Empty(t, tool.MCPApp.RawDefinition, "an over-budget raw definition must not be retained")
-	assert.Empty(t, tool.MCPApp.ResourceURI, "an over-budget resource URI must not remain in the cache sidecar")
-	assert.Equal(t, []string{"app"}, tool.MCPApp.Visibility, "oversized metadata must fail closed for model visibility")
-	metadataJSON, err := json.Marshal(tool.MCPApp)
+	require.NotNil(t, tool.MCPAppMetadata())
+	assert.Empty(t, tool.MCPAppMetadata().RawDefinition, "an over-budget raw definition must not be retained")
+	assert.Empty(t, tool.MCPAppMetadata().ResourceURI, "an over-budget resource URI must not remain in the cache sidecar")
+	assert.Equal(t, []string{"app"}, tool.MCPAppMetadata().Visibility, "oversized metadata must fail closed for model visibility")
+	metadataJSON, err := json.Marshal(tool.MCPAppMetadata())
 	require.NoError(t, err)
 	assert.LessOrEqual(t, len(metadataJSON), maxCachedMCPAppDefinitionBytes)
 
@@ -171,13 +171,13 @@ func TestConvertMCPToolToBifrostSchemaBoundsRetainedMCPAppMetadata(t *testing.T)
 		}},
 	}, defaultLogger)
 
-	require.NotNil(t, tool.MCPApp)
-	assert.Equal(t, "ui://mcp-apps/view", tool.MCPApp.ResourceURI, "small resource URIs remain available when visibility is normalized")
-	assert.Len(t, tool.MCPApp.Visibility, 1, "oversized visibility lists must collapse to one fail-closed classification")
-	if len(tool.MCPApp.Visibility) == 1 {
-		assert.Equal(t, "app", tool.MCPApp.Visibility[0])
+	require.NotNil(t, tool.MCPAppMetadata())
+	assert.Equal(t, "ui://mcp-apps/view", tool.MCPAppMetadata().ResourceURI, "small resource URIs remain available when visibility is normalized")
+	assert.Len(t, tool.MCPAppMetadata().Visibility, 1, "oversized visibility lists must collapse to one fail-closed classification")
+	if len(tool.MCPAppMetadata().Visibility) == 1 {
+		assert.Equal(t, "app", tool.MCPAppMetadata().Visibility[0])
 	}
-	metadataJSON, err = json.Marshal(tool.MCPApp)
+	metadataJSON, err = json.Marshal(tool.MCPAppMetadata())
 	require.NoError(t, err)
 	assert.LessOrEqual(t, len(metadataJSON), maxCachedMCPAppDefinitionBytes)
 }

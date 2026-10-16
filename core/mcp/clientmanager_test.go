@@ -1654,14 +1654,17 @@ func (p *headerRewritingPipeline) RunMCPPostHooks(_ *schemas.BifrostContext, res
 func TestClearStaleNativeMCPAppResultAfterEffectiveChatRedaction(t *testing.T) {
 	original := &schemas.ChatMessage{Content: &schemas.ChatMessageContent{ContentStr: schemas.Ptr("private upstream result")}, ChatToolMessage: &schemas.ChatToolMessage{IsError: schemas.Ptr(false)}}
 	response := &schemas.BifrostMCPResponse{
-		ChatMessage:          original,
-		NativeMCPAppResult:   json.RawMessage(`{"content":[{"type":"text","text":"private upstream result"}],"isError":false}`),
-		NativeAppResultHash:  sha256.Sum256([]byte(`{"content":[{"type":"text","text":"private upstream result"}],"isError":false}`)),
-		NativeAppMessageHash: hashMCPAppMessage(original),
+		ChatMessage: original,
+		BifrostMCPExecuteToolResponse: &schemas.BifrostMCPExecuteToolResponse{
+			NativeMCPAppResult:   json.RawMessage(`{"content":[{"type":"text","text":"private upstream result"}],"isError":false}`),
+			NativeAppResultHash:  sha256.Sum256([]byte(`{"content":[{"type":"text","text":"private upstream result"}],"isError":false}`)),
+			NativeAppMessageHash: hashMCPAppMessage(original),
+		},
 	}
 	response.ChatMessage = &schemas.ChatMessage{Content: &schemas.ChatMessageContent{ContentStr: schemas.Ptr("redacted by post hook")}, ChatToolMessage: &schemas.ChatToolMessage{IsError: schemas.Ptr(true)}}
 	clearStaleNativeMCPAppResult(response)
-	assert.Empty(t, response.NativeMCPAppResult)
+	raw, _, _ := response.GetNativeMCPAppResult()
+	assert.Empty(t, raw)
 	assert.Equal(t, "redacted by post hook", *response.ChatMessage.Content.ContentStr)
 	assert.True(t, *response.ChatMessage.ChatToolMessage.IsError)
 }
@@ -1676,12 +1679,14 @@ func (p *mcpAppResourceTestPipeline) RunMCPPreHooks(_ *schemas.BifrostContext, _
 	if p.deny {
 		return nil, &schemas.MCPPluginShortCircuit{Error: &schemas.BifrostError{Error: &schemas.ErrorField{Message: "policy denied"}}}, 1
 	}
-	return nil, &schemas.MCPPluginShortCircuit{Response: &schemas.BifrostMCPResponse{MCPAppResourceResult: json.RawMessage(`{"contents":[{"uri":"ui://upstream/view","mimeType":"text/html;profile=mcp-app","text":"upstream secret"}]}`)}}, 1
+	response := &schemas.BifrostMCPResponse{}
+	response.SetMCPAppResourceResult(json.RawMessage(`{"contents":[{"uri":"ui://upstream/view","mimeType":"text/html;profile=mcp-app","text":"upstream secret"}]}`))
+	return nil, &schemas.MCPPluginShortCircuit{Response: response}, 1
 }
 
 func (p *mcpAppResourceTestPipeline) RunMCPPostHooks(_ *schemas.BifrostContext, response *schemas.BifrostMCPResponse, err *schemas.BifrostError, _ int) (*schemas.BifrostMCPResponse, *schemas.BifrostError) {
 	if !p.deny && response != nil {
-		response.MCPAppResourceResult = json.RawMessage(`{"contents":[{"uri":"ui://upstream/view","mimeType":"text/html;profile=mcp-app","text":"redacted"}]}`)
+		response.SetMCPAppResourceResult(json.RawMessage(`{"contents":[{"uri":"ui://upstream/view","mimeType":"text/html;profile=mcp-app","text":"redacted"}]}`))
 	}
 	return response, err
 }
@@ -1694,7 +1699,7 @@ func (*mcpAppResourceTestPipeline) RunMCPPostConnectionHooks(_ *schemas.BifrostC
 }
 
 func TestReadMCPAppResourceUsesMCPHooksAndHidesDenials(t *testing.T) {
-	tool := schemas.ChatTool{Type: schemas.ChatToolTypeFunction, Function: &schemas.ChatToolFunction{Name: "client-open_view"}, MCPApp: &schemas.MCPAppToolMetadata{ResourceURI: "ui://upstream/view", SourceClient: "client"}}
+	tool := schemas.ChatTool{Type: schemas.ChatToolTypeFunction, Function: &schemas.ChatToolFunction{Name: "client-open_view"}, Annotations: &schemas.MCPToolAnnotations{MCPApp: &schemas.MCPAppToolMetadata{ResourceURI: "ui://upstream/view", SourceClient: "client"}}}
 	m := NewMCPManager(context.Background(), schemas.MCPConfig{}, nil, &MockLogger{}, nil)
 	m.clientMap["client-id"] = &schemas.MCPClientState{Name: "client", ExecutionConfig: &schemas.MCPClientConfig{ID: "client-id", Name: "client", ToolsToExecute: schemas.WhiteList{"*"}}, ToolMap: map[string]schemas.ChatTool{"client-open_view": tool}, State: schemas.MCPConnectionStateHealthy}
 	pipeline := &mcpAppResourceTestPipeline{}

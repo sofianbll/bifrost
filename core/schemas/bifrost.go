@@ -1834,14 +1834,11 @@ type BifrostMCPResponse struct {
 
 	// [DEPRECATED] back-compat fields for execute-tool requests; will move into
 	// BifrostMCPExecuteToolResponse in the next major bump.
-	ChatMessage          *ChatMessage
-	ResponsesMessage     *ResponsesMessage
-	NativeMCPAppResult   json.RawMessage `json:"-"` // Upstream result for native Apps; never sent to providers.
-	MCPAppResourceResult json.RawMessage `json:"-"` // Effective resource result after MCP hooks.
-	NativeAppResultHash  [32]byte        `json:"-"`
-	NativeAppMessageHash [32]byte        `json:"-"`
+	ChatMessage      *ChatMessage
+	ResponsesMessage *ResponsesMessage
 
-	// Empty stub today; will hold ChatMessage/ResponsesMessage in the next major bump.
+	// Optional execute-tool payload. It remains nil unless an execute result has
+	// fields that need this shared carrier, including native MCP Apps metadata.
 	*BifrostMCPExecuteToolResponse
 
 	ExtraFields BifrostMCPResponseExtraFields
@@ -1906,9 +1903,78 @@ type SkippedMCPTool struct {
 	Reason       string `json:"reason"`
 }
 
-// Keeping the stub for now, will be used from the next major bump when we move ChatMessage
-// and ResponsesMessage into this struct.
+// This pointer is optional so non-execute MCP envelopes do not allocate the
+// execute-tool payload. ChatMessage and ResponsesMessage remain on the outer
+// envelope during the back-compat window.
 type BifrostMCPExecuteToolResponse struct {
+	NativeMCPAppResult   json.RawMessage `json:"-"` // Upstream result for native Apps; never sent to providers.
+	MCPAppResourceResult json.RawMessage `json:"-"` // Effective resource result after MCP hooks.
+	NativeAppResultHash  [32]byte        `json:"-"`
+	NativeAppMessageHash [32]byte        `json:"-"`
+}
+
+// MCPAppExecuteResult returns optional native Apps execution state without
+// requiring ordinary MCP responses to allocate the execute-tool stub.
+func (r *BifrostMCPResponse) MCPAppExecuteResult() *BifrostMCPExecuteToolResponse {
+	if r == nil {
+		return nil
+	}
+	return r.BifrostMCPExecuteToolResponse
+}
+
+// EnsureMCPAppExecuteResult allocates the execute-tool state only on native
+// Apps paths that actually need to retain extra wire data.
+func (r *BifrostMCPResponse) EnsureMCPAppExecuteResult() *BifrostMCPExecuteToolResponse {
+	if r == nil {
+		return nil
+	}
+	if r.BifrostMCPExecuteToolResponse == nil {
+		r.BifrostMCPExecuteToolResponse = &BifrostMCPExecuteToolResponse{}
+	}
+	return r.BifrostMCPExecuteToolResponse
+}
+
+// SetMCPAppResourceResult retains the effective resource JSON after hooks.
+func (r *BifrostMCPResponse) SetMCPAppResourceResult(result json.RawMessage) {
+	if r == nil {
+		return
+	}
+	r.EnsureMCPAppExecuteResult().MCPAppResourceResult = result
+}
+
+// GetMCPAppResourceResult returns the effective resource JSON after hooks.
+func (r *BifrostMCPResponse) GetMCPAppResourceResult() json.RawMessage {
+	if result := r.MCPAppExecuteResult(); result != nil {
+		return result.MCPAppResourceResult
+	}
+	return nil
+}
+
+// SetNativeMCPAppResult stores the native result and its effective-message
+// guards on the optional execute-tool payload.
+func (r *BifrostMCPResponse) SetNativeMCPAppResult(raw json.RawMessage, resultHash, messageHash [32]byte) {
+	if r == nil || len(raw) == 0 {
+		return
+	}
+	result := r.EnsureMCPAppExecuteResult()
+	result.NativeMCPAppResult = raw
+	result.NativeAppResultHash = resultHash
+	result.NativeAppMessageHash = messageHash
+}
+
+// GetNativeMCPAppResult returns the optional raw upstream result and guards.
+func (r *BifrostMCPResponse) GetNativeMCPAppResult() (json.RawMessage, [32]byte, [32]byte) {
+	if result := r.MCPAppExecuteResult(); result != nil {
+		return result.NativeMCPAppResult, result.NativeAppResultHash, result.NativeAppMessageHash
+	}
+	return nil, [32]byte{}, [32]byte{}
+}
+
+// ClearNativeMCPAppResult drops a stale upstream result after effective hooks.
+func (r *BifrostMCPResponse) ClearNativeMCPAppResult() {
+	if result := r.MCPAppExecuteResult(); result != nil {
+		result.NativeMCPAppResult = nil
+	}
 }
 
 // PopulateExtraFields backfills ExtraFields.{MCPRequestType, ClientName, ToolName}

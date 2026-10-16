@@ -255,10 +255,11 @@ func filterMCPAppResources(ctx context.Context, request, encoded []byte, manager
 	}
 	allowed := make(map[string]struct{})
 	for _, tool := range manager.GetAvailableMCPTools(ctx) {
-		if tool.Function == nil || tool.MCPApp == nil || tool.MCPApp.ResourceURI == "" {
+		appMetadata := tool.MCPAppMetadata()
+		if tool.Function == nil || appMetadata == nil || appMetadata.ResourceURI == "" {
 			continue
 		}
-		allowed[mcpAppGatewayURI(tool.MCPApp.SourceClient, tool.MCPApp.ResourceURI)] = struct{}{}
+		allowed[mcpAppGatewayURI(appMetadata.SourceClient, appMetadata.ResourceURI)] = struct{}{}
 	}
 	var wrapper map[string]json.RawMessage
 	if json.Unmarshal(encoded, &wrapper) != nil {
@@ -545,7 +546,7 @@ func (h *MCPServerHandler) buildServer(availableTools []schemas.ChatTool) *serve
 	// Register tools from all connected clients
 	hasMCPApps := false
 	for _, tool := range availableTools {
-		if tool.MCPApp != nil {
+		if tool.MCPAppMetadata() != nil {
 			hasMCPApps = true
 			break
 		}
@@ -561,7 +562,7 @@ func (h *MCPServerHandler) buildServer(availableTools []schemas.ChatTool) *serve
 
 		handler := func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			logger.Debug("[mcp-server] tool handler start tool=%q arg_count=%d", toolName, len(request.GetArguments()))
-			if tool.MCPApp != nil && !mcpToolVisibleToRequest(ctx, h.toolManager, toolName) {
+			if tool.MCPAppMetadata() != nil && !mcpToolVisibleToRequest(ctx, h.toolManager, toolName) {
 				return mcp.NewToolResultError("tool is unavailable"), nil
 			}
 			// Convert to Bifrost tool call format
@@ -661,25 +662,26 @@ func (h *MCPServerHandler) buildServer(availableTools []schemas.ChatTool) *serve
 			InputSchema: inputSchema,
 			Annotations: toolAnnotation,
 		}
-		if tool.MCPApp != nil {
-			if len(tool.MCPApp.RawDefinition) > 0 {
+		if appMetadata := tool.MCPAppMetadata(); appMetadata != nil {
+			if len(appMetadata.RawDefinition) > 0 {
 				var original mcp.Tool
-				if json.Unmarshal(tool.MCPApp.RawDefinition, &original) == nil {
+				if json.Unmarshal(appMetadata.RawDefinition, &original) == nil {
 					serverTool.Meta = original.Meta
 				}
 			}
 			gatewayURI := ""
-			if tool.MCPApp.ResourceURI != "" {
-				gatewayURI = mcpAppGatewayURI(tool.MCPApp.SourceClient, tool.MCPApp.ResourceURI)
+			if appMetadata.ResourceURI != "" {
+				gatewayURI = mcpAppGatewayURI(appMetadata.SourceClient, appMetadata.ResourceURI)
 			}
-			serverTool.Meta = qualifyMCPAppMetadata(serverTool.Meta, gatewayURI, tool.MCPApp.Visibility, tool.MCPApp.ModernURI, tool.MCPApp.LegacyURI)
+			serverTool.Meta = qualifyMCPAppMetadata(serverTool.Meta, gatewayURI, appMetadata.Visibility, appMetadata.ModernURI, appMetadata.LegacyURI)
 			if gatewayURI != "" {
+				upstreamURI := appMetadata.ResourceURI
 				mcpServer.AddResource(mcp.Resource{
 					URI:      gatewayURI,
 					Name:     toolName,
 					MIMEType: mcpAppsHTMLMIME,
 				}, func(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
-					if request.Params.URI != gatewayURI || !mcpAppToolVisible(ctx, h.toolManager, toolName, tool.MCPApp.ResourceURI) {
+					if request.Params.URI != gatewayURI || !mcpAppToolVisible(ctx, h.toolManager, toolName, upstreamURI) {
 						return nil, fmt.Errorf("resource is unavailable")
 					}
 					reader, ok := h.toolManager.(MCPAppResourceReader)
@@ -690,7 +692,7 @@ func (h *MCPServerHandler) buildServer(availableTools []schemas.ChatTool) *serve
 					if !ok {
 						bctx = schemas.NewBifrostContext(ctx, schemas.NoDeadline)
 					}
-					result, err := reader.ReadMCPAppResource(bctx, toolName, tool.MCPApp.ResourceURI)
+					result, err := reader.ReadMCPAppResource(bctx, toolName, upstreamURI)
 					if err != nil || result == nil {
 						return nil, fmt.Errorf("resource is unavailable")
 					}
@@ -714,7 +716,8 @@ func mcpToolVisibleToRequest(ctx context.Context, manager MCPToolManager, toolNa
 
 func mcpAppToolVisible(ctx context.Context, manager MCPToolManager, toolName, upstreamURI string) bool {
 	for _, visible := range manager.GetAvailableMCPTools(ctx) {
-		if visible.Function != nil && visible.Function.Name == toolName && visible.MCPApp != nil && visible.MCPApp.ResourceURI == upstreamURI {
+		appMetadata := visible.MCPAppMetadata()
+		if visible.Function != nil && visible.Function.Name == toolName && appMetadata != nil && appMetadata.ResourceURI == upstreamURI {
 			return true
 		}
 	}

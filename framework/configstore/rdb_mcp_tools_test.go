@@ -38,10 +38,10 @@ func TestUpdateMCPClientTools_TargetedColumnUpdate(t *testing.T) {
 		"app-open": {
 			Type:     "function",
 			Function: &schemas.ChatToolFunction{Name: "app-open"},
-			MCPApp: &schemas.MCPAppToolMetadata{
+			Annotations: &schemas.MCPToolAnnotations{MCPApp: &schemas.MCPAppToolMetadata{
 				RawDefinition: []byte(`{"name":"open","inputSchema":{"type":"object","properties":{}},"_meta":{"ui":{"resourceUri":"ui://app/open"}}}`),
 				ResourceURI:   "ui://app/open",
-			},
+			}},
 		},
 	}
 	mapping := map[string]string{"echo": "echo-server"}
@@ -253,9 +253,9 @@ func TestMCPAppToolMetadataSurvivesRefreshAndManagerReload(t *testing.T) {
 	initial, err := store.GetMCPClientConfigByID(ctx, clientID)
 	require.NoError(t, err)
 	initialTool := requireCacheLifecycleAppTool(t, initial.DiscoveredTools, clientName+"-open_view")
-	assert.Equal(t, oldURI, initialTool.MCPApp.ResourceURI)
-	assert.Contains(t, string(initialTool.MCPApp.RawDefinition), oldURI)
-	assert.Equal(t, []string{"app"}, initialTool.MCPApp.Visibility)
+	assert.Equal(t, oldURI, initialTool.MCPAppMetadata().ResourceURI)
+	assert.Contains(t, string(initialTool.MCPAppMetadata().RawDefinition), oldURI)
+	assert.Equal(t, []string{"app"}, initialTool.MCPAppMetadata().Visibility)
 	assert.Equal(t, "Open application", *initialTool.Function.Description)
 
 	initialRow, err := store.GetMCPClientByID(ctx, clientID)
@@ -288,9 +288,9 @@ func TestMCPAppToolMetadataSurvivesRefreshAndManagerReload(t *testing.T) {
 	}
 	require.NotNil(t, reloadedClient)
 	reloadedTool := requireCacheLifecycleAppTool(t, reloadedClient.DiscoveredTools, clientName+"-open_view")
-	assert.Equal(t, newURI, reloadedTool.MCPApp.ResourceURI)
-	assert.Contains(t, string(reloadedTool.MCPApp.RawDefinition), newURI)
-	assert.Equal(t, []string{"app"}, reloadedTool.MCPApp.Visibility)
+	assert.Equal(t, newURI, reloadedTool.MCPAppMetadata().ResourceURI)
+	assert.Contains(t, string(reloadedTool.MCPAppMetadata().RawDefinition), newURI)
+	assert.Equal(t, []string{"app"}, reloadedTool.MCPAppMetadata().Visibility)
 	assert.Equal(t, "Open application", *reloadedTool.Function.Description)
 	assert.Equal(t, initialTool.Function.Parameters, reloadedTool.Function.Parameters,
 		"metadata-only refresh must leave the ordinary tool schema unchanged")
@@ -306,10 +306,10 @@ func TestMCPAppToolMetadataSurvivesRefreshAndManagerReload(t *testing.T) {
 	publicCatalog := restarted.GetAvailableToolsForMCP(schemas.NewBifrostContext(ctx, schemas.NoDeadline))
 	publicTool := findCacheLifecycleTool(publicCatalog, clientName+"-open_view")
 	require.NotNil(t, publicTool, "reloaded manager must serve the cached app tool")
-	require.NotNil(t, publicTool.MCPApp)
-	assert.Equal(t, newURI, publicTool.MCPApp.ResourceURI)
-	assert.Contains(t, string(publicTool.MCPApp.RawDefinition), newURI)
-	assert.Equal(t, []string{"app"}, publicTool.MCPApp.Visibility)
+	require.NotNil(t, publicTool.MCPAppMetadata())
+	assert.Equal(t, newURI, publicTool.MCPAppMetadata().ResourceURI)
+	assert.Contains(t, string(publicTool.MCPAppMetadata().RawDefinition), newURI)
+	assert.Equal(t, []string{"app"}, publicTool.MCPAppMetadata().Visibility)
 	assert.Equal(t, "Open application", *publicTool.Function.Description)
 	assert.Equal(t, initialTool.Function.Parameters, publicTool.Function.Parameters)
 }
@@ -335,7 +335,7 @@ func requireCacheLifecycleAppTool(t *testing.T, tools map[string]schemas.ChatToo
 	require.NotNil(t, tool.Function)
 	require.NotNil(t, tool.Function.Description)
 	require.NotNil(t, tool.Function.Parameters)
-	require.NotNil(t, tool.MCPApp)
+	require.NotNil(t, tool.MCPAppMetadata())
 	return tool
 }
 

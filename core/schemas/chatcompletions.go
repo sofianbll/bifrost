@@ -402,11 +402,12 @@ const (
 )
 
 type MCPToolAnnotations struct {
-	Title           string `json:"title,omitempty"`           // Human-readable title for the tool
-	ReadOnlyHint    *bool  `json:"readOnlyHint,omitempty"`    // If true, the tool does not modify its environment
-	DestructiveHint *bool  `json:"destructiveHint,omitempty"` // If true, the tool may perform destructive updates
-	IdempotentHint  *bool  `json:"idempotentHint,omitempty"`  // If true, repeated calls with same args have no additional effect
-	OpenWorldHint   *bool  `json:"openWorldHint,omitempty"`   // If true, the tool interacts with external entities
+	Title           string              `json:"title,omitempty"`           // Human-readable title for the tool
+	ReadOnlyHint    *bool               `json:"readOnlyHint,omitempty"`    // If true, the tool does not modify its environment
+	DestructiveHint *bool               `json:"destructiveHint,omitempty"` // If true, the tool may perform destructive updates
+	IdempotentHint  *bool               `json:"idempotentHint,omitempty"`  // If true, repeated calls with same args have no additional effect
+	OpenWorldHint   *bool               `json:"openWorldHint,omitempty"`   // If true, the tool interacts with external entities
+	MCPApp          *MCPAppToolMetadata `json:"-"`                         // Native Apps relay/cache metadata; never forwarded to providers
 }
 
 // ChatTool represents a tool definition.
@@ -435,7 +436,6 @@ type ChatTool struct {
 	Custom       *ChatToolCustom     `json:"custom,omitempty"`        // Custom tool definition (shape 2)
 	CacheControl *CacheControl       `json:"cache_control,omitempty"` // Cache control for the tool
 	Annotations  *MCPToolAnnotations `json:"-"`                       // MCP tool annotations (Bifrost-internal, never forwarded to providers)
-	MCPApp       *MCPAppToolMetadata `json:"-"`                       // Original MCP metadata retained for the native MCP Apps relay/cache only
 
 	// Anthropic-native tool flags promoted to the neutral layer. All optional;
 	// ignored by providers that don't support them. Gating per ProviderFeatures
@@ -481,6 +481,34 @@ type ChatTool struct {
 	// the full tool marshal per request. nil for client-supplied tools, which
 	// marshal normally. Unexported so it never appears in JSON.
 	serialized []byte
+}
+
+// MCPAppMetadata returns relay metadata without adding per-tool storage to
+// the common ChatTool shape. App tools use the already optional annotations
+// pointer as their internal carrier.
+func (t *ChatTool) MCPAppMetadata() *MCPAppToolMetadata {
+	if t == nil || t.Annotations == nil {
+		return nil
+	}
+	return t.Annotations.MCPApp
+}
+
+// SetMCPAppMetadata stores relay metadata in the existing optional internal
+// annotations carrier. Nil metadata does not allocate that carrier.
+func (t *ChatTool) SetMCPAppMetadata(metadata *MCPAppToolMetadata) {
+	if t == nil {
+		return
+	}
+	if metadata == nil {
+		if t.Annotations != nil {
+			t.Annotations.MCPApp = nil
+		}
+		return
+	}
+	if t.Annotations == nil {
+		t.Annotations = &MCPToolAnnotations{}
+	}
+	t.Annotations.MCPApp = metadata
 }
 
 // MCPAppToolMetadata retains the upstream definition required by native MCP Apps.
@@ -615,7 +643,8 @@ func MarshalMCPAppToolCache(tools map[string]ChatTool) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		if tool.MCPApp == nil {
+		appMetadata := tool.MCPAppMetadata()
+		if appMetadata == nil {
 			out[name] = encoded
 			continue
 		}
@@ -623,7 +652,7 @@ func MarshalMCPAppToolCache(tools map[string]ChatTool) ([]byte, error) {
 		if err := json.Unmarshal(encoded, &fields); err != nil {
 			return nil, err
 		}
-		sidecar, err := MarshalSorted(tool.MCPApp)
+		sidecar, err := MarshalSorted(appMetadata)
 		if err != nil {
 			return nil, err
 		}
@@ -661,7 +690,7 @@ func UnmarshalMCPAppToolCache(data []byte, tools *map[string]ChatTool) error {
 		if err := json.Unmarshal(record, &sidecar); err != nil {
 			return err
 		}
-		tool.MCPApp = sidecar.MCPApp
+		tool.SetMCPAppMetadata(sidecar.MCPApp)
 		decoded[name] = tool
 	}
 	*tools = decoded

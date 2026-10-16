@@ -288,12 +288,13 @@ func (m *ToolsManager) getAvailableTools(ctx *schemas.BifrostContext, includeApp
 		// Add tools from this client, checking for duplicates
 		for _, tool := range clientTools {
 			if tool.Function != nil && tool.Function.Name != "" && !seenToolNames[tool.Function.Name] {
-				if !includeAppOnly && tool.MCPApp != nil && slices.Contains(tool.MCPApp.Visibility, "app") && !slices.Contains(tool.MCPApp.Visibility, "model") {
+				appMetadata := tool.MCPAppMetadata()
+				if !includeAppOnly && appMetadata != nil && slices.Contains(appMetadata.Visibility, "app") && !slices.Contains(appMetadata.Visibility, "model") {
 					continue
 				}
 				seenToolNames[tool.Function.Name] = true
 				schemas.AppendToContextList(ctx, schemas.BifrostContextKeyMCPAddedTools, tool.Function.Name)
-				if !client.ExecutionConfig.IsCodeModeClient || (includeAppOnly && tool.MCPApp != nil) {
+				if !client.ExecutionConfig.IsCodeModeClient || (includeAppOnly && appMetadata != nil) {
 					availableTools = append(availableTools, tool)
 				}
 			}
@@ -738,9 +739,7 @@ func (m *ToolsManager) ExecuteTool(
 			ExtraFields: extraFields,
 		}
 		if len(nativeAppResult) > 0 {
-			response.NativeMCPAppResult = nativeAppResult
-			response.NativeAppResultHash = sha256.Sum256(nativeAppResult)
-			response.NativeAppMessageHash = hashMCPAppMessage(chatResult)
+			response.SetNativeMCPAppResult(nativeAppResult, sha256.Sum256(nativeAppResult), hashMCPAppMessage(chatResult))
 		}
 		return response, nil
 	case schemas.MCPRequestTypeResponsesToolCall:

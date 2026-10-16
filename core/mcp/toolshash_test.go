@@ -35,8 +35,8 @@ func TestComputeToolsHash_DiffersOnContentChange(t *testing.T) {
 }
 
 func TestComputeToolsHash_IncludesCachedMCPAppsMetadata(t *testing.T) {
-	first := schemas.ChatTool{Type: "function", MCPApp: &schemas.MCPAppToolMetadata{ResourceURI: "ui://app/one"}}
-	refreshed := schemas.ChatTool{Type: "function", MCPApp: &schemas.MCPAppToolMetadata{ResourceURI: "ui://app/two"}}
+	first := schemas.ChatTool{Type: "function", Annotations: &schemas.MCPToolAnnotations{MCPApp: &schemas.MCPAppToolMetadata{ResourceURI: "ui://app/one"}}}
+	refreshed := schemas.ChatTool{Type: "function", Annotations: &schemas.MCPToolAnnotations{MCPApp: &schemas.MCPAppToolMetadata{ResourceURI: "ui://app/two"}}}
 
 	firstHash := computeToolsHash(map[string]schemas.ChatTool{"app-open": first}, nil, "")
 	refreshedHash := computeToolsHash(map[string]schemas.ChatTool{"app-open": refreshed}, nil, "")
@@ -54,8 +54,8 @@ func TestSetClientTools_MetadataOnlyChangeRefreshesCatalog(t *testing.T) {
 	m.SetToolsChangeCallback(func(string, string, map[string]schemas.ChatTool, map[string]string, string) { callCount++ })
 	tool := func(uri string) map[string]schemas.ChatTool {
 		return map[string]schemas.ChatTool{"app-client-open": {
-			Type:   schemas.ChatToolTypeFunction,
-			MCPApp: &schemas.MCPAppToolMetadata{ResourceURI: uri},
+			Type:        schemas.ChatToolTypeFunction,
+			Annotations: &schemas.MCPToolAnnotations{MCPApp: &schemas.MCPAppToolMetadata{ResourceURI: uri}},
 		}}
 	}
 	m.SetClientTools(config.ID, tool("ui://one"), nil, "")

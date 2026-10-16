@@ -1069,6 +1069,12 @@ func convertMCPToolToBifrostSchema(mcpTool *mcp.Tool, logger schemas.Logger) sch
 				appMetadata = boundedMCPAppToolMetadata(rawDefinition, resourceURI, visibility, modernURI, legacyURI)
 			}
 		}
+		if appMetadata != nil {
+			if annotations == nil {
+				annotations = &schemas.MCPToolAnnotations{}
+			}
+			annotations.MCPApp = appMetadata
+		}
 	}
 
 	return schemas.ChatTool{
@@ -1084,7 +1090,6 @@ func convertMCPToolToBifrostSchema(mcpTool *mcp.Tool, logger schemas.Logger) sch
 			},
 		},
 		Annotations: annotations,
-		MCPApp:      appMetadata,
 	}
 }
 
