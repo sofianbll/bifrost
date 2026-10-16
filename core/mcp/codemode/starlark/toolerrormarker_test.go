@@ -4,10 +4,14 @@ package starlark
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/mark3labs/mcp-go/client"
+	mcpgo "github.com/mark3labs/mcp-go/mcp"
+	mcpserver "github.com/mark3labs/mcp-go/server"
 	codemcp "github.com/maximhq/bifrost/core/mcp"
 	"github.com/maximhq/bifrost/core/schemas"
 )
@@ -111,5 +115,168 @@ func TestHandleExecuteToolCodeMarksSandboxErrors(t *testing.T) {
 	if msg.ChatToolMessage.IsError == nil || !*msg.ChatToolMessage.IsError {
 		t.Fatalf("a failed sandbox execution must set IsError true, got %v content=%v",
 			msg.ChatToolMessage.IsError, msg.Content)
+	}
+}
+
+type protocolErrorClientManager struct {
+	*testClientManager
+	conn *client.Client
+}
+
+func (m *protocolErrorClientManager) AcquireClientConn(_ *schemas.BifrostContext, _ *schemas.MCPClientState) (*client.Client, func(), error) {
+	return m.conn, func() {}, nil
+}
+
+func TestExecuteToolCodeCanUseProtocolMarkedRemoteErrorsAsValues(t *testing.T) {
+	for _, tc := range []struct {
+		name, text string
+		isError    bool
+		wireError  bool
+	}{
+		{name: "unmarked Error prefix is a value", text: "Error: remote rejected"},
+		{name: "protocol error without Error prefix", text: "remote rejected", isError: true},
+		{name: "protocol error with Error prefix", text: "Error: remote rejected", isError: true},
+		{name: "native JSON-RPC error remains a failure", text: "remote transport failed", wireError: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			remote := mcpserver.NewMCPServer("remote", "test", mcpserver.WithToolCapabilities(true))
+			remote.AddTool(mcpgo.NewTool("lookup"), func(context.Context, mcpgo.CallToolRequest) (*mcpgo.CallToolResult, error) {
+				if tc.wireError {
+					return nil, errors.New(tc.text)
+				}
+				return &mcpgo.CallToolResult{IsError: tc.isError, Content: []mcpgo.Content{mcpgo.TextContent{Type: "text", Text: tc.text}}}, nil
+			})
+			conn, err := client.NewInProcessClient(remote)
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() { _ = conn.Close() })
+			if err := conn.Start(context.Background()); err != nil {
+				t.Fatal(err)
+			}
+			initReq := mcpgo.InitializeRequest{}
+			initReq.Params.ProtocolVersion = mcpgo.LATEST_PROTOCOL_VERSION
+			initReq.Params.ClientInfo = mcpgo.Implementation{Name: "test", Version: "1"}
+			if _, err := conn.Initialize(context.Background(), initReq); err != nil {
+				t.Fatal(err)
+			}
+			if !tc.wireError {
+				direct, directErr := conn.CallTool(context.Background(), mcpgo.CallToolRequest{
+					Request: mcpgo.Request{Method: string(mcpgo.MethodToolsCall)},
+					Params:  mcpgo.CallToolParams{Name: "lookup", Arguments: map[string]interface{}{}},
+				})
+				if directErr != nil || direct == nil || direct.IsError != tc.isError {
+					t.Fatalf("fixture did not return its declared MCP result: result=%+v err=%v", direct, directErr)
+				}
+			}
+
+			state := &schemas.MCPClientState{
+				Name: "server",
+				ExecutionConfig: &schemas.MCPClientConfig{
+					Name: "server", IsCodeModeClient: true, ToolsToExecute: schemas.WhiteList{"*"},
+				},
+			}
+			manager := &protocolErrorClientManager{
+				testClientManager: &testClientManager{
+					clients: map[string]*schemas.MCPClientState{"server": state},
+					tools:   map[string][]schemas.ChatTool{"server": {{Function: &schemas.ChatToolFunction{Name: "lookup"}}}},
+				},
+				conn: conn,
+			}
+			mode := NewStarlarkCodeMode(&codemcp.CodeModeConfig{BindingLevel: schemas.CodeModeBindingLevelTool, ToolExecutionTimeout: time.Second}, nil)
+			mode.clientManager = manager
+			call := schemas.ChatAssistantMessageToolCall{
+				ID: schemas.Ptr("protocol-error-value"),
+				Function: schemas.ChatAssistantMessageToolCallFunction{
+					Name: schemas.Ptr("executeToolCode"), Arguments: `{"code":"result = server.lookup()"}`,
+				},
+			}
+			msg, err := mode.handleExecuteToolCode(schemas.NewBifrostContext(context.Background(), schemas.NoDeadline), call)
+			if err != nil {
+				t.Fatalf("script should consume the remote error value: %v", err)
+			}
+			if msg == nil || msg.ChatToolMessage == nil || msg.Content == nil || msg.Content.ContentStr == nil {
+				t.Fatalf("expected successful outer tool result, got %+v", msg)
+			}
+			outerIsError := msg.IsError != nil && *msg.IsError
+			if outerIsError != tc.wireError {
+				t.Fatalf("outer isError=%v, want %v: %q", outerIsError, tc.wireError, *msg.Content.ContentStr)
+			}
+			if !tc.wireError && !strings.Contains(*msg.Content.ContentStr, tc.text) {
+				t.Fatalf("remote error value %q was not available to the script: %q", tc.text, *msg.Content.ContentStr)
+			}
+		})
+	}
+}
+
+// BenchmarkCodeModeNestedToolResponse exercises executeToolCode through its
+// real MCP client boundary for the normal result and protocol error value paths.
+func BenchmarkCodeModeNestedToolResponse(b *testing.B) {
+	for _, tc := range []struct {
+		name    string
+		text    string
+		isError bool
+	}{
+		{name: "success", text: "42"},
+		{name: "protocol_error_value", text: "Error: remote rejected", isError: true},
+	} {
+		b.Run(tc.name, func(b *testing.B) {
+			benchmarkCodeModeNestedToolResponse(b, tc.text, tc.isError)
+		})
+	}
+}
+
+func benchmarkCodeModeNestedToolResponse(b *testing.B, text string, isError bool) {
+	remote := mcpserver.NewMCPServer("remote", "test", mcpserver.WithToolCapabilities(true))
+	remote.AddTool(mcpgo.NewTool("lookup"), func(context.Context, mcpgo.CallToolRequest) (*mcpgo.CallToolResult, error) {
+		return &mcpgo.CallToolResult{IsError: isError, Content: []mcpgo.Content{
+			mcpgo.TextContent{Type: "text", Text: text},
+		}}, nil
+	})
+	conn, err := client.NewInProcessClient(remote)
+	if err != nil {
+		b.Fatal(err)
+	}
+	b.Cleanup(func() { _ = conn.Close() })
+	if err := conn.Start(context.Background()); err != nil {
+		b.Fatal(err)
+	}
+	initReq := mcpgo.InitializeRequest{}
+	initReq.Params.ProtocolVersion = mcpgo.LATEST_PROTOCOL_VERSION
+	initReq.Params.ClientInfo = mcpgo.Implementation{Name: "benchmark", Version: "1"}
+	if _, err := conn.Initialize(context.Background(), initReq); err != nil {
+		b.Fatal(err)
+	}
+	state := &schemas.MCPClientState{
+		Name: "server",
+		ExecutionConfig: &schemas.MCPClientConfig{
+			Name: "server", IsCodeModeClient: true, ToolsToExecute: schemas.WhiteList{"*"},
+		},
+	}
+	manager := &protocolErrorClientManager{
+		testClientManager: &testClientManager{
+			clients: map[string]*schemas.MCPClientState{"server": state},
+			tools:   map[string][]schemas.ChatTool{"server": {{Function: &schemas.ChatToolFunction{Name: "lookup"}}}},
+		},
+		conn: conn,
+	}
+	mode := NewStarlarkCodeMode(&codemcp.CodeModeConfig{
+		BindingLevel: schemas.CodeModeBindingLevelTool, ToolExecutionTimeout: time.Second,
+	}, nil)
+	mode.clientManager = manager
+	call := schemas.ChatAssistantMessageToolCall{
+		ID: schemas.Ptr("bench"),
+		Function: schemas.ChatAssistantMessageToolCallFunction{
+			Name: schemas.Ptr("executeToolCode"), Arguments: `{"code":"result = server.lookup()"}`,
+		},
+	}
+	ctx := schemas.NewBifrostContext(context.Background(), schemas.NoDeadline)
+	b.ReportAllocs()
+	b.ResetTimer()
+	for b.Loop() {
+		msg, err := mode.handleExecuteToolCode(ctx, call)
+		if err != nil || msg == nil || msg.Content == nil || msg.Content.ContentStr == nil {
+			b.Fatalf("nested protocol error benchmark failed: msg=%+v err=%v", msg, err)
+		}
 	}
 }
