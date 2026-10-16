@@ -17,6 +17,7 @@ import tempfile
 import time
 import urllib.error
 import urllib.request
+from unittest.mock import patch
 
 ROOT = Path(os.environ["BIFROST_REPO_ROOT"])
 FIXTURE_NAMES = ("mcp_apps_fixture", "mcp_apps_fixture_second", "mcp_apps_fixture_modern", "errorTestServer")
@@ -287,6 +288,26 @@ def require_same_container(before, after):
     if not before or before != after:
         raise RuntimeError("firstboot-grants restart changed the disposable container identity")
     return True
+
+
+def parse_published_endpoint(output):
+    if not isinstance(output, str):
+        raise RuntimeError("docker port returned a non-text published endpoint")
+    lines = [line.strip() for line in output.splitlines() if line.strip()]
+    if len(lines) != 1:
+        raise RuntimeError(f"expected one published loopback endpoint for 8080/tcp, got {len(lines)}")
+    match = re.fullmatch(r"127\.0\.0\.1:(\d+)", lines[0])
+    if not match:
+        raise RuntimeError(f"published endpoint is not bound to the expected loopback address: {lines[0]}")
+    port = int(match.group(1))
+    if not 1 <= port <= 65535:
+        raise RuntimeError(f"published endpoint port is outside the valid range: {port}")
+    return {"host": "127.0.0.1", "port": port, "url": f"http://127.0.0.1:{port}"}
+
+
+def published_endpoint(container, env):
+    output = subprocess.check_output(["docker", "port", container, "8080/tcp"], text=True, env=env)
+    return parse_published_endpoint(output)
 
 
 def firstboot_comparison_classification(phase, candidate_gate):
@@ -780,6 +801,27 @@ def self_check():
         pass
     else:
         raise AssertionError("firstboot restart self-check accepted a replacement container")
+    mocked_env = {"PATH": "/usr/bin:/bin"}
+    port_outputs = ["127.0.0.1:32768\n", "127.0.0.1:32769\n",
+                    "127.0.0.1:32769\n", "127.0.0.1:32769\n"]
+    with patch.object(subprocess, "check_output", side_effect=port_outputs) as mocked_docker_port:
+        initial_endpoint = published_endpoint("fixture-container", mocked_env)
+        changed_endpoint = published_endpoint("fixture-container", mocked_env)
+        same_endpoint = published_endpoint("fixture-container", mocked_env)
+        same_endpoint_again = published_endpoint("fixture-container", mocked_env)
+    assert initial_endpoint["url"] == "http://127.0.0.1:32768"
+    assert changed_endpoint["url"] == "http://127.0.0.1:32769"
+    assert same_endpoint["url"] == same_endpoint_again["url"]
+    assert mocked_docker_port.call_count == 4
+    for malformed_endpoint in ("", "0.0.0.0:32768\n", "127.0.0.1:0\n",
+                               "127.0.0.1:65536\n", "127.0.0.1:32768\n127.0.0.1:32769\n"):
+        with patch.object(subprocess, "check_output", return_value=malformed_endpoint):
+            try:
+                published_endpoint("fixture-container", mocked_env)
+            except RuntimeError:
+                pass
+            else:
+                raise AssertionError(f"malformed Docker port mapping was accepted: {malformed_endpoint!r}")
     assert firstboot_comparison_classification("firstboot", "candidate-green") == "fixed"
     assert firstboot_comparison_classification("firstboot", "expected-stock-red") == "unresolved"
     assert firstboot_comparison_classification("restart", "candidate-green") == "green-control"
@@ -1278,7 +1320,7 @@ def wait_health(url):
         except (OSError, urllib.error.URLError):
             time.sleep(1)
     else:
-        raise RuntimeError("gateway /health did not become ready within 180 seconds")
+        raise RuntimeError(f"gateway /health did not become ready at {url} within 180 seconds")
 
 
 def ready_characterization(url):
@@ -1599,30 +1641,61 @@ def main(args):
                             "-w", "/repo/transports/bifrost-http", image],
                            cwd=ROOT, env=env, check=True, stdout=subprocess.DEVNULL)
             container_started = True
-            port_line = subprocess.check_output(["docker", "port", container, "8080/tcp"], text=True).splitlines()[0]
-            port = int(port_line.rsplit(":", 1)[1])
-            base_url = f"http://127.0.0.1:{port}"
+            initial_endpoint = published_endpoint(container, env)
+            base_url = initial_endpoint["url"]
             if firstboot:
                 run_reference_host(report_dir, base_url, source_identities, baseline, scopes)
                 observations = {}
                 container_ids = {}
                 classifications = {}
                 for phase in ("firstboot", "restart"):
-                    if phase == "restart":
-                        container_ids["before_restart"] = container_identity(container, app_dir, env)
-                        subprocess.check_output(["docker", "restart", container], text=True, env=env)
-                        container_ids["after_restart"] = container_identity(container, app_dir, env)
-                        require_same_container(container_ids["before_restart"], container_ids["after_restart"])
                     prefix = "stock-" if baseline else ""
+                    phase_stem = f"{contract['scope']}-{phase}"
+                    endpoint_transition = {}
+                    if phase == "restart":
+                        before_state = {"container_id": container_identity(container, app_dir, env),
+                                        "published_endpoint": published_endpoint(container, env)}
+                        base_url = before_state["published_endpoint"]["url"]
+                        container_ids["before_restart"] = before_state["container_id"]
+                        after_state = {}
+                        try:
+                            subprocess.check_output(["docker", "restart", container], text=True, env=env)
+                            container_ids["after_restart"] = container_identity(container, app_dir, env)
+                            after_state["container_id"] = container_ids["after_restart"]
+                            after_state["published_endpoint"] = published_endpoint(container, env)
+                            require_same_container(container_ids["before_restart"], container_ids["after_restart"])
+                        except Exception as error:
+                            failed_transition = {"phase": phase, "before_restart": before_state,
+                                                 "after_restart": after_state,
+                                                 "after_restart_error": redact(str(error)),
+                                                 "app_dir": str(app_dir.resolve()),
+                                                 "source_identities": source_identities}
+                            (report_dir / f"{prefix}{phase_stem}-endpoint.json").write_text(
+                                json.dumps(failed_transition, indent=2) + "\n")
+                            raise
+                        endpoint_transition = {"before_restart": before_state, "after_restart": after_state,
+                                               "same_container": True}
+                        base_url = after_state["published_endpoint"]["url"]
+                        container_ids["after_restart"] = after_state["container_id"]
+                    else:
+                        endpoint_transition = {"current": {"container_id": container_identity(container, app_dir, env),
+                                                            "published_endpoint": initial_endpoint}}
+                    endpoint_evidence = {"phase": phase, "endpoint_transition": endpoint_transition,
+                                         "app_dir": str(app_dir.resolve()),
+                                         "source_identities": source_identities}
+                    # Preserve the endpoint and container identity even if a
+                    # subsequent health or source-discovery wait times out.
+                    (report_dir / f"{prefix}{phase_stem}-endpoint.json").write_text(
+                        json.dumps(endpoint_evidence, indent=2) + "\n")
                     readiness_path = report_dir / f"{prefix}{contract['scope']}-{phase}-source-discovery.json"
                     ready_firstboot_fixture_catalog(base_url, contract, readiness_path)
                     snapshot = wait_file_declared_virtual_mcp(base_url, contract)
-                    phase_stem = f"{contract['scope']}-{phase}"
                     observation_path = report_dir / (("stock-" if baseline else "") +
                                                      f"{phase_stem}-setup.json")
                     observation_path.write_text(json.dumps({"phase": phase, "setup_api_read_only": True,
                                                             "virtual_mcp": snapshot,
                                                             "container_id": container_identity(container, app_dir, env),
+                                                            "endpoint_transition": endpoint_transition,
                                                             "app_dir": str(app_dir.resolve()),
                                                             "source_identities": source_identities}, indent=2) + "\n")
                     report_data, rc = run_firstboot_harness_phase(
