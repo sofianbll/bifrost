@@ -331,6 +331,176 @@ func BenchmarkMCPHTTPNoApp(b *testing.B) {
 	}
 }
 
+// BenchmarkMCPHTTPAppToolCall measures a native MCP Apps tools/call through
+// the public HTTP handler, including gateway admission, dispatch, and response
+// encoding. The untimed catalog/result preflight proves this is the App path.
+func BenchmarkMCPHTTPAppToolCall(b *testing.B) {
+	const (
+		toolName    = "fixture-open_view"
+		upstreamURI = "ui://fixture/view"
+	)
+	tool := schemas.ChatTool{
+		Type: schemas.ChatToolTypeFunction,
+		Function: &schemas.ChatToolFunction{
+			Name: toolName,
+			Parameters: &schemas.ToolFunctionParameters{
+				Type: "object",
+				Properties: schemas.NewOrderedMapFromPairs(
+					schemas.KV("prompt", map[string]any{"type": "string"}),
+				),
+				Required: []string{"prompt"},
+			},
+		},
+		Annotations: &schemas.MCPToolAnnotations{MCPApp: &schemas.MCPAppToolMetadata{
+			RawDefinition: []byte(`{"name":"open_view","inputSchema":{"type":"object","properties":{"prompt":{"type":"string"}},"required":["prompt"]},"_meta":{"ui":{"resourceUri":"ui://fixture/view","visibility":["app"]}}}`),
+			ResourceURI:   upstreamURI, SourceClient: "fixture", Visibility: []string{"app"}, ModernURI: true,
+		}},
+	}
+	tm := &mcpAppsToolManager{
+		tools:        []schemas.ChatTool{tool},
+		nativeResult: json.RawMessage(`{"content":[{"type":"text","text":"native app result"}],"structuredContent":{"accepted":true},"_meta":{"fixture":"native"}}`),
+		message:      &schemas.ChatMessage{Content: &schemas.ChatMessageContent{ContentStr: schemas.Ptr("compatibility result")}},
+	}
+	h := &MCPServerHandler{toolManager: tm, config: &lib.Config{ClientConfig: &configstore.ClientConfig{}}}
+	h.mcpServer.Store(h.buildServer(tm.tools))
+	ctx := &fasthttp.RequestCtx{}
+	ctx.Request.SetRequestURI("/mcp")
+	ctx.Request.Header.SetMethod(fasthttp.MethodPost)
+	request := []byte(`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"fixture-open_view","arguments":{"prompt":"hello"}}}`)
+	ctx.Request.SetBody(request)
+	ctx.Response.Reset()
+	h.handleMCPServer(ctx)
+	if ctx.Response.StatusCode() != fasthttp.StatusOK {
+		b.Fatalf("preflight returned HTTP status %d: %s", ctx.Response.StatusCode(), ctx.Response.Body())
+	}
+	var preflight struct {
+		Error  json.RawMessage `json:"error"`
+		Result struct {
+			Content []struct {
+				Text string `json:"text"`
+			} `json:"content"`
+			Structured map[string]bool   `json:"structuredContent"`
+			Meta       map[string]string `json:"_meta"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(ctx.Response.Body(), &preflight); err != nil {
+		b.Fatalf("preflight response is not JSON: %v: %s", err, ctx.Response.Body())
+	}
+	if len(preflight.Error) != 0 && string(preflight.Error) != "null" {
+		b.Fatalf("preflight returned JSON-RPC error: %s", preflight.Error)
+	}
+	if len(preflight.Result.Content) != 1 || preflight.Result.Content[0].Text != "native app result" || !preflight.Result.Structured["accepted"] || preflight.Result.Meta["fixture"] != "native" {
+		b.Fatalf("preflight did not return the native App result (compatibility fallback is not representative): %s", ctx.Response.Body())
+	}
+	list := &fasthttp.RequestCtx{}
+	list.Request.SetRequestURI("/mcp")
+	list.Request.Header.SetMethod(fasthttp.MethodPost)
+	list.Request.SetBody([]byte(`{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}`))
+	h.handleMCPServer(list)
+	var catalog struct {
+		Result struct {
+			Tools []struct {
+				Name        string `json:"name"`
+				InputSchema struct {
+					Properties map[string]struct {
+						Type string `json:"type"`
+					} `json:"properties"`
+				} `json:"inputSchema"`
+				Meta struct {
+					UI struct {
+						ResourceURI string   `json:"resourceUri"`
+						Visibility  []string `json:"visibility"`
+					} `json:"ui"`
+				} `json:"_meta"`
+			} `json:"tools"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(list.Response.Body(), &catalog); err != nil || len(catalog.Result.Tools) != 1 {
+		b.Fatalf("preflight tool catalog decode failed: %v: %s", err, list.Response.Body())
+	}
+	listed := catalog.Result.Tools[0]
+	if listed.Name != toolName || listed.InputSchema.Properties["prompt"].Type != "string" || listed.Meta.UI.ResourceURI != mcpAppGatewayURI("fixture", upstreamURI) || len(listed.Meta.UI.Visibility) != 1 || listed.Meta.UI.Visibility[0] != "app" {
+		b.Fatalf("preflight did not exercise the expected native App schema and metadata: %+v", listed)
+	}
+	b.ReportAllocs()
+	b.ResetTimer()
+	for b.Loop() {
+		ctx.Response.Reset()
+		h.handleMCPServer(ctx)
+		if ctx.Response.StatusCode() != fasthttp.StatusOK {
+			b.Fatalf("unexpected HTTP status: %d", ctx.Response.StatusCode())
+		}
+	}
+}
+
+// BenchmarkMCPHTTPAppResourceRead measures the source-qualified native App
+// resources/read path through the public HTTP handler.
+func BenchmarkMCPHTTPAppResourceRead(b *testing.B) {
+	const upstreamURI = "ui://fixture/view"
+	tool := schemas.ChatTool{
+		Type:        schemas.ChatToolTypeFunction,
+		Function:    &schemas.ChatToolFunction{Name: "fixture-open_view", Parameters: &schemas.ToolFunctionParameters{Type: "object", Properties: schemas.NewOrderedMapFromPairs()}},
+		Annotations: &schemas.MCPToolAnnotations{MCPApp: &schemas.MCPAppToolMetadata{ResourceURI: upstreamURI, SourceClient: "fixture", Visibility: []string{"app"}, ModernURI: true}},
+	}
+	tm := &mcpAppsToolManager{tools: []schemas.ChatTool{tool}}
+	h := &MCPServerHandler{toolManager: tm, config: &lib.Config{ClientConfig: &configstore.ClientConfig{}}}
+	h.mcpServer.Store(h.buildServer(tm.tools))
+	gatewayURI := mcpAppGatewayURI("fixture", upstreamURI)
+	readRequest := []byte(fmt.Sprintf(`{"jsonrpc":"2.0","id":1,"method":"resources/read","params":{"uri":%q}}`, gatewayURI))
+	ctx := &fasthttp.RequestCtx{}
+	ctx.Request.SetRequestURI("/mcp")
+	ctx.Request.Header.SetMethod(fasthttp.MethodPost)
+	ctx.Request.SetBody(readRequest)
+	h.handleMCPServer(ctx)
+	if ctx.Response.StatusCode() != fasthttp.StatusOK {
+		b.Fatalf("preflight returned HTTP status %d: %s", ctx.Response.StatusCode(), ctx.Response.Body())
+	}
+	var preflight struct {
+		Error  json.RawMessage `json:"error"`
+		Result struct {
+			Contents []struct {
+				URI  string `json:"uri"`
+				MIME string `json:"mimeType"`
+				Text string `json:"text"`
+			} `json:"contents"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(ctx.Response.Body(), &preflight); err != nil {
+		b.Fatalf("preflight response is not JSON: %v: %s", err, ctx.Response.Body())
+	}
+	if len(preflight.Error) != 0 && string(preflight.Error) != "null" {
+		b.Fatalf("preflight returned JSON-RPC error: %s", preflight.Error)
+	}
+	if len(preflight.Result.Contents) != 1 || preflight.Result.Contents[0].URI != gatewayURI || preflight.Result.Contents[0].MIME != "text/html;profile=mcp-app" || preflight.Result.Contents[0].Text != "<html>app</html>" {
+		b.Fatalf("preflight did not read the source-qualified App resource: %s", ctx.Response.Body())
+	}
+	list := &fasthttp.RequestCtx{}
+	list.Request.SetRequestURI("/mcp")
+	list.Request.Header.SetMethod(fasthttp.MethodPost)
+	list.Request.SetBody([]byte(`{"jsonrpc":"2.0","id":2,"method":"resources/list","params":{}}`))
+	h.handleMCPServer(list)
+	var catalog struct {
+		Result struct {
+			Resources []struct {
+				URI  string `json:"uri"`
+				MIME string `json:"mimeType"`
+			} `json:"resources"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(list.Response.Body(), &catalog); err != nil || len(catalog.Result.Resources) != 1 || catalog.Result.Resources[0].URI != gatewayURI || catalog.Result.Resources[0].MIME != "text/html;profile=mcp-app" {
+		b.Fatalf("preflight did not advertise the intended App resource: %v: %s", err, list.Response.Body())
+	}
+	b.ReportAllocs()
+	b.ResetTimer()
+	for b.Loop() {
+		ctx.Response.Reset()
+		h.handleMCPServer(ctx)
+		if ctx.Response.StatusCode() != fasthttp.StatusOK {
+			b.Fatalf("unexpected HTTP status: %d", ctx.Response.StatusCode())
+		}
+	}
+}
+
 type mcpAppsToolManager struct {
 	tools        []schemas.ChatTool
 	nativeResult json.RawMessage

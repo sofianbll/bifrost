@@ -145,6 +145,83 @@ func TestExecuteMCPAppToolPreservesNativeFieldsAndDropsStaleHookOutput(t *testin
 	assert.True(t, *message.ChatToolMessage.IsError)
 }
 
+// BenchmarkMCPAppCoreNativePaths exercises the real MCP client, permission,
+// execution, and plugin-pipeline paths behind App tool/resource requests. The
+// local upstream fixture and connection setup stay outside the timed loops.
+func BenchmarkMCPAppCoreNativePaths(b *testing.B) {
+	const (
+		clientName  = "native-app-benchmark"
+		toolName    = "open_view"
+		resourceURI = "ui://fixture/view"
+	)
+	s := server.NewMCPServer("native-app-benchmark", "1.0.0", server.WithToolCapabilities(true), server.WithResourceCapabilities(true, false))
+	appTool := mcpgo.NewTool(toolName)
+	appTool.Meta = &mcpgo.Meta{AdditionalFields: map[string]any{"ui": map[string]any{"resourceUri": resourceURI, "visibility": []string{"app"}}}}
+	s.AddTool(appTool, func(context.Context, mcpgo.CallToolRequest) (*mcpgo.CallToolResult, error) {
+		result := mcpgo.NewToolResultStructured(map[string]any{"accepted": true}, "native fixture result")
+		result.Meta = &mcpgo.Meta{AdditionalFields: map[string]any{"fixture": "native"}}
+		return result, nil
+	})
+	s.AddResource(mcpgo.NewResource(resourceURI, "Fixture App", mcpgo.WithMIMEType("text/html;profile=mcp-app")), func(_ context.Context, request mcpgo.ReadResourceRequest) ([]mcpgo.ResourceContents, error) {
+		if request.Params.URI != resourceURI {
+			return nil, fmt.Errorf("unexpected resource URI %q", request.Params.URI)
+		}
+		return []mcpgo.ResourceContents{mcpgo.TextResourceContents{URI: resourceURI, MIMEType: "text/html;profile=mcp-app", Text: "<html>native fixture</html>"}}, nil
+	})
+	httpServer := httptest.NewServer(server.NewStreamableHTTPServer(s))
+	b.Cleanup(httpServer.Close)
+	m := NewMCPManager(context.Background(), schemas.MCPConfig{}, nil, &MockLogger{}, nil)
+	b.Cleanup(func() { _ = m.Cleanup() })
+	noOpPipeline := &nativeResultMutationPipeline{}
+	m.SetPluginPipeline(func() PluginPipeline { return noOpPipeline }, func(PluginPipeline) {})
+	config := newRecoveryClientConfig("client-native-app-benchmark", clientName, httpServer.URL)
+	if err := m.connectToMCPClient(context.Background(), config); err != nil {
+		b.Fatalf("connect local native App fixture: %v", err)
+	}
+	canonicalName := clientName + "-" + toolName
+	ctx := schemas.NewBifrostContext(context.Background(), schemas.NoDeadline)
+	call := &schemas.ChatAssistantMessageToolCall{Function: schemas.ChatAssistantMessageToolCallFunction{Name: &canonicalName, Arguments: "{}"}}
+	message, native, bErr := m.ExecuteMCPAppTool(ctx, call)
+	if bErr != nil || message == nil {
+		b.Fatalf("native App tool preflight failed: message=%+v error=%v", message, bErr)
+	}
+	var nativeFields map[string]any
+	if err := json.Unmarshal(native, &nativeFields); err != nil {
+		b.Fatalf("native App result was not JSON: %v: %s", err, native)
+	}
+	if nativeFields["structuredContent"] == nil || nativeFields["_meta"] == nil {
+		b.Fatalf("native App execution did not return structuredContent and metadata: %s", native)
+	}
+	resource, err := m.ReadMCPAppResource(ctx, canonicalName, resourceURI)
+	if err != nil || resource == nil || len(resource.Contents) != 1 {
+		b.Fatalf("native App resource preflight failed: resource=%+v error=%v", resource, err)
+	}
+	contents, ok := resource.Contents[0].(mcpgo.TextResourceContents)
+	if !ok || contents.URI != resourceURI || contents.MIMEType != "text/html;profile=mcp-app" || contents.Text != "<html>native fixture</html>" {
+		b.Fatalf("native App resource preflight returned unexpected payload: %#v", resource.Contents[0])
+	}
+	b.Run("tools_call", func(b *testing.B) {
+		b.ReportAllocs()
+		b.ResetTimer()
+		for b.Loop() {
+			message, native, bErr := m.ExecuteMCPAppTool(ctx, call)
+			if bErr != nil || message == nil || len(native) == 0 {
+				b.Fatalf("native App tool request failed: message=%+v error=%v", message, bErr)
+			}
+		}
+	})
+	b.Run("resources_read", func(b *testing.B) {
+		b.ReportAllocs()
+		b.ResetTimer()
+		for b.Loop() {
+			resource, err := m.ReadMCPAppResource(ctx, canonicalName, resourceURI)
+			if err != nil || resource == nil || len(resource.Contents) != 1 {
+				b.Fatalf("native App resource request failed: resource=%+v error=%v", resource, err)
+			}
+		}
+	})
+}
+
 // TestExecuteTool_DeadSession_SalvagesTheCallForARetryableTool pins the
 // reactive half of MCP connection repair. A tool call is the strongest
 // evidence available that a connection is dead: a real request, over the real
