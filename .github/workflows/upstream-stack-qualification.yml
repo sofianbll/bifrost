@@ -37,18 +37,21 @@ jobs:
             comparison_mode: characterize
             extra_firstboot: true
             reference_host: false
-          - name: issue-23
-            product_pin: e804bbcaf49305d49704f29d94733a126c88b9bd
-            fixture_scopes: codemode-errors
-            comparison_mode: strict
-            extra_firstboot: false
-            reference_host: false
+            output_schema_probe: false
           - name: issue-24
             product_pin: 1194291f60bf0894d8b0998e2725b583bfdf1b5c
             fixture_scopes: firstboot-grants-standalone
             comparison_mode: strict
             extra_firstboot: false
             reference_host: false
+            output_schema_probe: false
+          - name: issue-25
+            product_pin: a7816bd1829d97939fd2c4f73da6aec158a271aa
+            fixture_scopes: mcp-apps
+            comparison_mode: characterize
+            extra_firstboot: false
+            reference_host: true
+            output_schema_probe: true
     env:
       STOCK_SOURCE: 83258b776c68e1e3d2c1ca0d08a31c2e5811344f
       STABLE_REFERENCE: 9237ec06672406e437b3cb33fc793ffd0403b3ae
@@ -219,6 +222,116 @@ jobs:
           BIFROST_FIXTURE_SCOPES: ${{ env.FIXTURE_SCOPES }}
           BIFROST_REFERENCE_HOST_DIRECTORY: ""
         run: .github/workflows/scripts/test-mcp-apps-fixture.sh --baseline "bifrost:stock-${{ matrix.name }}-${{ github.run_id }}" "$REPORT_DIR"
+      - name: Run known-red MCP Apps output schema regression probe
+        if: always() && matrix.output_schema_probe == true && steps.build-candidate.outcome == 'success'
+        working-directory: candidate
+        env:
+          REPORT_DIR: ${{ env.REPORT_DIR }}
+        run: |
+          set -euo pipefail
+          raw_log="$RUNNER_TEMP/c-output-schema-probe.raw.log"
+          module_report="$REPORT_DIR/c-output-schema-module-dirs.txt"
+          list_report="$REPORT_DIR/c-output-schema-test-list.txt"
+          probe_log="$REPORT_DIR/c-output-schema-known-red.log"
+          status_report="$REPORT_DIR/c-output-schema-known-red-status.txt"
+          test_name='TestMCPAppsPreservesSupportedOutputSchema'
+          test_file='transports/bifrost-http/handlers/mcpserver_test.go'
+          probe_stage='preflight'
+          record_preflight_failure() {
+            probe_status=$?
+            printf 'stage=%s\nexit_code=%s\n' "$probe_stage" "$probe_status" > "$status_report"
+            exit "$probe_status"
+          }
+          trap record_preflight_failure ERR
+
+          if ! rg -q "^func ${test_name}\\(" "$test_file"; then
+            printf 'stage=preflight\nerror=expected test missing from %s\n' "$test_file" > "$status_report"
+            exit 2
+          fi
+
+          # This helper must run at the candidate root because its module paths are
+          # relative to the repository root. It preserves the local Go workspace.
+          probe_stage='workspace-setup'
+          source .github/workflows/scripts/setup-go-workspace.sh
+          cd transports
+          probe_stage='module-resolution'
+          go list -m -f '{{.Path}} {{.Dir}}' \
+            github.com/maximhq/bifrost/core \
+            github.com/maximhq/bifrost/framework \
+            github.com/maximhq/bifrost/transports/v2 \
+            github.com/maximhq/bifrost/plugins/governance > "$module_report"
+          python3 - "$module_report" "$GITHUB_WORKSPACE/candidate" <<'PY'
+          import sys
+          from pathlib import Path
+
+          report = Path(sys.argv[1])
+          root = Path(sys.argv[2]).resolve()
+          rows = [line.split(maxsplit=1) for line in report.read_text().splitlines()]
+          expected = {
+              'github.com/maximhq/bifrost/core',
+              'github.com/maximhq/bifrost/framework',
+              'github.com/maximhq/bifrost/transports/v2',
+              'github.com/maximhq/bifrost/plugins/governance',
+          }
+          assert {row[0] for row in rows if len(row) == 2} == expected, rows
+          for module, directory in rows:
+              resolved = Path(directory).resolve()
+              assert resolved == root or root in resolved.parents, (module, resolved, root)
+          PY
+
+          probe_stage='test-list'
+          if ! go test -list "^${test_name}$" ./bifrost-http/handlers > "$RUNNER_TEMP/c-output-schema-test-list.raw.log" 2>&1; then
+            python3 - "$RUNNER_TEMP/c-output-schema-test-list.raw.log" "$list_report" "$probe_log" "$status_report" <<'PY'
+          import re, sys
+          from pathlib import Path
+          source, destination, log, status = map(Path, sys.argv[1:])
+          text = source.read_text(errors='replace')
+          text = text.replace('bifrost-e2e-setup-token', '<redacted>')
+          text = re.sub(r'(?i)(Bearer\s+)[A-Za-z0-9._~+/-]+=*', r'\1<redacted>', text)
+          text = re.sub(r'sk-bf-[A-Za-z0-9_-]+', '<redacted>', text)
+          destination.write_text(text)
+          log.write_text(text)
+          status.write_text('stage=test-list\nexit_code=nonzero\n')
+          PY
+            trap - ERR
+            exit 2
+          fi
+          python3 - "$RUNNER_TEMP/c-output-schema-test-list.raw.log" "$list_report" <<'PY'
+          import re, sys
+          from pathlib import Path
+          source, destination = map(Path, sys.argv[1:])
+          text = source.read_text(errors='replace')
+          text = text.replace('bifrost-e2e-setup-token', '<redacted>')
+          text = re.sub(r'(?i)(Bearer\s+)[A-Za-z0-9._~+/-]+=*', r'\1<redacted>', text)
+          text = re.sub(r'sk-bf-[A-Za-z0-9_-]+', '<redacted>', text)
+          destination.write_text(text)
+          PY
+          if ! grep -Fxq "$test_name" "$list_report"; then
+            printf 'stage=test-list\nerror=Go package did not list expected test\n' > "$status_report"
+            cp "$list_report" "$probe_log"
+            trap - ERR
+            exit 2
+          fi
+
+          probe_stage='go-test'
+          set +e
+          go test -v -count=1 -run "^${test_name}$" ./bifrost-http/handlers > "$raw_log" 2>&1
+          probe_status=$?
+          set -e
+          trap - ERR
+          python3 - "$raw_log" "$probe_log" "$status_report" "$probe_status" <<'PY'
+          import re, sys
+          from pathlib import Path
+          source, destination, status = map(Path, sys.argv[1:4])
+          code = sys.argv[4]
+          text = source.read_text(errors='replace')
+          text = text.replace('bifrost-e2e-setup-token', '<redacted>')
+          text = re.sub(r'(?i)(Bearer\s+)[A-Za-z0-9._~+/-]+=*', r'\1<redacted>', text)
+          text = re.sub(r'sk-bf-[A-Za-z0-9_-]+', '<redacted>', text)
+          destination.write_text(text)
+          status.write_text(f'stage=go-test\nexit_code={code}\ntest=TestMCPAppsPreservesSupportedOutputSchema\n')
+          PY
+          exit "$probe_status"
       - name: Verify integrated first-boot grants and same-store restart
         id: firstboot-candidate
         if: always() && matrix.extra_firstboot && steps.build-candidate.outcome == 'success'
