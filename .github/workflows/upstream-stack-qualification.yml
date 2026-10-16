@@ -37,6 +37,12 @@ jobs:
             comparison_mode: strict
             extra_firstboot: true
             reference_host: true
+          - name: issue-25-layer
+            product_pin: 8c8867999500ec58073d62f802418f3b493b3455
+            fixture_scopes: mcp-apps
+            comparison_mode: strict
+            extra_firstboot: false
+            reference_host: true
     env:
       STOCK_SOURCE: 83258b776c68e1e3d2c1ca0d08a31c2e5811344f
       STABLE_REFERENCE: 9237ec06672406e437b3cb33fc793ffd0403b3ae
