@@ -491,9 +491,10 @@ func TestMCPAppsPreservesSupportedOutputSchema(t *testing.T) {
 		OutputSchema: mcp.ToolOutputSchema{
 			Type: "object",
 			Properties: map[string]any{
-				"ok": map[string]any{"type": "boolean"},
+				"instance": map[string]any{"type": "string"},
+				"message":  map[string]any{"type": "string"},
 			},
-			Required: []string{"ok"},
+			Required: []string{"instance", "message"},
 		},
 		Meta: &mcp.Meta{AdditionalFields: map[string]any{
 			"ui": map[string]any{"resourceUri": upstreamURI, "visibility": []string{"app"}},
@@ -533,7 +534,7 @@ func TestMCPAppsPreservesSupportedOutputSchema(t *testing.T) {
 	}
 	require.NoError(t, json.Unmarshal(encoded, &envelope))
 	require.Len(t, envelope.Result.Tools, 1)
-	assert.JSONEq(t, `{"type":"object","properties":{"ok":{"type":"boolean"}},"required":["ok"]}`, string(envelope.Result.Tools[0].OutputSchema), "the public MCP App definition must retain the SDK-supported output schema")
+	assert.JSONEq(t, `{"type":"object","properties":{"instance":{"type":"string"},"message":{"type":"string"}},"required":["instance","message"]}`, string(envelope.Result.Tools[0].OutputSchema), "the public MCP App definition must retain the SDK-supported output schema")
 	var metadata struct {
 		UI struct {
 			ResourceURI string `json:"resourceUri"`
