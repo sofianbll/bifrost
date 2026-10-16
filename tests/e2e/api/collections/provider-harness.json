@@ -61,7 +61,8 @@
           "var __u = (pm.request && pm.request.url && pm.request.url.toString()) || '';",
           "// Management API (/api/...) and OAuth (/oauth2/...) responses carry no inference content, so the shape check does not apply to them; those rows assert their own bodies.",
           "// Rows tagged [NO-CONTENT] expect an empty reply (a provider refusal) and assert their own bodies.",
-          "var __skipShape = __rn.indexOf('[NO-CONTENT]') !== -1 || __u.indexOf('/health') !== -1 || __u.indexOf('/.well-known/') !== -1 || __u.indexOf('/api/') !== -1 || __u.indexOf('/oauth2/') !== -1 || (__u.indexOf('/files/') !== -1 && (__u.indexOf('/content?') !== -1 || __u.slice(-8) === '/content')) || __u.indexOf('storage.googleapis.com') !== -1 || __u.indexOf('batchPredictionJobs') !== -1 || (__u.indexOf('/genai/v1beta/batches/') !== -1 && __u.indexOf(':cancel') !== -1) || (__u.indexOf('cachedContents') !== -1 && (pm.request.method !== 'GET' || __u.indexOf('/cachedContents/') !== -1)) || __u.indexOf('/v1/containers') !== -1 || __u.indexOf('/upload/v1beta/files') !== -1 || (__u.indexOf('/genai/v1beta/files/') !== -1 && pm.request.method === 'DELETE') || (__u.indexOf('/model-invocation-job/') !== -1 && __u.slice(-5) === '/stop') || (__u.indexOf('/messages/batches/') !== -1 && __u.indexOf('/results') !== -1) || __u.indexOf('/tunedModels') !== -1 || __u.indexOf('/bedrock_passthrough/') !== -1 || (__u.indexOf('/interactions/') !== -1 && pm.request.method === 'DELETE');",
+          "// This stable-name MCP Apps denial row uses the same exception: a JSON-RPC error has no result content and asserts its own body.",
+          "var __skipShape = __rn.indexOf('[NO-CONTENT]') !== -1 || __rn === 'MCP Apps fixture limited key cannot read ungranted App resource' || __u.indexOf('/health') !== -1 || __u.indexOf('/.well-known/') !== -1 || __u.indexOf('/api/') !== -1 || __u.indexOf('/oauth2/') !== -1 || (__u.indexOf('/files/') !== -1 && (__u.indexOf('/content?') !== -1 || __u.slice(-8) === '/content')) || __u.indexOf('storage.googleapis.com') !== -1 || __u.indexOf('batchPredictionJobs') !== -1 || (__u.indexOf('/genai/v1beta/batches/') !== -1 && __u.indexOf(':cancel') !== -1) || (__u.indexOf('cachedContents') !== -1 && (pm.request.method !== 'GET' || __u.indexOf('/cachedContents/') !== -1)) || __u.indexOf('/v1/containers') !== -1 || __u.indexOf('/upload/v1beta/files') !== -1 || (__u.indexOf('/genai/v1beta/files/') !== -1 && pm.request.method === 'DELETE') || (__u.indexOf('/model-invocation-job/') !== -1 && __u.slice(-5) === '/stop') || (__u.indexOf('/messages/batches/') !== -1 && __u.indexOf('/results') !== -1) || __u.indexOf('/tunedModels') !== -1 || __u.indexOf('/bedrock_passthrough/') !== -1 || (__u.indexOf('/interactions/') !== -1 && pm.request.method === 'DELETE');",
           "if (pm.response.code < 400 && !__skipShape && (pm.response.headers.get('content-type') || '').indexOf('text/event-stream') === -1 && (pm.response.headers.get('content-type') || '').indexOf('vnd.amazon.eventstream') === -1 && (pm.response.headers.get('content-type') || '').indexOf('audio/') === -1) {",
           "  pm.test('Response has content (text or tool_use)', function () {",
           "    var j;",
@@ -273447,8 +273448,9 @@
                   "var text = pm.response.text() || '';",
                   "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
                   "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(200); });",
-                  "pm.test('both URI fields and input schema survive discovery', function () { var tools = (body.result && body.result.tools) || []; var app = tools.filter(function (t) { return t.name.indexOf('open_view') !== -1; })[0]; pm.expect(app, text).to.be.an('object'); pm.expect(app._meta.ui.resourceUri).to.eql(app._meta['ui/resourceUri']); pm.expect(app._meta.ui.resourceUri).to.match(/^ui:\\/\\/bifrost\\//); pm.collectionVariables.set('mcpAppsDirectUri', app._meta.ui.resourceUri); pm.expect(app.description).to.eql('Open the fixture MCP App'); pm.expect(app.annotations).to.eql({readOnlyHint:false,destructiveHint:true,idempotentHint:false,openWorldHint:true}); pm.expect(app.inputSchema).to.eql({type:'object',properties:{message:{description:'Message to return',type:'string'}}}); });",
-                  "pm.test('App-only callback is marked for host visibility', function () { var tools = (body.result && body.result.tools) || []; var callback = tools.filter(function (t) { return t.name === 'save_state'; })[0]; pm.expect(callback, text).to.be.an('object'); pm.expect(callback._meta.ui.visibility).to.eql(['app']); });"
+                  "pm.test('both URI fields and input schema survive discovery', function () { var tools = (body.result && body.result.tools) || []; var app = tools.filter(function (t) { return t.name === 'mcp_apps_fixture-open_view'; })[0]; pm.expect(app, text).to.be.an('object'); pm.expect(app._meta.ui.resourceUri).to.eql(app._meta['ui/resourceUri']); pm.expect(app._meta.ui.resourceUri).to.match(/^ui:\\/\\/bifrost\\//); pm.collectionVariables.set('mcpAppsDirectUri', app._meta.ui.resourceUri); pm.expect(app.description).to.eql('Open the fixture MCP App'); pm.expect(app.annotations).to.eql({readOnlyHint:false,destructiveHint:true,idempotentHint:false,openWorldHint:true}); pm.expect(app.inputSchema).to.eql({type:'object',properties:{message:{description:'Message to return',type:'string'}}}); });",
+                  "pm.test('supported output schema survives definition lookup', function () { var tools = (body.result && body.result.tools) || []; var app = tools.filter(function (t) { return t.name === 'mcp_apps_fixture-open_view'; })[0]; pm.expect(app, text).to.be.an('object'); pm.expect(app.outputSchema, text).to.eql({type:'object',properties:{instance:{type:'string'},message:{type:'string'}},required:['instance','message']}); });",
+                  "pm.test('App-only callback is marked for host visibility', function () { var tools = (body.result && body.result.tools) || []; var callback = tools.filter(function (t) { return t.name === 'mcp_apps_fixture-save_state'; })[0]; pm.expect(callback, text).to.be.an('object'); pm.expect(callback._meta.ui.visibility).to.eql(['app']); });"
                 ]
               }
             }
@@ -273544,7 +273546,7 @@
                   "var text = pm.response.text() || '';",
                   "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
                   "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(200); });",
-                  "pm.test(\"resource HTML MIME and CSP are relayed\", function () { var c = body.result && body.result.contents && body.result.contents[0]; pm.expect(c, text).to.be.an('object'); pm.expect(c.mimeType).to.eql('text/html;profile=mcp-app'); pm.expect(c.text).to.include('id=\\\"fixture\\\"'); pm.expect(c._meta.ui.csp).to.be.an('object'); });"
+                  "pm.test(\"resource HTML MIME and CSP are relayed\", function () { var c = body.result && body.result.contents && body.result.contents[0]; pm.expect(c, text).to.be.an('object'); pm.expect(c.mimeType).to.eql('text/html;profile=mcp-app'); pm.expect(c.text).to.include('data-testid=\\\"mcp-app-fixture\\\"'); pm.expect(c._meta.ui.csp).to.be.an('object'); });"
                 ]
               }
             }
@@ -273640,7 +273642,7 @@
                   "var text = pm.response.text() || '';",
                   "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
                   "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(200); });",
-                  "pm.test(\"App-only callback resolves on direct route\", function () { pm.expect(body.result && body.result.content && body.result.content[0].text,text).to.include('first:save_state'); pm.expect(body.result.isError).to.not.eql(true); });"
+                  "pm.test(\"App-only callback resolves on direct route\", function () { pm.expect(body.result && body.result.content && body.result.content[0].text,text).to.include('first:save_state'); pm.expect(body.result.structuredContent.instance,text).to.eql('first'); pm.expect(body.result.structuredContent.state,text).to.eql('alias-state-literal'); pm.expect(body.result.isError).to.not.eql(true); });"
                 ]
               }
             }
@@ -273663,7 +273665,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"save_state\",\"arguments\":{}}}"
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"save_state\",\"arguments\":{\"state\":\"alias-state-literal\"}}}"
             },
             "url": {
               "raw": "{{baseUrl}}/mcp/mcp-apps-fixture",
@@ -274518,7 +274520,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"open_view\",\"arguments\":{\"message\":\"native\"}}}"
+              "raw": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"mcp_apps_fixture-open_view\",\"arguments\":{\"message\":\"native\"}}}"
             },
             "url": {
               "raw": "{{baseUrl}}/mcp/mcp-apps-fixture",
@@ -275116,7 +275118,7 @@
                   "var text = pm.response.text() || \"\";",
                   "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
                   "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(200); });",
-                  "pm.test(\"legacy-only URI is rewritten and modern field stays absent\", function () { var tools=(body.result&&body.result.tools)||[]; var tool=tools.find(function(t){return t.name===\"open_view\";}); var meta=(tool&&tool._meta)||{}; pm.expect(tool,text).to.be.an(\"object\"); pm.expect(meta[\"ui/resourceUri\"],text).to.eql(\"ui://bifrost/bWNwX2FwcHNfZml4dHVyZV9zZWNvbmQ/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw\"); pm.expect(meta[\"ui\"],text).to.eql(undefined); });"
+                  "pm.test(\"legacy-only URI is rewritten and modern field stays absent\", function () { var tools=(body.result&&body.result.tools)||[]; var tool=tools.find(function(t){return t.name===\"mcp_apps_fixture_second-open_view\";}); var meta=(tool&&tool._meta)||{}; pm.expect(tool,text).to.be.an(\"object\"); pm.expect(meta[\"ui/resourceUri\"],text).to.eql(\"ui://bifrost/bWNwX2FwcHNfZml4dHVyZV9zZWNvbmQ/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw\"); pm.expect(meta[\"ui\"],text).to.eql(undefined); });"
                 ]
               }
             }
@@ -275164,7 +275166,7 @@
                   "var text = pm.response.text() || \"\";",
                   "var body = {}; try { body = pm.response.json() || {}; } catch (e) {}",
                   "pm.test('HTTP status is exact', function () { pm.expect(pm.response.code, text).to.equal(200); });",
-                  "pm.test(\"modern-only URI is rewritten and legacy field stays absent\", function () { var tools=(body.result&&body.result.tools)||[]; var tool=tools.find(function(t){return t.name===\"open_view\";}); var meta=(tool&&tool._meta)||{}; pm.expect(tool,text).to.be.an(\"object\"); pm.expect(meta[\"ui\"],text).to.eql(\"ui://bifrost/bWNwX2FwcHNfZml4dHVyZV9tb2Rlcm4/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw\"); pm.expect(meta[\"ui/resourceUri\"],text).to.eql(undefined); });"
+                  "pm.test(\"modern-only URI is rewritten and legacy field stays absent\", function () { var tools=(body.result&&body.result.tools)||[]; var tool=tools.find(function(t){return t.name===\"mcp_apps_fixture_modern-open_view\";}); var meta=(tool&&tool._meta)||{}; pm.expect(tool,text).to.be.an(\"object\"); pm.expect(meta[\"ui\"].resourceUri,text).to.eql(\"ui://bifrost/bWNwX2FwcHNfZml4dHVyZV9tb2Rlcm4/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw\"); pm.expect(meta[\"ui/resourceUri\"],text).to.eql(undefined); });"
                 ]
               }
             }
