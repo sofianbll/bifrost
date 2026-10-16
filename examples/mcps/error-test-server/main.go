@@ -113,7 +113,7 @@ func registerReturnErrorTool(s *server.MCPServer) {
 		mcp.WithString("error_type",
 			mcp.Required(),
 			mcp.Description("Type of error to return"),
-			mcp.Enum("validation", "runtime", "network", "timeout", "permission"),
+			mcp.Enum("validation", "runtime", "network", "timeout", "permission", "prefix"),
 		),
 	)
 
@@ -135,24 +135,27 @@ func registerReturnErrorTool(s *server.MCPServer) {
 			return mcp.NewToolResultError(fmt.Sprintf("Invalid arguments: %v", err)), nil
 		}
 
-		var errorMessage string
-		switch args.ErrorType {
-		case "validation":
-			errorMessage = "Validation Error: Invalid input parameters provided"
-		case "runtime":
-			errorMessage = "Runtime Error: Unexpected condition occurred during execution"
-		case "network":
-			errorMessage = "Network Error: Failed to connect to remote service"
-		case "timeout":
-			errorMessage = "Timeout Error: Operation exceeded maximum allowed time"
-		case "permission":
-			errorMessage = "Permission Error: Insufficient privileges to perform operation"
-		default:
-			errorMessage = fmt.Sprintf("Unknown error type: %s", args.ErrorType)
-		}
-
-		return mcp.NewToolResultError(errorMessage), nil
+		return mcp.NewToolResultError(returnErrorMessage(args.ErrorType)), nil
 	})
+}
+
+func returnErrorMessage(errorType string) string {
+	switch errorType {
+	case "validation":
+		return "Validation Error: Invalid input parameters provided"
+	case "runtime":
+		return "Runtime Error: Unexpected condition occurred during execution"
+	case "network":
+		return "Network Error: Failed to connect to remote service"
+	case "timeout":
+		return "Timeout Error: Operation exceeded maximum allowed time"
+	case "permission":
+		return "Permission Error: Insufficient privileges to perform operation"
+	case "prefix":
+		return "Error: synthetic fixture error value"
+	default:
+		return fmt.Sprintf("Unknown error type: %s", errorType)
+	}
 }
 
 // ============================================================================

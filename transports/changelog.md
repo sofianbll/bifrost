@@ -1,5 +1,7 @@
 ## ✨ Features
 
+- **Native MCP Apps Relay** - The HTTP MCP gateway negotiates the UI extension, retains linked resource metadata through the flat tool cache, namespaces resource URIs by source, and preserves hook-effective native call results. App-only tools remain hidden from model-facing catalogs.
+
 - **Virtual Key Metadata in config.json** - `governance.virtual_keys[].metadata` accepts string key/value pairs (for example `cost_center`, `owner`) for cost attribution. Keys use letters, digits, `.`, `_` and `-`; values are up to 512 characters; up to 50 entries [@jimseiwert](https://github.com/jimseiwert)
 - **Spend by Virtual Key Metadata** - Each log entry now carries a snapshot of its virtual key's metadata, so logs and dashboard spend can be filtered with the existing metadata filters (for example `metadata_cost_center=cc-42`). On a key collision the virtual key's value overrides `x-bf-lh-*` headers, configured logging headers and `x-bf-dim-*` dimensions, so callers cannot spoof attribution [@jimseiwert](https://github.com/jimseiwert)
 - **Virtual Key Metadata API** - Create and update virtual keys with a `metadata` object (on update, omit to keep, `{}` to clear); invalid metadata returns a 400 naming the key. The virtual key list accepts `metadata_<key>=<value>` filters (AND-ed) and `search` also matches metadata [@jimseiwert](https://github.com/jimseiwert)
@@ -7,8 +9,10 @@
 
 ## 🐞 Fixed
 
+- **First-Boot Virtual MCP Key Attachments** - Config-declared Virtual MCPs now reconcile after governance keys load, so `mcp.virtual_mcps[].virtual_key_ids` attaches keys declared in the same config file on the first boot and restart. This only changes startup config reconciliation and adds no per-request cost.
 - **Request Body Memory Retention** - Pooled keep-alive connections no longer keep their largest-ever request-body buffer. fasthttp kept one buffer per connection at its high-water mark (and handed it to the next connection), so per-pod memory ratcheted up with large LLM payloads and never came back. Buffers above `server.body_buffer_pool_limit_bytes` (default 4 MiB) are now released after each request; larger bodies are still accepted up to `max_request_body_size_mb`. Set `0` for unlimited (the previous behaviour)
 - **Async Raw Request Body** - Async jobs (`x-bf-async`) that forward the raw request body now copy it, instead of reading a buffer the next request on the same connection can overwrite
+- **MCP Tool Error Marker** - MCP `tools/call` preserves the `isError` marker returned by tool execution, including Code Mode failures
 
 ## 🗄️ Database Migrations
 

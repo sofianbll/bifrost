@@ -2,6 +2,7 @@ package mcp
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -1235,11 +1236,11 @@ func TestBuildTLSHTTPClientUsesGlobalProxy(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, "https://mcp.bifrost.test/sse", nil)
+	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, "https://203.0.113.10/sse", nil)
 	if resp, err := httpClient.Do(req); err == nil {
 		resp.Body.Close()
 	}
-	proxytest.AssertRoute(t, set, proxytest.Route{Proxy: "config"}, "mcp.bifrost.test:443", nil)
+	proxytest.AssertRoute(t, set, proxytest.Route{Proxy: "config"}, "203.0.113.10:443", nil)
 
 	// MCP allows private networks (local MCP servers) but never instance metadata.
 	set.Reset()
@@ -1648,6 +1649,73 @@ func (p *headerRewritingPipeline) RunMCPPreHooks(_ *schemas.BifrostContext, req 
 
 func (p *headerRewritingPipeline) RunMCPPostHooks(_ *schemas.BifrostContext, resp *schemas.BifrostMCPResponse, bifrostErr *schemas.BifrostError, _ int) (*schemas.BifrostMCPResponse, *schemas.BifrostError) {
 	return resp, bifrostErr
+}
+
+func TestClearStaleNativeMCPAppResultAfterEffectiveChatRedaction(t *testing.T) {
+	original := &schemas.ChatMessage{Content: &schemas.ChatMessageContent{ContentStr: schemas.Ptr("private upstream result")}, ChatToolMessage: &schemas.ChatToolMessage{IsError: schemas.Ptr(false)}}
+	response := &schemas.BifrostMCPResponse{
+		ChatMessage: original,
+		BifrostMCPExecuteToolResponse: &schemas.BifrostMCPExecuteToolResponse{
+			NativeMCPAppResult:   json.RawMessage(`{"content":[{"type":"text","text":"private upstream result"}],"isError":false}`),
+			NativeAppResultHash:  sha256.Sum256([]byte(`{"content":[{"type":"text","text":"private upstream result"}],"isError":false}`)),
+			NativeAppMessageHash: hashMCPAppMessage(original),
+		},
+	}
+	response.ChatMessage = &schemas.ChatMessage{Content: &schemas.ChatMessageContent{ContentStr: schemas.Ptr("redacted by post hook")}, ChatToolMessage: &schemas.ChatToolMessage{IsError: schemas.Ptr(true)}}
+	clearStaleNativeMCPAppResult(response)
+	raw, _, _ := response.GetNativeMCPAppResult()
+	assert.Empty(t, raw)
+	assert.Equal(t, "redacted by post hook", *response.ChatMessage.Content.ContentStr)
+	assert.True(t, *response.ChatMessage.ChatToolMessage.IsError)
+}
+
+type mcpAppResourceTestPipeline struct {
+	deny    bool
+	preRuns int
+}
+
+func (p *mcpAppResourceTestPipeline) RunMCPPreHooks(_ *schemas.BifrostContext, _ *schemas.BifrostMCPRequest) (*schemas.BifrostMCPRequest, *schemas.MCPPluginShortCircuit, int) {
+	p.preRuns++
+	if p.deny {
+		return nil, &schemas.MCPPluginShortCircuit{Error: &schemas.BifrostError{Error: &schemas.ErrorField{Message: "policy denied"}}}, 1
+	}
+	response := &schemas.BifrostMCPResponse{}
+	response.SetMCPAppResourceResult(json.RawMessage(`{"contents":[{"uri":"ui://upstream/view","mimeType":"text/html;profile=mcp-app","text":"upstream secret"}]}`))
+	return nil, &schemas.MCPPluginShortCircuit{Response: response}, 1
+}
+
+func (p *mcpAppResourceTestPipeline) RunMCPPostHooks(_ *schemas.BifrostContext, response *schemas.BifrostMCPResponse, err *schemas.BifrostError, _ int) (*schemas.BifrostMCPResponse, *schemas.BifrostError) {
+	if !p.deny && response != nil {
+		response.SetMCPAppResourceResult(json.RawMessage(`{"contents":[{"uri":"ui://upstream/view","mimeType":"text/html;profile=mcp-app","text":"redacted"}]}`))
+	}
+	return response, err
+}
+
+func (*mcpAppResourceTestPipeline) RunMCPPreConnectionHooks(_ *schemas.BifrostContext, req *schemas.BifrostMCPConnectRequest) (*schemas.BifrostMCPConnectRequest, *schemas.MCPConnectionShortCircuit, int) {
+	return req, nil, 0
+}
+func (*mcpAppResourceTestPipeline) RunMCPPostConnectionHooks(_ *schemas.BifrostContext, response *schemas.BifrostMCPConnectResponse, err *schemas.BifrostError, _ int) (*schemas.BifrostMCPConnectResponse, *schemas.BifrostError) {
+	return response, err
+}
+
+func TestReadMCPAppResourceUsesMCPHooksAndHidesDenials(t *testing.T) {
+	tool := schemas.ChatTool{Type: schemas.ChatToolTypeFunction, Function: &schemas.ChatToolFunction{Name: "client-open_view"}, Annotations: &schemas.MCPToolAnnotations{MCPApp: &schemas.MCPAppToolMetadata{ResourceURI: "ui://upstream/view", SourceClient: "client"}}}
+	m := NewMCPManager(context.Background(), schemas.MCPConfig{}, nil, &MockLogger{}, nil)
+	m.clientMap["client-id"] = &schemas.MCPClientState{Name: "client", ExecutionConfig: &schemas.MCPClientConfig{ID: "client-id", Name: "client", ToolsToExecute: schemas.WhiteList{"*"}}, ToolMap: map[string]schemas.ChatTool{"client-open_view": tool}, State: schemas.MCPConnectionStateHealthy}
+	pipeline := &mcpAppResourceTestPipeline{}
+	m.SetPluginPipeline(func() PluginPipeline { return pipeline }, func(PluginPipeline) {})
+	ctx := schemas.NewBifrostContext(context.Background(), schemas.NoDeadline)
+	require.Len(t, m.GetToolPerClient(ctx)["client"], 1)
+	result, err := m.ReadMCPAppResource(ctx, "client-open_view", "ui://upstream/view")
+	assert.Equal(t, 1, pipeline.preRuns)
+	require.NoError(t, err)
+	require.Len(t, result.Contents, 1)
+	assert.Equal(t, "redacted", result.Contents[0].(mcpgo.TextResourceContents).Text)
+
+	pipeline.deny = true
+	result, err = m.ReadMCPAppResource(ctx, "client-open_view", "ui://upstream/view")
+	assert.Nil(t, result)
+	assert.EqualError(t, err, "resource is unavailable")
 }
 
 func (p *headerRewritingPipeline) RunMCPPreConnectionHooks(_ *schemas.BifrostContext, req *schemas.BifrostMCPConnectRequest) (*schemas.BifrostMCPConnectRequest, *schemas.MCPConnectionShortCircuit, int) {

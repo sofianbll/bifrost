@@ -2,9 +2,12 @@ package mcp
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"sync"
 	"time"
 
+	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/maximhq/bifrost/core/mcp/credstore"
 	"github.com/maximhq/bifrost/core/schemas"
 
@@ -353,6 +356,92 @@ func (m *MCPManager) AddToolsToRequest(ctx *schemas.BifrostContext, req *schemas
 
 func (m *MCPManager) GetAvailableTools(ctx *schemas.BifrostContext) []schemas.ChatTool {
 	return m.toolsManager.GetAvailableTools(ctx)
+}
+
+// GetAvailableToolsForMCP retains app-only tools for the native MCP server.
+// Provider-facing catalog construction uses GetAvailableTools and filters them.
+func (m *MCPManager) GetAvailableToolsForMCP(ctx *schemas.BifrostContext) []schemas.ChatTool {
+	return m.toolsManager.GetAvailableToolsForMCP(ctx)
+}
+
+// ReadMCPAppResource reads a tool-linked resource only when that tool is in
+// the caller's already-filtered MCP catalog. The upstream URI is never used as
+// a global lookup key, so equal URIs on different clients remain distinct.
+func (m *MCPManager) ReadMCPAppResource(ctx *schemas.BifrostContext, toolName, upstreamURI string) (*mcp.ReadResourceResult, error) {
+	request := &schemas.BifrostMCPRequest{
+		RequestType:                   schemas.MCPRequestTypeReadResource,
+		BifrostMCPReadResourceRequest: &schemas.BifrostMCPReadResourceRequest{ToolName: toolName, URI: upstreamURI},
+	}
+	for clientName, tools := range m.toolsManager.clientManager.GetToolPerClient(ctx) {
+		for _, tool := range tools {
+			appMetadata := tool.MCPAppMetadata()
+			if tool.Function != nil && tool.Function.Name == toolName && appMetadata != nil && appMetadata.ResourceURI == upstreamURI {
+				request.ClientName = clientName
+				break
+			}
+		}
+		if request.ClientName != "" {
+			break
+		}
+	}
+	if request.ClientName == "" {
+		return nil, fmt.Errorf("resource is unavailable")
+	}
+	response, bErr := m.RunWithPluginPipeline(ctx, request, func(preReq *schemas.BifrostMCPRequest) (*schemas.BifrostMCPResponse, error) {
+		if preReq == nil || preReq.BifrostMCPReadResourceRequest == nil {
+			return nil, fmt.Errorf("resource is unavailable")
+		}
+		var state *schemas.MCPClientState
+		for clientName, tools := range m.toolsManager.clientManager.GetToolPerClient(ctx) {
+			for _, tool := range tools {
+				appMetadata := tool.MCPAppMetadata()
+				if tool.Function != nil && tool.Function.Name == preReq.ToolName && appMetadata != nil && appMetadata.ResourceURI == preReq.URI {
+					state = m.toolsManager.clientManager.GetClientByName(clientName)
+					break
+				}
+			}
+			if state != nil {
+				break
+			}
+		}
+		if state == nil {
+			return nil, fmt.Errorf("resource is unavailable")
+		}
+		conn, release, err := m.AcquireClientConn(ctx, state)
+		if err != nil {
+			return nil, err
+		}
+		defer release()
+		timeout := m.toolsManager.toolExecutionTimeout.Load().(time.Duration)
+		if state.ExecutionConfig != nil && state.ExecutionConfig.ToolExecutionTimeout > 0 {
+			timeout = state.ExecutionConfig.ToolExecutionTimeout
+		}
+		readCtx, cancel := context.WithTimeout(ctx, timeout)
+		defer cancel()
+		result, readErr := conn.ReadResource(readCtx, mcp.ReadResourceRequest{
+			Request: mcp.Request{Method: string(mcp.MethodResourcesRead)},
+			Params:  mcp.ReadResourceParams{URI: preReq.URI},
+		})
+		if readErr != nil {
+			return nil, readErr
+		}
+		encoded, encodeErr := json.Marshal(result)
+		if encodeErr != nil {
+			return nil, encodeErr
+		}
+		response := &schemas.BifrostMCPResponse{}
+		response.SetMCPAppResourceResult(encoded)
+		return response, nil
+	})
+	resourceResult := response.GetMCPAppResourceResult()
+	if bErr != nil || len(resourceResult) == 0 {
+		return nil, fmt.Errorf("resource is unavailable")
+	}
+	result, err := mcp.ParseReadResourceResult(&resourceResult)
+	if err != nil || result == nil {
+		return nil, fmt.Errorf("resource is unavailable")
+	}
+	return result, nil
 }
 
 // UpdateCodeModeLimits replaces the per-execution code mode limits at runtime.
