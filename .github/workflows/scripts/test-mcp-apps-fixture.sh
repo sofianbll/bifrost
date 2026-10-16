@@ -35,6 +35,7 @@ BASELINE_SENTINELS = {
     "mcp-apps": (
         ("MCP Apps fixture direct initialize negotiates UI", "UI extension negotiated"),
         ("MCP Apps fixture direct tools list preserves App metadata", "both URI fields and input schema survive discovery"),
+        ("MCP Apps fixture direct tools list preserves App metadata", "supported output schema survives definition lookup"),
         ("MCP Apps fixture direct resources read returns HTML and CSP", "resource HTML MIME and CSP are relayed"),
         ("MCP Apps fixture Virtual MCP full discovery", "Virtual MCP preserves both UI metadata fields"),
         ("MCP Apps fixture aggregate discovery and namespaced UI URIs", "aggregate namespaces sources and marks callbacks app-only"),
@@ -73,6 +74,8 @@ BASELINE_ALLOWED_STOCK_FAILURES = {
             "stock initialize does not negotiate the MCP Apps UI extension",
         ("MCP Apps fixture direct tools list preserves App metadata", "both URI fields and input schema survive discovery"):
             "Code Mode exposes meta-tools instead of that source's native App tool",
+        ("MCP Apps fixture direct tools list preserves App metadata", "supported output schema survives definition lookup"):
+            "stock Code Mode catalog omits this native App and its output schema",
         ("MCP Apps fixture direct tools list preserves App metadata", "App-only callback is marked for host visibility"):
             "Code Mode hides the source callback from the direct native catalog",
         ("MCP Apps fixture direct resources list returns array", "Response has content (text or tool_use)"):
@@ -100,8 +103,6 @@ BASELINE_ALLOWED_STOCK_FAILURES = {
         ("MCP Apps fixture limited direct resource remains readable", "Response has content (text or tool_use)"):
             "stock direct resources/read is unsupported for the limited key too",
         ("MCP Apps fixture limited key cannot read ungranted App resource", "resource linked to a disallowed App tool is refused"):
-            "stock resources/read unsupported error masks the grant-specific refusal",
-        ("MCP Apps fixture limited key cannot read ungranted App resource", "Response has content (text or tool_use)"):
             "stock resources/read unsupported error masks the grant-specific refusal",
         ("MCP Apps fixture direct structured tool result", "Response has content (text or tool_use)"):
             "Code Mode hides the direct structured-result source tool",
@@ -1154,16 +1155,19 @@ def self_check():
             *({"assertion": assertion, "error": None} for assertion in checks if assertion not in failed),
             *({"assertion": assertion, "error": {"name": "AssertionError"}} for assertion in extra_failed)]}
     def report(failing_sentinels=(), fail_invariants=(), include_generic=False):
+        assertions_by_case = {}
+        failures_by_case = {}
+        for checks_by_feature in (BASELINE_SENTINELS, BASELINE_INVARIANTS):
+            for checks in checks_by_feature.values():
+                for case, assertion in checks:
+                    assertions_by_case.setdefault(case, []).append(assertion)
+                    if case in failing_sentinels or case in fail_invariants:
+                        failures_by_case.setdefault(case, []).append(assertion)
         executions = []
-        for feature_name, checks in BASELINE_SENTINELS.items():
-            for case, assertion in checks:
-                failed = [assertion] if case in failing_sentinels else []
-                generic = ["Response has content (text or tool_use)"] if include_generic and case == checks[0][0] else []
-                executions.append(execution(case, checks=[assertion, *generic], failed=failed + generic))
-        for feature_name, checks in BASELINE_INVARIANTS.items():
-            for case, assertion in checks:
-                failed = [assertion] if case in fail_invariants else []
-                executions.append(execution(case, checks=[assertion], failed=failed))
+        for case, checks in assertions_by_case.items():
+            failed = failures_by_case.get(case, [])
+            generic = ["Response has content (text or tool_use)"] if include_generic and case == next(iter(assertions_by_case)) else []
+            executions.append(execution(case, checks=[*checks, *generic], failed=[*failed, *generic]))
         return {"run": {"executions": executions}}
     stock_report = report({case for checks in BASELINE_SENTINELS.values() for case, _ in checks})
     candidate_report = report()
@@ -1172,7 +1176,7 @@ def self_check():
             f"{feature}: every named stock sentinel must have an explicit exact-pair rationale"
         subset = lambda source: {"run": {"executions": [e for e in source["run"]["executions"]
                                                           if any(e["item"]["name"] == case for case, _ in BASELINE_SENTINELS[feature] + BASELINE_INVARIANTS[feature])]}}
-        expected = [case for case, _ in BASELINE_SENTINELS[feature] + BASELINE_INVARIANTS[feature]]
+        expected = list(dict.fromkeys(case for case, _ in BASELINE_SENTINELS[feature] + BASELINE_INVARIANTS[feature]))
         validate_executions(subset(stock_report), feature, len(expected), expected)
         validate_executions(subset(candidate_report), feature, len(expected), expected)
         classified = compare_reports(subset(stock_report), subset(candidate_report), feature)
@@ -1221,6 +1225,25 @@ def self_check():
                                                               if e["item"]["name"] in candidate_names]}},
                                     candidate_subset, "codemode-errors", mode="strict")
     assert not strict_result["strict_pass"], "baseline comparator accepted a failing candidate sentinel"
+    source_collection = json.loads((ROOT / "tests/e2e/api/collections/provider-harness.json").read_text())
+    collection_test_scripts = [event.get("script", {}).get("exec", [])
+                               for event in source_collection.get("event", [])
+                               if event.get("listen") == "test"]
+    shape_guard = next((line for script in collection_test_scripts for line in script
+                        if line.startswith("var __skipShape = ")), None)
+    denied_resource = "MCP Apps fixture limited key cannot read ungranted App resource"
+    assert shape_guard and f"__rn === '{denied_resource}'" in shape_guard, \
+        "the expected denied resources/read must use the explicit no-content response convention"
+    denied_execution = execution(denied_resource,
+                                 checks=["resource linked to a disallowed App tool is refused"])
+    assert all(item["assertion"] != "Response has content (text or tool_use)"
+               for item in denied_execution["assertions"]), \
+        "denied JSON-RPC resource responses must not receive a positive-content assertion"
+    unexpected_denial_shape = {"request": denied_resource,
+                               "assertion": "Response has content (text or tool_use)"}
+    in_scope, unexpected = stock_failure_scope("mcp-apps", [unexpected_denial_shape])
+    assert not in_scope and unexpected == [unexpected_denial_shape], \
+        "the no-content exception must not whitelist an injected positive-content failure"
     with tempfile.TemporaryDirectory() as temp:
         collection_path = Path(temp) / "collection.json"
         collection_path.write_text(json.dumps({"item": [], "variable": []}))
