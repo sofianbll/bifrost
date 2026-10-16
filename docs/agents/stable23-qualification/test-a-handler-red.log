@@ -1,0 +1,8 @@
+--- FAIL: TestCallToolPreservesCodeModeErrorMarker (0.00s)
+    mcpserver_test.go:82: 
+        	Error Trace:	/tmp/stable23-36/transports/bifrost-http/handlers/mcpserver_test.go:82
+        	Error:      	Should be true
+        	Test:       	TestCallToolPreservesCodeModeErrorMarker
+FAIL
+FAIL	github.com/maximhq/bifrost/transports/bifrost-http/handlers	0.061s
+FAIL

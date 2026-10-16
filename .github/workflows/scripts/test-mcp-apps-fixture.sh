@@ -64,6 +64,11 @@ BASELINE_INVARIANTS = {
     ),
 }
 
+STABLE_STOCK_CONTRACT = {
+    "path": ROOT / "tests/mcpapps/stable-stock-contract-source-hints.json",
+    "sha256": "33ee42eeeafc583a2db9ea9a51a839c0807b773dd891ae6201d51477c7d98369",
+}
+
 # Exact stock-83258 failure pairs for observed behavior and the known unsupported
 # resource paths that will execute after URI seeding is fixed. Each entry records
 # why that pair may be red in characterization; unknown failures remain out of
@@ -491,7 +496,9 @@ def build_config(scopes=None):
         else:
             binary = "mcp-apps-test-server"
             args = entry["stdio_config"]["args"]
-            if os.environ.get("BIFROST_REFERENCE_HOST_DIRECTORY") and entry["name"] in FIXTURE_NAMES[:3]:
+            if ((os.environ.get("BIFROST_STABLE_LANE") == "1"
+                 or os.environ.get("BIFROST_REFERENCE_HOST_DIRECTORY"))
+                    and entry["name"] in FIXTURE_NAMES[:3]):
                 args = [*args, entry["name"]]
         entry["stdio_config"] = {"command": f"/repo/examples/mcps/{binary}/bin/{binary}", "args": args}
         entry["allow_by_default"] = False
@@ -531,7 +538,8 @@ def build_config(scopes=None):
                 "tool_manager_config": {"code_mode_binding_level": "server"}},
         "governance": {"virtual_keys": keys},
     }
-    if os.environ.get("BIFROST_REFERENCE_HOST_DIRECTORY"):
+    if (os.environ.get("BIFROST_STABLE_LANE") == "1"
+            or os.environ.get("BIFROST_REFERENCE_HOST_DIRECTORY")):
         config["client"]["allowed_headers"] = ["MCP-Protocol-Version"]
     return config
 
@@ -688,6 +696,66 @@ def stock_failure_scope(feature, failures):
     return not unexpected, unexpected
 
 
+def load_stable_stock_contract():
+    path = STABLE_STOCK_CONTRACT["path"]
+    if not path.is_file():
+        raise RuntimeError("stable stock contract manifest is missing")
+    raw = path.read_bytes()
+    digest = hashlib.sha256(raw).hexdigest()
+    if digest != STABLE_STOCK_CONTRACT["sha256"]:
+        raise RuntimeError(f"stable stock contract manifest SHA-256 mismatch: {digest}")
+    contract = json.loads(raw)
+    if (contract.get("stock_source") != "9237ec06672406e437b3cb33fc793ffd0403b3ae"
+            or contract.get("observation_driver_source") != "968d934ed4489f3fa0bb86fdae9197406c05b5fb"):
+        raise RuntimeError("stable stock contract manifest source identity is invalid")
+    return contract, digest
+
+
+def validate_stable_stock_contract(feature, stock, candidate, comparison):
+    contract, digest = load_stable_stock_contract()
+    expected = contract.get("features", {}).get(feature)
+    if not isinstance(expected, dict):
+        raise RuntimeError(f"stable stock contract has no feature {feature}")
+
+    def pairs(items):
+        return {(item.get("request"), item.get("assertion")) for item in items
+                if isinstance(item, dict)}
+
+    expected_failures = pairs(expected.get("expected_stock_failures", []))
+    actual_failures = pairs(comparison.get("stock_failed_assertions", []))
+    if actual_failures != expected_failures:
+        missing = sorted(expected_failures - actual_failures)
+        extra = sorted(actual_failures - expected_failures)
+        raise RuntimeError(f"{feature}: stock failed-pair set differs from the frozen stable observation "
+                           f"(missing={missing}, extra={extra})")
+    if comparison.get("candidate_failed_assertions"):
+        raise RuntimeError(f"{feature}: candidate has failed fixture assertions")
+
+    stock_items = executions_by_name(stock, feature + " stable stock")
+    candidate_items = executions_by_name(candidate, feature + " stable candidate")
+    for section, expected_state in (("stock_red_sentinels", "red"), ("green_controls", "green")):
+        sentinels = expected.get(section)
+        if not isinstance(sentinels, list) or not sentinels:
+            raise RuntimeError(f"stable stock contract has an empty {feature}/{section} inventory")
+        for item in sentinels:
+            request, assertion = item.get("request"), item.get("assertion")
+            if request not in stock_items or request not in candidate_items:
+                raise RuntimeError(f"{feature}: stable contract request is absent: {request!r}")
+            stock_failed = failed_assertion(stock_items[request], assertion)
+            candidate_failed = failed_assertion(candidate_items[request], assertion)
+            if expected_state == "red" and not stock_failed:
+                raise RuntimeError(f"{feature}: frozen stable red sentinel is green on stock: {request!r}")
+            if expected_state == "green" and stock_failed:
+                raise RuntimeError(f"{feature}: frozen stable green control is red on stock: {request!r}")
+            if candidate_failed:
+                raise RuntimeError(f"{feature}: candidate did not pass {expected_state} control: {request!r}")
+    comparison["stable_stock_contract_sha256"] = digest
+    comparison["stable_stock_contract_source"] = contract["stock_source"]
+    comparison["stable_stock_failed_pairs_exact"] = True
+    comparison["stable_named_red_and_green_controls_verified"] = True
+    return comparison
+
+
 def compare_reports(stock, candidate, feature, mode="characterize"):
     stock_items, candidate_items = executions_by_name(stock, feature + " stock"), executions_by_name(candidate, feature + " candidate")
     classifications = []
@@ -807,6 +875,65 @@ def self_check():
     assert host_config["client"]["allowed_headers"] == ["MCP-Protocol-Version"]
     assert all("allowed_headers" not in client for client in host_config["mcp"]["client_configs"])
     assert host_config["providers"] == {}
+    original_stable_lane = os.environ.get("BIFROST_STABLE_LANE")
+    try:
+        os.environ["BIFROST_STABLE_LANE"] = "1"
+        stable_config = build_config(("mcp-apps",))
+    finally:
+        if original_stable_lane is None:
+            os.environ.pop("BIFROST_STABLE_LANE", None)
+        else:
+            os.environ["BIFROST_STABLE_LANE"] = original_stable_lane
+    stable_clients = {client["name"]: client for client in stable_config["mcp"]["client_configs"]}
+    for client_name in FIXTURE_NAMES[:3]:
+        assert stable_clients[client_name]["stdio_config"]["args"][-1] == client_name
+    assert stable_config["client"]["allowed_headers"] == ["MCP-Protocol-Version"]
+    assert stable_config["providers"] == {}
+    stable_contract, stable_contract_sha = load_stable_stock_contract()
+    assert stable_contract_sha == STABLE_STOCK_CONTRACT["sha256"]
+    assert len(stable_contract["features"]["mcp-apps"]["expected_stock_failures"]) == 34
+    assert len(stable_contract["features"]["mcp-apps"]["stock_red_sentinels"]) == 11
+    assert len(stable_contract["features"]["mcp-apps"]["green_controls"]) == 6
+    assert len(stable_contract["features"]["codemode-errors"]["expected_stock_failures"]) == 2
+    assert len(stable_contract["features"]["codemode-errors"]["green_controls"]) == 1
+
+    def synthetic_stable_report(feature, stock_source):
+        checks = {}
+        contract_feature = stable_contract["features"][feature]
+        red_pairs = {(item["request"], item["assertion"])
+                     for item in contract_feature["stock_red_sentinels"]}
+        for section in ("stock_red_sentinels", "green_controls"):
+            for item in contract_feature[section]:
+                request, assertion = item["request"], item["assertion"]
+                checks.setdefault(request, {})[assertion] = {
+                    "assertion": assertion,
+                    "error": ({"name": "AssertionError"} if stock_source and (request, assertion) in red_pairs else None),
+                }
+        return {"run": {"executions": [
+            {"item": {"name": request}, "response": {"code": 200},
+             "assertions": list(assertions.values())}
+            for request, assertions in checks.items()
+        ]}}
+
+    for stable_feature in ("mcp-apps", "codemode-errors"):
+        feature_contract = stable_contract["features"][stable_feature]
+        comparison = {"stock_failed_assertions": feature_contract["expected_stock_failures"],
+                      "candidate_failed_assertions": []}
+        validated = validate_stable_stock_contract(
+            stable_feature, synthetic_stable_report(stable_feature, True),
+            synthetic_stable_report(stable_feature, False), comparison)
+        assert validated["stable_stock_failed_pairs_exact"] is True
+        invalid = {**comparison, "stock_failed_assertions": [
+            *feature_contract["expected_stock_failures"],
+            {"request": "unexpected", "assertion": "unexpected"}]}
+        try:
+            validate_stable_stock_contract(
+                stable_feature, synthetic_stable_report(stable_feature, True),
+                synthetic_stable_report(stable_feature, False), invalid)
+        except RuntimeError:
+            pass
+        else:
+            raise AssertionError(f"{stable_feature}: stable stock validator accepted an extra red pair")
     assert reference_host_status_filename(False) == "reference-host-status.json"
     assert reference_host_status_filename(True) == "stock-reference-host-status.json"
     assert reference_host_status_filename(False) != reference_host_status_filename(True)
@@ -1643,10 +1770,21 @@ def main(args):
     for name, identity in source_identities.items():
         if not re.fullmatch(r"[0-9a-f]{40}", identity):
             raise RuntimeError(f"{name} source identity must be an immutable 40-character commit SHA")
+    stable_lane = os.environ.get("BIFROST_STABLE_LANE") == "1"
+    if stable_lane:
+        if mode != "strict":
+            raise RuntimeError("stable qualification only accepts strict comparison mode")
+        stable_contract, stable_contract_sha = load_stable_stock_contract()
+        if (source_identities["stock"] != stable_contract["stock_source"]
+                or source_identities["stable_reference"] != stable_contract["stock_source"]):
+            raise RuntimeError("stable qualification source differs from the frozen stock contract")
     if os.environ.get("GITHUB_ACTIONS") != "true":
         raise RuntimeError("Docker and harness execution is restricted to GitHub Actions; use --self-check locally")
     report_dir = Path(report_dir_arg).resolve()
     report_dir.mkdir(parents=True, exist_ok=True)
+    if stable_lane:
+        shutil.copy2(STABLE_STOCK_CONTRACT["path"],
+                     report_dir / "stable-stock-contract-source-hints.json")
     if (ROOT / ".env").exists():
         raise RuntimeError("refusing to run: repository .env exists; fixture CI must not source credentials")
     for tool in ("docker", "go", "node", "make", "python3"):
@@ -1911,6 +2049,9 @@ def main(args):
                     candidate_data = json.loads(candidate_path.read_text())
                     validate_executions(candidate_data, feature, counts[feature], expected_names[feature])
                     comparison = compare_reports(report_data, candidate_data, feature, mode=mode)
+                    if stable_lane:
+                        comparison = validate_stable_stock_contract(
+                            feature, report_data, candidate_data, comparison)
                     comparison.update({"stock_image": image, "candidate_image": "from-prior-candidate-run",
                                        "stock_source": source_identities["stock"],
                                        "candidate_source": source_identities["candidate"],

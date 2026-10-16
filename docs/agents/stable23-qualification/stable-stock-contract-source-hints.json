@@ -1,0 +1,300 @@
+{
+  "stock_source": "9237ec06672406e437b3cb33fc793ffd0403b3ae",
+  "observation_driver_source": "968d934ed4489f3fa0bb86fdae9197406c05b5fb",
+  "stock_binary_sha256": "f58728f39a7d98f7a82b29563b40a9926ca7bc8a807e9ed0abc834bc3578c9fb",
+  "cloud_compiler": "go1.27.2",
+  "provenance": "Canonical full workspace; stock binary VCS9237 clean; all linked Bifrost modules local(devel). Source-neutral Cloud matrix, independently checked against canonical contract before freezing expectations. Final Actions stock compiler remains stableDockerfilego1.27.0. Reobserved unchanged stable with explicit per-client callback-prefix HTML hints matching the Actions host setup; same exact failed pairs and named red/green controls. Prior stock observations retained; native candidate initial one routing assertion failed solely because its native fixture setup omitted these hints. No assertions weakened.",
+  "features": {
+    "mcp-apps": {
+      "observed_requests": 39,
+      "observed_assertions": 148,
+      "observed_skips": 0,
+      "expected_stock_failures": [
+        {
+          "request": "MCP Apps fixture Code Mode client exposes native App metadata",
+          "assertion": "Code Mode preserves native App metadata and has no UI metadata itself",
+          "rationale": "stock Code Mode client filters out its source's native App tool"
+        },
+        {
+          "request": "MCP Apps fixture Code Mode direct App call preserves full result",
+          "assertion": "Response has content (text or tool_use)",
+          "rationale": "stock Code Mode client filters out its source's native App tool"
+        },
+        {
+          "request": "MCP Apps fixture Code Mode direct App call preserves full result",
+          "assertion": "native direct call retains App result contract",
+          "rationale": "stock Code Mode client filters out its source's native App tool"
+        },
+        {
+          "request": "MCP Apps fixture Code Mode script failure sets isError",
+          "assertion": "only sandbox script failure marks outer result isError",
+          "rationale": "stock returns a successful outer result for this Starlark parse failure"
+        },
+        {
+          "request": "MCP Apps fixture Virtual MCP full discovery",
+          "assertion": "Virtual MCP preserves both UI metadata fields",
+          "rationale": "stock Virtual MCP discovery omits the Code Mode source App tool"
+        },
+        {
+          "request": "MCP Apps fixture Virtual MCP full resource read",
+          "assertion": "Response has content (text or tool_use)",
+          "rationale": "stock Virtual MCP resources/read cannot relay this App resource"
+        },
+        {
+          "request": "MCP Apps fixture Virtual MCP full resource read",
+          "assertion": "Virtual MCP resource is readable with MIME and CSP",
+          "rationale": "stock Virtual MCP resources/read cannot relay this App resource"
+        },
+        {
+          "request": "MCP Apps fixture Virtual MCP limited discovery",
+          "assertion": "limited key sees only its allowed App tool",
+          "rationale": "stock limited catalog omits the direct App tool from its Code Mode source"
+        },
+        {
+          "request": "MCP Apps fixture aggregate discovery and namespaced UI URIs",
+          "assertion": "aggregate namespaces sources and marks callbacks app-only",
+          "rationale": "stock aggregate catalog omits the Code Mode source App tool and callback metadata"
+        },
+        {
+          "request": "MCP Apps fixture aggregate namespaced callback routes first",
+          "assertion": "Response has content (text or tool_use)",
+          "rationale": "stock aggregate catalog omits the Code Mode source callback"
+        },
+        {
+          "request": "MCP Apps fixture aggregate namespaced callback routes first",
+          "assertion": "namespaced callback reaches correct instance",
+          "rationale": "stock aggregate catalog omits the Code Mode source callback"
+        },
+        {
+          "request": "MCP Apps fixture aggregate reads first source resource",
+          "assertion": "Response has content (text or tool_use)",
+          "rationale": "stock aggregate resources/read cannot relay the first App resource"
+        },
+        {
+          "request": "MCP Apps fixture aggregate reads first source resource",
+          "assertion": "first resource routes to its own source",
+          "rationale": "stock aggregate resources/read cannot relay the first App resource"
+        },
+        {
+          "request": "MCP Apps fixture aggregate reads second source resource",
+          "assertion": "Response has content (text or tool_use)",
+          "rationale": "stock aggregate resources/read cannot relay the second App resource"
+        },
+        {
+          "request": "MCP Apps fixture aggregate reads second source resource",
+          "assertion": "second resource routes to its own source",
+          "rationale": "stock aggregate resources/read cannot relay the second App resource"
+        },
+        {
+          "request": "MCP Apps fixture aggregate structured result",
+          "assertion": "aggregate tool result keeps source identity and metadata",
+          "rationale": "stock aggregate catalog omits the Code Mode source structured-result tool"
+        },
+        {
+          "request": "MCP Apps fixture direct App callback remains callable",
+          "assertion": "App-only callback resolves on direct route",
+          "rationale": "Code Mode hides the direct App callback source tool"
+        },
+        {
+          "request": "MCP Apps fixture direct App callback remains callable",
+          "assertion": "Response has content (text or tool_use)",
+          "rationale": "Code Mode hides the direct App callback source tool"
+        },
+        {
+          "request": "MCP Apps fixture direct initialize negotiates UI",
+          "assertion": "UI extension negotiated",
+          "rationale": "stock initialize does not negotiate the MCP Apps UI extension"
+        },
+        {
+          "request": "MCP Apps fixture direct legacy-only metadata remains routable",
+          "assertion": "legacy-only URI is rewritten and modern field stays absent",
+          "rationale": "stock discovery drops the legacy-only UI metadata field"
+        },
+        {
+          "request": "MCP Apps fixture direct modern-only metadata remains routable",
+          "assertion": "modern-only URI is rewritten and legacy field stays absent",
+          "rationale": "stock discovery drops the modern-only UI metadata field"
+        },
+        {
+          "request": "MCP Apps fixture direct resources list returns array",
+          "assertion": "Response has content (text or tool_use)",
+          "rationale": "stock returns JSON-RPC resources-not-supported for resources/list"
+        },
+        {
+          "request": "MCP Apps fixture direct resources list returns array",
+          "assertion": "resources/list returns array",
+          "rationale": "stock returns JSON-RPC resources-not-supported for resources/list"
+        },
+        {
+          "request": "MCP Apps fixture direct resources read returns HTML and CSP",
+          "assertion": "Response has content (text or tool_use)",
+          "rationale": "stock direct MCP resources/read is unsupported"
+        },
+        {
+          "request": "MCP Apps fixture direct resources read returns HTML and CSP",
+          "assertion": "resource HTML MIME and CSP are relayed",
+          "rationale": "stock direct MCP resources/read is unsupported"
+        },
+        {
+          "request": "MCP Apps fixture direct structured tool result",
+          "assertion": "content structuredContent metadata and success marker survive",
+          "rationale": "Code Mode hides the direct structured-result source tool"
+        },
+        {
+          "request": "MCP Apps fixture direct tool error marker",
+          "assertion": "fixture tool error remains isError",
+          "rationale": "Code Mode hides the direct tool-error source tool"
+        },
+        {
+          "request": "MCP Apps fixture direct tools list preserves App metadata",
+          "assertion": "App-only callback is marked for host visibility",
+          "rationale": "Code Mode hides the source callback from the direct native catalog"
+        },
+        {
+          "request": "MCP Apps fixture direct tools list preserves App metadata",
+          "assertion": "both URI fields and input schema survive discovery",
+          "rationale": "Code Mode exposes meta-tools instead of that source's native App tool"
+        },
+        {
+          "request": "MCP Apps fixture direct tools list preserves App metadata",
+          "assertion": "supported output schema survives definition lookup",
+          "rationale": "stock Code Mode catalog omits this native App and its output schema"
+        },
+        {
+          "request": "MCP Apps fixture limited aggregate discovery",
+          "assertion": "MCP Apps fixture limited aggregate discovery",
+          "rationale": "stock limited aggregate catalog omits the permitted App tool"
+        },
+        {
+          "request": "MCP Apps fixture limited direct discovery",
+          "assertion": "MCP Apps fixture limited direct discovery",
+          "rationale": "stock limited direct catalog omits the permitted App tool"
+        },
+        {
+          "request": "MCP Apps fixture limited direct resource remains readable",
+          "assertion": "MCP Apps fixture limited direct resource remains readable",
+          "rationale": "stock direct resources/read is unsupported for the limited key too"
+        },
+        {
+          "request": "MCP Apps fixture limited direct resource remains readable",
+          "assertion": "Response has content (text or tool_use)",
+          "rationale": "stock direct resources/read is unsupported for the limited key too"
+        }
+      ],
+      "stock_red_sentinels": [
+        {
+          "request": "MCP Apps fixture direct initialize negotiates UI",
+          "assertion": "UI extension negotiated"
+        },
+        {
+          "request": "MCP Apps fixture direct tools list preserves App metadata",
+          "assertion": "both URI fields and input schema survive discovery"
+        },
+        {
+          "request": "MCP Apps fixture direct tools list preserves App metadata",
+          "assertion": "supported output schema survives definition lookup"
+        },
+        {
+          "request": "MCP Apps fixture direct resources read returns HTML and CSP",
+          "assertion": "resource HTML MIME and CSP are relayed"
+        },
+        {
+          "request": "MCP Apps fixture Virtual MCP full discovery",
+          "assertion": "Virtual MCP preserves both UI metadata fields"
+        },
+        {
+          "request": "MCP Apps fixture aggregate discovery and namespaced UI URIs",
+          "assertion": "aggregate namespaces sources and marks callbacks app-only"
+        },
+        {
+          "request": "MCP Apps fixture aggregate reads second source resource",
+          "assertion": "second resource routes to its own source"
+        },
+        {
+          "request": "MCP Apps fixture aggregate namespaced callback routes first",
+          "assertion": "namespaced callback reaches correct instance"
+        },
+        {
+          "request": "MCP Apps fixture direct legacy-only metadata remains routable",
+          "assertion": "legacy-only URI is rewritten and modern field stays absent"
+        },
+        {
+          "request": "MCP Apps fixture direct modern-only metadata remains routable",
+          "assertion": "modern-only URI is rewritten and legacy field stays absent"
+        },
+        {
+          "request": "MCP Apps fixture limited direct resource remains readable",
+          "assertion": "MCP Apps fixture limited direct resource remains readable"
+        }
+      ],
+      "green_controls": [
+        {
+          "request": "MCP Apps fixture direct initialize omits UI without negotiation",
+          "assertion": "UI extension omitted without negotiation"
+        },
+        {
+          "request": "MCP Apps fixture denied aggregate initialize",
+          "assertion": "denied aggregate initialize succeeds with empty capabilities"
+        },
+        {
+          "request": "MCP Apps fixture denied aggregate tools list is empty",
+          "assertion": "denied aggregate returns empty tools"
+        },
+        {
+          "request": "MCP Apps fixture Code Mode nested App call returns text only",
+          "assertion": "script returns nested text without structured App metadata"
+        },
+        {
+          "request": "MCP Apps fixture Code Mode nested tool error remains script value",
+          "assertion": "nested tool error is returned to script as a value per upstream behavior"
+        },
+        {
+          "request": "MCP Apps fixture aggregate namespaced callback routes second",
+          "assertion": "namespaced callback reaches correct instance"
+        }
+      ],
+      "historical_dev_failed_pair_set_equal_by_observation": true
+    },
+    "codemode-errors": {
+      "observed_requests": 3,
+      "observed_assertions": 10,
+      "observed_skips": 0,
+      "expected_stock_failures": [
+        {
+          "request": "Code Mode failed script sets outer isError (codemode-errors)",
+          "assertion": "Starlark execution failure marks the outer result as an error",
+          "rationale": "stock outer handler does not mark this script failure as isError"
+        },
+        {
+          "request": "Code Mode nested Error prefix remains a value (codemode-errors)",
+          "assertion": "Error: prefix payload stays a successful script value",
+          "rationale": "stock nested tool result with Error: prefix is interpreted as an error"
+        }
+      ],
+      "stock_red_sentinels": [
+        {
+          "request": "Code Mode failed script sets outer isError (codemode-errors)",
+          "assertion": "Starlark execution failure marks the outer result as an error"
+        },
+        {
+          "request": "Code Mode nested Error prefix remains a value (codemode-errors)",
+          "assertion": "Error: prefix payload stays a successful script value"
+        }
+      ],
+      "green_controls": [
+        {
+          "request": "Code Mode nested validation error remains a value (codemode-errors)",
+          "assertion": "executeToolCode succeeds when the nested tool returns an error value"
+        }
+      ],
+      "historical_dev_failed_pair_set_equal_by_observation": true
+    }
+  },
+  "observation_probe_sha256": "79563ba272fdc55324158c3b91e4e1087d670e496550c849fee2250a39bd64e4",
+  "fixture_callback_hints": {
+    "mcp_apps_fixture": "mcp_apps_fixture",
+    "mcp_apps_fixture_second": "mcp_apps_fixture_second",
+    "mcp_apps_fixture_modern": "mcp_apps_fixture_modern"
+  },
+  "observation_directory": "cloud-stock-matrix-source-hints"
+}

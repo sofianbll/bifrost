@@ -1,0 +1,15 @@
+{
+  "evidence_kind": "compact Cloud observation summaries; raw reports/configs/logs excluded",
+  "observations": [
+    {
+      "path": "cloud-matrix/candidate-54630233/observations.json",
+      "sha256": "5cb6497af8ea4f1dc0a9103be6a16d7026868ca3f431043d3f3687f0e13c9f4d",
+      "bytes": 2475
+    },
+    {
+      "path": "cloud-matrix/stock/observations.json",
+      "sha256": "02349e42b3f53a8c01086cb1e63e083155c2bbf4e1f4f4028731b942b8757685",
+      "bytes": 8553
+    }
+  ]
+}

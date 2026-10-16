@@ -1,0 +1,562 @@
+name: Stable 2.3 MCP Apps qualification
+
+on:
+  push:
+    branches: [codex/stable23-driver]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: write
+
+concurrency:
+  group: stable23-qualification-${{ github.ref }}-${{ github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  qualify:
+    if: github.repository == 'sofianbll/bifrost' && github.ref_type == 'branch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    env:
+      STOCK_SOURCE: 9237ec06672406e437b3cb33fc793ffd0403b3ae
+      STABLE_REFERENCE: 9237ec06672406e437b3cb33fc793ffd0403b3ae
+      CANDIDATE_SOURCE: e33b67ab6fd26e1e1b83fbc0a84c0b2f946fdb05
+      CANDIDATE_TREE: 702a0479d7f5dd6dbf5df0fa4c0b68fc74850dc0
+      CANDIDATE_PARENT: e949886eb5212db2dc0ac7857e9934527ecb5044
+      DRIVER_SOURCE: ${{ github.sha }}
+      FIXTURE_SCOPES: mcp-apps,codemode-errors
+      COMPARISON_MODE: strict
+      GO_TEST_REPORT_DIR: ${{ runner.temp }}/stable23-go-tests
+      REPORT_DIR: ${{ runner.temp }}/stable23-qualification
+
+    steps:
+      - name: Checkout exact stable stock source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ env.STOCK_SOURCE }}
+          path: stock
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Checkout exact stable candidate source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ env.CANDIDATE_SOURCE }}
+          path: candidate
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Checkout immutable qualification driver
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ env.DRIVER_SOURCE }}
+          path: driver
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Verify frozen source identities and stable ancestry
+        id: source-identities
+        run: |
+          set -euo pipefail
+          test "${GITHUB_REPOSITORY}" = "sofianbll/bifrost"
+          test "${GITHUB_REF}" = "refs/heads/codex/stable23-driver"
+          for identity in "$STOCK_SOURCE" "$CANDIDATE_SOURCE" "$DRIVER_SOURCE"; do
+            [[ "$identity" =~ ^[0-9a-f]{40}$ ]]
+          done
+          test "$(git -C stock rev-parse HEAD)" = "$STOCK_SOURCE"
+          test "$(git -C candidate rev-parse HEAD)" = "$CANDIDATE_SOURCE"
+          test "$(git -C candidate rev-parse 'HEAD^{tree}')" = "$CANDIDATE_TREE"
+          test "$(git -C candidate show -s --format=%P HEAD)" = "$CANDIDATE_PARENT"
+          test "$(git -C driver rev-parse HEAD)" = "$DRIVER_SOURCE"
+          git -C candidate merge-base --is-ancestor "$STOCK_SOURCE" "$CANDIDATE_SOURCE"
+          for source in stock candidate driver; do
+            test -z "$(git -C "$source" status --porcelain --untracked-files=all)"
+            test ! -e "$source/.env"
+          done
+          mkdir -p "$RUNNER_TEMP/stable23-qualification"
+          report_dir="$REPORT_DIR"
+          python3 - <<'PY'
+          import json, os, subprocess
+          from pathlib import Path
+
+          report = Path(os.environ['RUNNER_TEMP']) / 'stable23-qualification'
+          stock = os.environ['STOCK_SOURCE']
+          candidate = os.environ['CANDIDATE_SOURCE']
+          driver = os.environ['DRIVER_SOURCE']
+          candidate_tree = os.environ['CANDIDATE_TREE']
+          candidate_parent = os.environ['CANDIDATE_PARENT']
+
+          def git(root, *args):
+              return subprocess.check_output(['git', '-C', root, *args], text=True).strip()
+
+          identities = {}
+          for role, sha in [('stock', stock), ('candidate', candidate), ('driver', driver)]:
+              identities[role] = {
+                  'source': sha,
+                  'tree': git(role, 'rev-parse', 'HEAD^{tree}'),
+                  'parents': git(role, 'show', '-s', '--format=%P', 'HEAD').split(),
+                  'tracked_and_untracked_status': git(role, 'status', '--porcelain', '--untracked-files=all'),
+                  'env_file_present': (Path(role) / '.env').exists(),
+              }
+          identities['stable_reference'] = stock
+          identities['candidate_descends_from_stock'] = True
+          identities['expected_candidate_tree'] = candidate_tree
+          identities['expected_candidate_parent'] = candidate_parent
+          identities['candidate_commits_after_stock'] = int(git('candidate', 'rev-list', '--count', f'{stock}..{candidate}'))
+          identities['candidate_diff_stat'] = git('candidate', 'diff', '--stat', f'{stock}...{candidate}')
+          identities['candidate_commit_list'] = git('candidate', 'log', '--format=%H %s', f'{stock}..{candidate}').splitlines()
+          identities['fixture_scopes'] = os.environ['FIXTURE_SCOPES']
+          identities['comparison_mode'] = os.environ['COMPARISON_MODE']
+          (report / 'source-identities.json').write_text(json.dumps(identities, indent=2) + '\n')
+          (report / 'candidate-source-mapping.txt').write_text(identities['candidate_diff_stat'] + '\n\n' + '\n'.join(identities['candidate_commit_list']) + '\n')
+          PY
+
+      - name: Bind candidate commit to the pending qualification run
+        id: status-pending
+        if: steps.source-identities.outcome == 'success'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 driver/tests/mcpapps/publish-candidate-status.py pending
+
+      - uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
+        id: setup-go
+        with:
+          go-version: "1.27.2"
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        id: setup-node
+        with:
+          node-version: "25"
+
+      - name: Create canonical local Go workspaces for both sources
+        id: workspaces
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          make_workspace() {
+            role="$1"
+            root="$(pwd)/$role"
+            workdir="$RUNNER_TEMP/stable23-go-work-$role"
+            mkdir -p "$workdir"
+            (
+              cd "$workdir"
+              go work init
+              go work use "$root/core" "$root/framework" "$root/transports" "$root/cli"
+              for plugin_dir in "$root"/plugins/*/; do
+                if [ -f "$plugin_dir/go.mod" ]; then go work use "$plugin_dir"; fi
+              done
+            )
+            echo "${role^^}_GOWORK=$workdir/go.work" >> "$GITHUB_ENV"
+            GOWORK="$workdir/go.work" go version > "$REPORT_DIR/$role-runner-go-version.txt"
+            GOWORK="$workdir/go.work" go env GOWORK >> "$REPORT_DIR/$role-runner-go-version.txt"
+            (cd "$root/transports" && GOWORK="$workdir/go.work" go list -m -f '{{.Path}} {{.Dir}}' all) > "$REPORT_DIR/$role-go-workspace-modules.txt"
+            python3 driver/tests/mcpapps/verify-stable-workspace-modules.py \
+              --source-root "$root" \
+              --manifest "$REPORT_DIR/$role-go-workspace-modules.txt" \
+              --output "$REPORT_DIR/$role-workspace-module-provenance.json"
+          }
+          make_workspace stock
+          make_workspace candidate
+
+      - name: Install pinned API harness dependencies
+        id: harness-deps
+        continue-on-error: true
+        run: npm ci --prefix driver/tests/e2e
+
+      - name: Check stable lane fixture and provenance contracts
+        id: driver-self-checks
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          python3 driver/tests/mcpapps/qualify-go-tests.py --self-check
+          python3 driver/tests/mcpapps/verify-stable-workspace-modules.py --self-check
+          python3 driver/tests/mcpapps/verify-stable-review-provenance.py --self-check
+          python3 driver/.github/workflows/scripts/verify-stable-image-provenance.py --self-check
+          python3 -m json.tool driver/tests/mcpapps/stable-stock-contract-source-hints.json >/dev/null
+          python3 -m json.tool driver/tests/integrations/python/config.json >/dev/null
+          python3 -m json.tool driver/tests/e2e/api/collections/provider-harness.json >/dev/null
+
+      - name: Run stock JSON race inventory
+        id: go-stock
+        if: always() && steps.workspaces.outcome == 'success'
+        continue-on-error: true
+        run: BIFROST_GO_WORKSPACE="$STOCK_GOWORK" python3 driver/tests/mcpapps/qualify-go-tests.py --run-all --source stock --root stock --report-dir "$GO_TEST_REPORT_DIR"
+
+      - name: Run candidate JSON race inventory
+        id: go-candidate
+        if: always() && steps.workspaces.outcome == 'success'
+        continue-on-error: true
+        run: BIFROST_GO_WORKSPACE="$CANDIDATE_GOWORK" python3 driver/tests/mcpapps/qualify-go-tests.py --run-all --source candidate --root candidate --report-dir "$GO_TEST_REPORT_DIR"
+
+      - name: Compare Go test events and classify only the reproduced inherited proxy failure
+        id: go-comparison
+        if: always()
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          python3 driver/tests/mcpapps/qualify-go-tests.py --compare --report-dir "$GO_TEST_REPORT_DIR"
+          test -s "$GO_TEST_REPORT_DIR/go-test-comparison.json"
+          cp "$GO_TEST_REPORT_DIR/go-test-comparison.json" "$REPORT_DIR/go-test-comparison.json"
+
+      - name: Bootstrap the pinned ext-apps reference host
+        id: reference-host-bootstrap
+        if: always() && steps.harness-deps.outcome == 'success'
+        continue-on-error: true
+        working-directory: driver
+        run: |
+          set -euo pipefail
+          host_dir="$RUNNER_TEMP/stable23-reference-host-${GITHUB_RUN_ID}"
+          test ! -e "$host_dir"
+          node tests/mcpapps/bootstrap-reference-host.mjs --directory "$host_dir"
+          "$host_dir/node_modules/.bin/playwright" install chromium
+          echo "REFERENCE_HOST_DIRECTORY=$host_dir" >> "$GITHUB_ENV"
+          cp "$host_dir/.bifrost-reference-host.json" "$REPORT_DIR/reference-host-bootstrap-manifest.json"
+
+      - uses: step-security/setup-buildx-action@f931205d68723ad9589fd2a7e2ece238bf9de341 # v4.0.0
+        id: buildx
+        if: always()
+        continue-on-error: true
+
+      - name: Build unchanged stable stock image with local modules
+        id: build-stock
+        if: always() && steps.buildx.outcome == 'success'
+        continue-on-error: true
+        uses: step-security/docker-build-push-action@846549baaf047e867d038826129a64d81df0f704 # v7.1.0
+        with:
+          context: stock
+          file: stock/transports/Dockerfile.local
+          platforms: linux/amd64
+          load: true
+          tags: bifrost:stock-${{ github.run_id }}
+
+      - name: Build stable candidate image with local modules
+        id: build-candidate
+        if: always() && steps.buildx.outcome == 'success'
+        continue-on-error: true
+        uses: step-security/docker-build-push-action@846549baaf047e867d038826129a64d81df0f704 # v7.1.0
+        with:
+          context: candidate
+          file: candidate/transports/Dockerfile.local
+          platforms: linux/amd64
+          load: true
+          tags: bifrost:candidate-${{ github.run_id }}
+
+      - name: Verify image compiler, exact modules and image identities
+        id: image-provenance
+        if: always() && steps.build-stock.outcome == 'success' && steps.build-candidate.outcome == 'success'
+        continue-on-error: true
+        env:
+          REPORT_DIR: ${{ env.REPORT_DIR }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          STOCK_SOURCE: ${{ env.STOCK_SOURCE }}
+          CANDIDATE_SOURCE: ${{ env.CANDIDATE_SOURCE }}
+        run: python3 driver/.github/workflows/scripts/verify-stable-image-provenance.py
+
+      - name: Validate fixture source and stable contract manifest
+        id: fixture-contract
+        if: always()
+        continue-on-error: true
+        working-directory: driver
+        run: |
+          set -euo pipefail
+          .github/workflows/scripts/test-mcp-apps-fixture.sh --self-check
+          sha256sum tests/mcpapps/stable-stock-contract-source-hints.json > "$REPORT_DIR/stable-stock-contract.sha256"
+
+      - name: Run full Apps and Code Mode candidate fixtures with actual reference host
+        id: candidate-fixture
+        if: always() && steps.build-candidate.outcome == 'success'
+        continue-on-error: true
+        working-directory: driver
+        env:
+          DRIVER_SOURCE: ${{ env.DRIVER_SOURCE }}
+          BIFROST_STOCK_SOURCE: ${{ env.STOCK_SOURCE }}
+          BIFROST_CANDIDATE_SOURCE: ${{ env.CANDIDATE_SOURCE }}
+          BIFROST_STABLE_REFERENCE: ${{ env.STABLE_REFERENCE }}
+          BIFROST_COMPARISON_MODE: strict
+          BIFROST_FIXTURE_SCOPES: mcp-apps,codemode-errors
+          BIFROST_STABLE_LANE: "1"
+          BIFROST_REFERENCE_HOST_DIRECTORY: ${{ runner.temp }}/stable23-reference-host-${{ github.run_id }}
+        run: .github/workflows/scripts/test-mcp-apps-fixture.sh "bifrost:candidate-${{ github.run_id }}" "$REPORT_DIR"
+
+      - name: Run unchanged stock fixtures and exact stable comparison
+        id: stock-fixture
+        if: always() && steps.build-stock.outcome == 'success' && steps.build-candidate.outcome == 'success' && steps.candidate-fixture.outcome != 'skipped'
+        continue-on-error: true
+        working-directory: driver
+        env:
+          DRIVER_SOURCE: ${{ env.DRIVER_SOURCE }}
+          BIFROST_STOCK_SOURCE: ${{ env.STOCK_SOURCE }}
+          BIFROST_CANDIDATE_SOURCE: ${{ env.CANDIDATE_SOURCE }}
+          BIFROST_STABLE_REFERENCE: ${{ env.STABLE_REFERENCE }}
+          BIFROST_COMPARISON_MODE: strict
+          BIFROST_FIXTURE_SCOPES: mcp-apps,codemode-errors
+          BIFROST_STABLE_LANE: "1"
+          BIFROST_REFERENCE_HOST_DIRECTORY: ""
+        run: .github/workflows/scripts/test-mcp-apps-fixture.sh --baseline "bifrost:stock-${{ github.run_id }}" "$REPORT_DIR"
+
+      - name: Run candidate same-store first boot and restart gate
+        id: candidate-firstboot
+        if: always() && steps.build-candidate.outcome == 'success'
+        continue-on-error: true
+        working-directory: driver
+        env:
+          DRIVER_SOURCE: ${{ env.DRIVER_SOURCE }}
+          BIFROST_STOCK_SOURCE: ${{ env.STOCK_SOURCE }}
+          BIFROST_CANDIDATE_SOURCE: ${{ env.CANDIDATE_SOURCE }}
+          BIFROST_STABLE_REFERENCE: ${{ env.STABLE_REFERENCE }}
+          BIFROST_COMPARISON_MODE: strict
+          BIFROST_FIXTURE_SCOPES: firstboot-grants
+          BIFROST_STABLE_LANE: "1"
+          BIFROST_REFERENCE_HOST_DIRECTORY: ""
+        run: .github/workflows/scripts/test-mcp-apps-fixture.sh "bifrost:candidate-${{ github.run_id }}" "$REPORT_DIR/firstboot-grants"
+
+      - name: Run unchanged stock first boot and compare same-store restart
+        id: stock-firstboot
+        if: always() && steps.build-stock.outcome == 'success' && steps.build-candidate.outcome == 'success' && steps.candidate-firstboot.outcome != 'skipped'
+        continue-on-error: true
+        working-directory: driver
+        env:
+          DRIVER_SOURCE: ${{ env.DRIVER_SOURCE }}
+          BIFROST_STOCK_SOURCE: ${{ env.STOCK_SOURCE }}
+          BIFROST_CANDIDATE_SOURCE: ${{ env.CANDIDATE_SOURCE }}
+          BIFROST_STABLE_REFERENCE: ${{ env.STABLE_REFERENCE }}
+          BIFROST_COMPARISON_MODE: strict
+          BIFROST_FIXTURE_SCOPES: firstboot-grants
+          BIFROST_STABLE_LANE: "1"
+          BIFROST_REFERENCE_HOST_DIRECTORY: ""
+        run: .github/workflows/scripts/test-mcp-apps-fixture.sh --baseline "bifrost:stock-${{ github.run_id }}" "$REPORT_DIR/firstboot-grants"
+
+      - name: Validate host, restart, fixture and source cleanliness evidence
+        id: runtime-evidence
+        if: always()
+        continue-on-error: true
+        env:
+          EXPECT_CANDIDATE_SOURCE: ${{ env.CANDIDATE_SOURCE }}
+          EXPECT_STOCK_SOURCE: ${{ env.STOCK_SOURCE }}
+          EXPECT_DRIVER_SOURCE: ${{ env.DRIVER_SOURCE }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          report = Path(os.environ['REPORT_DIR'])
+          candidate = os.environ['EXPECT_CANDIDATE_SOURCE']
+          stock = os.environ['EXPECT_STOCK_SOURCE']
+          driver = os.environ['EXPECT_DRIVER_SOURCE']
+          host = json.loads((report / 'reference-host-status.json').read_text())
+          assert host['status'] == 'passed' and host['candidate_source'] == candidate
+          host_manifest = json.loads((report / 'reference-host-manifest.json').read_text())
+          assert host_manifest['commit'] == '82221c0c8ce7661efa6771c9d461511b1650495f'
+          for name, replay in (('normal', False), ('controlled-replay', True)):
+              assert (report / f'reference-host-{name}-exit-code.txt').read_text().strip() == '0'
+              evidence = json.loads((report / f'reference-host-{name}.json').read_text())
+              assert evidence['candidateSource'] == candidate
+              assert evidence['hostCommit'] == '82221c0c8ce7661efa6771c9d461511b1650495f'
+              assert evidence['expectedInstance'] == 'first'
+              assert evidence['fixtureClientName'] == 'mcp_apps_fixture'
+              checks = evidence['checks']
+              assert checks['pageErrors'] == 0
+              assert checks['controlledPartialInputDelivered'] is replay
+              assert checks['uiMimeTypeNegotiated'] == 'text/html;profile=mcp-app'
+              for key in ('sdkHandshakeAndViewRendered', 'fullInputDelivered', 'nativeResultSourceAndPayload',
+                          'saveReadChangeRestore', 'deliberateCorruptStateDetected',
+                          'notificationOrderChecked', 'missingAndReorderedNotificationsRejected'):
+                  assert checks[key] is True, f'{name}: missing host control {key}'
+          for feature in ('mcp-apps', 'codemode-errors'):
+              comparison = json.loads((report / f'{feature}-comparison.json').read_text())
+              assert comparison['strict_pass'] is True
+              assert comparison['candidate_source'] == candidate
+              assert comparison['stable_stock_failed_pairs_exact'] is True
+          lifecycle = json.loads((report / 'firstboot-grants/firstboot-grants-comparison.json').read_text())
+          assert lifecycle['strict_pass'] is True
+          assert lifecycle['phases']['firstboot']['classification'] == 'fixed'
+          assert lifecycle['phases']['restart']['classification'] == 'green-control'
+          for role, prefix, source in (('candidate', '', candidate), ('stock', 'stock-', stock)):
+              phases_path = report / 'firstboot-grants' / f'{prefix}firstboot-grants-phases.json'
+              phases = json.loads(phases_path.read_text())
+              assert phases['same_container_across_restart'] is True, role
+              assert phases['container_ids']['before_restart'] == phases['container_ids']['after_restart'], role
+              identity = phases['source_identities']
+              assert identity['candidate'] == candidate and identity['stock'] == stock, role
+              assert identity['stable_reference'] == stock and identity['driver'] == driver, role
+              setups = [json.loads((report / 'firstboot-grants' / f'{prefix}firstboot-grants-{phase}-setup.json').read_text())
+                        for phase in ('firstboot', 'restart')]
+              assert all(setup['source_identities'] == identity for setup in setups), role
+              vm_ids = [setup['virtual_mcp']['virtual_mcp_id'] for setup in setups]
+              assert vm_ids[0] and vm_ids[0] == vm_ids[1], f'{role}: virtual MCP ID changed across restart'
+              app_dirs = [setup['app_dir'] for setup in setups]
+              assert app_dirs[0] and app_dirs[0] == app_dirs[1], f'{role}: store path changed across restart'
+              assert setups[0]['container_id'] == phases['container_ids']['before_restart'], role
+              assert setups[1]['container_id'] == phases['container_ids']['after_restart'], role
+          print('PASS host, source, wire and within-source same-store lifecycle evidence; replay is not native Codex streaming')
+          PY
+          for source in stock candidate driver; do
+            test -z "$(git -C "$source" status --porcelain --untracked-files=all)"
+          done
+
+      - name: Validate final independent review provenance for this exact candidate
+        id: review-provenance
+        if: always()
+        continue-on-error: true
+        run: >-
+          python3 driver/tests/mcpapps/verify-stable-review-provenance.py
+          --base "$STOCK_SOURCE"
+          --head "$CANDIDATE_SOURCE"
+          --standards driver/docs/agents/stable23-qualification/review-standards.md
+          --spec driver/docs/agents/stable23-qualification/review-spec.md
+          --output "$REPORT_DIR/review-provenance.json"
+
+      - name: Verify all gates and write explicit qualification verdict
+        id: final-gate
+        if: always()
+        continue-on-error: true
+        env:
+          SOURCES: ${{ steps.source-identities.outcome }}
+          STATUS_PENDING: ${{ steps.status-pending.outcome }}
+          SETUP_GO: ${{ steps.setup-go.outcome }}
+          SETUP_NODE: ${{ steps.setup-node.outcome }}
+          WORKSPACES: ${{ steps.workspaces.outcome }}
+          HARNESS_DEPS: ${{ steps.harness-deps.outcome }}
+          DRIVER_CHECKS: ${{ steps.driver-self-checks.outcome }}
+          GO_STOCK: ${{ steps.go-stock.outcome }}
+          GO_CANDIDATE: ${{ steps.go-candidate.outcome }}
+          GO_COMPARE: ${{ steps.go-comparison.outcome }}
+          HOST_BOOTSTRAP: ${{ steps.reference-host-bootstrap.outcome }}
+          BUILDX: ${{ steps.buildx.outcome }}
+          BUILD_STOCK: ${{ steps.build-stock.outcome }}
+          BUILD_CANDIDATE: ${{ steps.build-candidate.outcome }}
+          IMAGE_PROVENANCE: ${{ steps.image-provenance.outcome }}
+          FIXTURE_CONTRACT: ${{ steps.fixture-contract.outcome }}
+          CANDIDATE_FIXTURE: ${{ steps.candidate-fixture.outcome }}
+          STOCK_FIXTURE: ${{ steps.stock-fixture.outcome }}
+          CANDIDATE_FIRSTBOOT: ${{ steps.candidate-firstboot.outcome }}
+          STOCK_FIRSTBOOT: ${{ steps.stock-firstboot.outcome }}
+          RUNTIME_EVIDENCE: ${{ steps.runtime-evidence.outcome }}
+          REVIEW_PROVENANCE: ${{ steps.review-provenance.outcome }}
+          DRIVER_SOURCE: ${{ env.DRIVER_SOURCE }}
+          CANDIDATE_SOURCE: ${{ env.CANDIDATE_SOURCE }}
+        run: |
+          python3 - <<'PY'
+          import json, os, hashlib
+          from pathlib import Path
+          report = Path(os.environ['REPORT_DIR'])
+          report.mkdir(parents=True, exist_ok=True)
+          outcomes = {key.lower(): value for key, value in os.environ.items()
+                      if key in {'SOURCES','STATUS_PENDING','SETUP_GO','SETUP_NODE','WORKSPACES','HARNESS_DEPS','DRIVER_CHECKS',
+                                 'GO_STOCK','GO_CANDIDATE','GO_COMPARE','HOST_BOOTSTRAP','BUILDX','BUILD_STOCK',
+                                 'BUILD_CANDIDATE','IMAGE_PROVENANCE','FIXTURE_CONTRACT','CANDIDATE_FIXTURE',
+                                 'STOCK_FIXTURE','CANDIDATE_FIRSTBOOT','STOCK_FIRSTBOOT','RUNTIME_EVIDENCE','REVIEW_PROVENANCE'}}
+          required_success = {'sources','status_pending','setup_go','setup_node','workspaces','harness_deps','driver_checks',
+                              'go_compare','host_bootstrap','buildx','build_stock','build_candidate','image_provenance',
+                              'fixture_contract','candidate_fixture','stock_fixture','candidate_firstboot',
+                              'stock_firstboot','runtime_evidence','review_provenance'}
+          missing = sorted(name for name in required_success if outcomes.get(name) != 'success')
+          blocked = sorted(name for name in ('sources','setup_go','setup_node','workspaces','harness_deps','driver_checks',
+                                             'host_bootstrap','buildx','build_stock','build_candidate','image_provenance')
+                           if outcomes.get(name) not in ('success', ''))
+          comparisons = {}
+          for name in ('mcp-apps-comparison.json','codemode-errors-comparison.json',
+                       'firstboot-grants/firstboot-grants-comparison.json','go-test-comparison.json'):
+              path = report / name
+              if path.is_file():
+                  comparisons[name] = hashlib.sha256(path.read_bytes()).hexdigest()
+          reviews = {
+              'standards': Path('driver/docs/agents/stable23-qualification/review-standards.md'),
+              'spec': Path('driver/docs/agents/stable23-qualification/review-spec.md'),
+          }
+          missing_reviews = [name for name, path in reviews.items() if not path.is_file() or path.stat().st_size == 0]
+          review_manifest_path = report / 'review-provenance.json'
+          review_manifest_sha256 = hashlib.sha256(review_manifest_path.read_bytes()).hexdigest() if review_manifest_path.is_file() else None
+          if review_manifest_path.is_file():
+              review_manifest = json.loads(review_manifest_path.read_text())
+              if review_manifest.get('status') != 'passed' or review_manifest.get('base') != '9237ec06672406e437b3cb33fc793ffd0403b3ae' or review_manifest.get('head') != os.environ['CANDIDATE_SOURCE']:
+                  missing_reviews.append('review provenance manifest does not bind zero-finding reviews to exact sources')
+          if missing_reviews:
+              verdict = 'blocked'
+          elif missing:
+              verdict = 'blocked' if blocked else 'failed'
+          else:
+              verdict = 'supported'
+          limitations = []
+          go_report = report / 'go-test-comparison.json'
+          if not go_report.is_file() or not go_report.stat().st_size:
+              missing.append('go-test-comparison.json is absent or empty')
+              verdict = 'blocked'
+              go_data = {}
+          else:
+              go_data = json.loads(go_report.read_text())
+              if go_data.get('status') not in ('passed', 'semantic-selections-passed-with-inherited-broad-failure'):
+                  missing.append('Go comparison has no recognized semantic status')
+              expected_go_outcome = 'failure' if go_data.get('inherited_checks_are_not_global_green') else 'success'
+              if outcomes.get('go_stock') != expected_go_outcome or outcomes.get('go_candidate') != expected_go_outcome:
+                  missing.append('Go command outcomes do not match the complete paired JSON comparison')
+              if go_data.get('inherited_checks_are_not_global_green'):
+                  limitations.append('The broad MCP/schemas race run reproduced the single unchanged global-proxy failure on both stock and candidate; the isolated control passed. The broad suite is not globally green.')
+          if missing:
+              verdict = 'blocked' if blocked else 'failed'
+          payload = {
+              'verdict': verdict,
+              'candidate_source': os.environ['CANDIDATE_SOURCE'],
+              'driver_source': os.environ['DRIVER_SOURCE'],
+              'stock_source': '9237ec06672406e437b3cb33fc793ffd0403b3ae',
+              'required_step_outcomes': outcomes,
+              'required_steps_not_successful': missing,
+              'independent_reviews_missing': missing_reviews,
+              'review_provenance_manifest_sha256': review_manifest_sha256,
+              'evidence_sha256': comparisons,
+              'go_test_comparison_sha256': hashlib.sha256(go_report.read_bytes()).hexdigest() if go_report.is_file() else None,
+              'go_test_limitations': go_data.get('inherited_checks_are_not_global_green', None),
+              'limitations': limitations,
+              'native_codex_or_live_model_streaming_proven': False,
+              'global_repository_tests_passed': False,
+              'test_scope': 'named stable-contract Go suites plus broad MCP/schemas race inventory; not the full repository suite',
+          }
+          (report / 'verdict.json').write_text(json.dumps(payload, indent=2) + '\n')
+          if verdict == 'supported':
+              human_result = ('\n'.join('- ' + item for item in limitations) if limitations else
+                              'All required supported-contract gates and independent reviews passed.')
+          elif verdict == 'blocked':
+              human_result = 'Qualification is blocked because one or more required gates or evidence files are missing.'
+          else:
+              human_result = 'Qualification failed because one or more required gates did not pass.'
+          (report / 'verdict.md').write_text('# Stable 2.3 qualification verdict\n\n' +
+              f"**{verdict.upper()}** for candidate `{payload['candidate_source']}` against stock `{payload['stock_source']}`.\n\n" +
+              human_result +
+              '\n\nThis verdict covers the accepted contract only; it does not claim native Codex rendering or live-model streaming.\n')
+          print(json.dumps({'verdict': verdict, 'missing_steps': missing, 'missing_reviews': missing_reviews, 'limitations': limitations}))
+          if verdict != 'supported':
+              raise SystemExit(1)
+          PY
+
+      - name: Upload immutable sanitized qualification artifact
+        id: upload-evidence
+        if: always()
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: stable-23-qualification-${{ env.CANDIDATE_SOURCE }}-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/stable23-qualification/
+            ${{ runner.temp }}/stable23-go-tests/
+            driver/docs/agents/stable23-qualification/
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Publish final exact-candidate commit status
+        id: status-final
+        if: always() && steps.status-pending.outcome == 'success'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FINAL_GATE_OUTCOME: ${{ steps.final-gate.outcome }}
+          ARTIFACT_OUTCOME: ${{ steps.upload-evidence.outcome }}
+        run: |
+          if [ "$FINAL_GATE_OUTCOME" = success ] && [ "$ARTIFACT_OUTCOME" = success ]; then
+            python3 driver/tests/mcpapps/publish-candidate-status.py success
+          else
+            python3 driver/tests/mcpapps/publish-candidate-status.py failure
+            exit 1
+          fi
+
+      - name: Remove local qualification images
+        if: always()
+        run: docker image rm -f "bifrost:stock-${{ github.run_id }}" "bifrost:candidate-${{ github.run_id }}" >/dev/null 2>&1 || true

@@ -1,0 +1,16 @@
+goos: linux
+goarch: amd64
+pkg: github.com/maximhq/bifrost/core/mcp/codemode/starlark
+cpu: INTEL(R) XEON(R) PLATINUM 8573C
+BenchmarkCodeModeNestedToolResponse/success-5         	   16351	     76961 ns/op	   18059 B/op	     275 allocs/op
+BenchmarkCodeModeNestedToolResponse/success-5         	   14985	     80449 ns/op	   17656 B/op	     275 allocs/op
+BenchmarkCodeModeNestedToolResponse/success-5         	   15044	     80214 ns/op	   17847 B/op	     275 allocs/op
+BenchmarkCodeModeNestedToolResponse/success-5         	   14614	     85983 ns/op	   17873 B/op	     275 allocs/op
+BenchmarkCodeModeNestedToolResponse/success-5         	   15208	     77503 ns/op	   17697 B/op	     275 allocs/op
+BenchmarkCodeModeNestedToolResponse/protocol_error_value-5         	   13887	     92712 ns/op	   18374 B/op	     287 allocs/op
+BenchmarkCodeModeNestedToolResponse/protocol_error_value-5         	   14361	    100372 ns/op	   18744 B/op	     287 allocs/op
+BenchmarkCodeModeNestedToolResponse/protocol_error_value-5         	   13309	     89695 ns/op	   18528 B/op	     287 allocs/op
+BenchmarkCodeModeNestedToolResponse/protocol_error_value-5         	   14228	     89379 ns/op	   18381 B/op	     287 allocs/op
+BenchmarkCodeModeNestedToolResponse/protocol_error_value-5         	   14596	     78195 ns/op	   18533 B/op	     287 allocs/op
+PASS
+ok  	github.com/maximhq/bifrost/core/mcp/codemode/starlark	12.515s

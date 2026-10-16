@@ -1,0 +1,15 @@
+{
+  "source_sha256": "498f78456dbfdbb4101f3436c5cba1780dbdc35132055efc7e750c9263998325",
+  "positive_complete_inventory": "passed",
+  "negative_controls": {
+    "empty_nonzero": "rejected",
+    "empty_zero": "rejected",
+    "complete_but_nonzero": "rejected",
+    "truncated_test": "rejected",
+    "missing_complete_package": "rejected",
+    "build_failure": "rejected",
+    "required_skip": "rejected"
+  },
+  "real_order_skip_reason": "reason_test.go:7: missing optional fixture",
+  "required_skip_passed": false
+}

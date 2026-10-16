@@ -1,0 +1,16 @@
+goos: linux
+goarch: amd64
+pkg: github.com/maximhq/bifrost/core/mcp
+cpu: INTEL(R) XEON(R) PLATINUM 8573C
+BenchmarkMCPAppCoreNativePaths/tools_call-5         	    5352	    230970 ns/op	   20448 B/op	     294 allocs/op
+BenchmarkMCPAppCoreNativePaths/tools_call-5         	    5434	    248163 ns/op	   20515 B/op	     294 allocs/op
+BenchmarkMCPAppCoreNativePaths/tools_call-5         	    6822	    229117 ns/op	   20336 B/op	     294 allocs/op
+BenchmarkMCPAppCoreNativePaths/tools_call-5         	    5202	    224873 ns/op	   20839 B/op	     294 allocs/op
+BenchmarkMCPAppCoreNativePaths/tools_call-5         	    5509	    222176 ns/op	   20807 B/op	     294 allocs/op
+BenchmarkMCPAppCoreNativePaths/resources_read-5     	   10000	    191395 ns/op	   17588 B/op	     246 allocs/op
+BenchmarkMCPAppCoreNativePaths/resources_read-5     	    5774	    200933 ns/op	   17529 B/op	     246 allocs/op
+BenchmarkMCPAppCoreNativePaths/resources_read-5     	   10000	    196419 ns/op	   17463 B/op	     246 allocs/op
+BenchmarkMCPAppCoreNativePaths/resources_read-5     	    6327	    189394 ns/op	   17552 B/op	     246 allocs/op
+BenchmarkMCPAppCoreNativePaths/resources_read-5     	    7863	    241982 ns/op	   17472 B/op	     246 allocs/op
+PASS
+ok  	github.com/maximhq/bifrost/core/mcp	14.754s

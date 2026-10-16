@@ -1,0 +1,68 @@
+{
+  "baseline_product_base": "9237ec06672406e437b3cb33fc793ffd0403b3ae",
+  "baseline_test_only_commit": "b711d286da51bd7adba5cf82f47070a80bf3be27",
+  "baseline_parent_chain": [
+    "a56ade7c2 (pre-A tests only, includes Code Mode benchmark)",
+    "b711d286d (added stable-compatible benchmarks only)"
+  ],
+  "candidate_commit": "54630233a79dabdb681facb0de97d10227bafe83",
+  "symbols": {
+    "public_http.BenchmarkMCPHTTPNoApp": {
+      "sha256": "cfcde77b8ab321959c1e2d05db67dd3a52d52df71634b6c076665e5d193cdc0b",
+      "bytes": 1977
+    },
+    "public_http.mcpAppsToolManager": {
+      "sha256": "3015af6d37b1c5a3aefa0e4f010e790f94b49f4d0088392f7de16ef8fabd7f09",
+      "bytes": 133
+    },
+    "public_http.GetAvailableMCPTools": {
+      "sha256": "2dc8965c20592ad1ec89ce8c033ab6b5d12532ad135dbb4653bf600bd1c1105e",
+      "bytes": 105
+    },
+    "public_http.GetMCPServerInstructions": {
+      "sha256": "17ad8031456e96372e85d28a73fb60535137d8ab5b98e6f6473c2167de2f6bcc",
+      "bytes": 100
+    },
+    "public_http.ExecuteChatMCPTool": {
+      "sha256": "b64c3f54d665d9e45f3244f5a5c2b9cd1c6cf546c3b01f19a0ccb02c447211ca",
+      "bytes": 177
+    },
+    "public_http.ExecuteResponsesMCPTool": {
+      "sha256": "b3b09f0ec0e540aa2b737b8021f07dabf4e4b6ed04a49f5ab222398c60c815f5",
+      "bytes": 173
+    },
+    "public_http.ExecuteMCPAppTool": {
+      "sha256": "c379e9e9f7934d96e25ac1386c4bed5aa64f31a1c6086973f3dc002fb0f60c53",
+      "bytes": 221
+    },
+    "public_http.ReadMCPAppResource": {
+      "sha256": "9a6cd2ffe4892799322c536e547b036e1e49978bc35ffedf4ca86084b8b708f2",
+      "bytes": 313
+    },
+    "catalog.BenchmarkGetAvailableToolsNoApps": {
+      "sha256": "fb046180b13250bafb0f841cf78ba6c2b54d4fc088ce589f1d175009c1b7a0c7",
+      "bytes": 429
+    },
+    "ordinary_call.BenchmarkExecuteChatToolNoApps": {
+      "sha256": "dec231c27815dfb69db6cd7bb6472cc39ab3c16403ea8404e35d41bcb39cf641",
+      "bytes": 1185
+    },
+    "ordinary_call.newRecoveryClientConfig": {
+      "sha256": "caf69fb80c4a2b9645ebd527e156286abbb48c8c9b2063f4a8941dbc3ff19968",
+      "bytes": 429
+    },
+    "codemode.BenchmarkCodeModeNestedToolResponse": {
+      "sha256": "5f39943d28b69d091a3c2c77ba084784478977c819f48e30166a3f27df1c8b24",
+      "bytes": 371
+    },
+    "codemode.benchmarkCodeModeNestedToolResponse": {
+      "sha256": "5bca9b5091e4acf64a4fd8abc412d9d6b6171628e5cd976568b92220aee3275d",
+      "bytes": 2139
+    },
+    "codemode.AcquireClientConn": {
+      "sha256": "8fffa6762892d9642b3acd9633c88a37bc563a975ae1fc90b4c19cde618e2e42",
+      "bytes": 176
+    }
+  },
+  "identical": true
+}

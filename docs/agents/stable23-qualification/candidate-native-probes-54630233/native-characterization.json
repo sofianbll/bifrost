@@ -1,0 +1,1741 @@
+{
+  "gateway_sha256": "5f0dcf84a3ebf206cba91f97325fefbb179f89e2b746db8f581fdfc3ddd797c1",
+  "fixture_sha256": {
+    "mcp-apps-test-server": "1c0ec79ec8685c0b226f12de2228fde67959c9e35bdfad5844c1664050f17120",
+    "error-test-server": "7fe3b503e5516242e1b999f2a4a778ce45a1e53924378dd11b1bda049ee4cb3d"
+  },
+  "driver_head": "968d934ed4489f3fa0bb86fdae9197406c05b5fb",
+  "driver_tracked_clean": true,
+  "gateway_checkout": "/tmp/stable23-36",
+  "gateway_head": "54630233a79dabdb681facb0de97d10227bafe83",
+  "gateway_tracked_clean": true,
+  "config_providers": {},
+  "gateway_environment_allowlist": [
+    "BIFROST_SETUP_TOKEN",
+    "GOMAXPROCS",
+    "HOME",
+    "LOG_LEVEL",
+    "PATH",
+    "TMPDIR",
+    "USE_INFISICAL"
+  ],
+  "requests": [
+    {
+      "name": "direct.initialize.negotiated-ui",
+      "http_status": 200,
+      "body": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+          "protocolVersion": "2025-06-18",
+          "capabilities": {
+            "resources": {},
+            "tools": {
+              "listChanged": true
+            },
+            "extensions": {
+              "io.modelcontextprotocol/ui": {
+                "mimeTypes": [
+                  "text/html;profile=mcp-app"
+                ]
+              }
+            }
+          },
+          "serverInfo": {
+            "name": "bifrost",
+            "version": "v1.0.0"
+          }
+        }
+      },
+      "checks": [
+        {
+          "assertion": "UI extension negotiated",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "name": "direct.initialize.no-ui-control",
+      "http_status": 200,
+      "body": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+          "protocolVersion": "2025-06-18",
+          "capabilities": {
+            "resources": {},
+            "tools": {
+              "listChanged": true
+            }
+          },
+          "serverInfo": {
+            "name": "bifrost",
+            "version": "v1.0.0"
+          }
+        }
+      },
+      "checks": [
+        {
+          "assertion": "UI extension omitted without negotiation",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "name": "direct-codemode-source.tools-list",
+      "http_status": 200,
+      "body": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+          "tools": [
+            {
+              "annotations": {},
+              "description": "Executes Python code in a sandboxed Starlark interpreter with MCP server tool access. Servers are exposed as global objects: result = serverName.toolName(param=\"value\"). This is the final step of the four-tool code mode workflow: listToolFiles -> readToolFile -> (optional) getToolDocs -> executeToolCode. If you have not already read a tool's .pyi stub in this conversation, do that before writing code. Do NOT guess callable tool names from natural language or stale assumptions; use the exact identifier returned by listToolFiles/readToolFile. STARLARK DIFFERENCES FROM PYTHON \u2014 READ BEFORE WRITING CODE: 1. NO try/except/finally/raise \u2014 error handling is not supported, and tool failures cannot be caught inside Starlark. 2. NO classes \u2014 use dicts and functions. 3. NO imports, direct network access, or direct filesystem access \u2014 use MCP tools instead. 4. NO is operator \u2014 use == for comparison. 5. NO f-strings \u2014 use % formatting: \"Hello %s, count=%d\" % (name, n). 6. Each executeToolCode call runs in a FRESH ISOLATED SCOPE \u2014 no variables, functions, or state persist between calls. Re-fetch data or store it via MCP tools (e.g., SQLite, FileSystem) if needed across calls. SYNTAX NOTES: \u2022 Synchronous calls \u2014 NO async/await: result = server.tool(arg=\"value\") \u2022 Use keyword arguments: server.tool(param=\"value\") NOT server.tool({\"param\": \"value\"}) \u2022 Access dict values with brackets: result[\"key\"] NOT result.key \u2022 Use print() for logging/debugging \u2022 List comprehensions: [x for x in items if x[\"active\"]] \u2022 String escapes work normally: \"line1\\nline2\" produces a newline \u2022 Triple-quoted strings for multiline: \"\"\"multi\\nline\"\"\" \u2022 chr(10) for newline character, chr(9) for tab \u2022 To return a value, assign to 'result': result = computed_value \u2022 MCP tool calls are timeout-limited; avoid long or infinite loops AVAILABLE BUILTINS: print, len, range, enumerate, zip, sorted, reversed, min, max, int, float, str, bool, list, dict, tuple, set, hasattr, getattr, type, chr, ord, any, all, hash, repr. RETRY POLICY: Retry after fixing syntax or logic errors, especially for read-only flows. Before rerunning code that already made tool calls, inspect prior outputs and avoid replaying stateful operations.",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "description": "Python (Starlark) code to execute. Tool calls are synchronous: result = server.tool(param=\"value\"). Use print() for logging. Assign to 'result' variable to return a value. Retry after fixing syntax or logic errors, especially for read-only flows. Before rerunning code that already made tool calls, inspect prior outputs and avoid replaying stateful operations. Example: items = server.list_items()\nfor item in items:\n    print(item[\"name\"])\nresult = items",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "name": "executeToolCode"
+            },
+            {
+              "annotations": {},
+              "description": "Get detailed documentation for a specific tool including full parameter descriptions, types, and usage examples. Use this when the compact signature from readToolFile is not sufficient to understand how to use a tool. Requires both server name and tool name as parameters.",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "server": {
+                    "description": "The server name (e.g., 'calculator'). Use listToolFiles to see available servers.",
+                    "type": "string"
+                  },
+                  "tool": {
+                    "description": "The tool name (e.g., 'add'). Use readToolFile to see available tools for a server.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "server",
+                  "tool"
+                ]
+              },
+              "name": "getToolDocs"
+            },
+            {
+              "annotations": {},
+              "description": "Returns a tree structure listing all virtual .pyi stub files available for connected MCP servers. Each server has a corresponding file (e.g., servers/<serverName>.pyi) that contains compact Python signatures for all tools in that server. Safe workflow: listToolFiles -> readToolFile -> (optional) getToolDocs -> executeToolCode. Use readToolFile before executeToolCode to read a specific server file and confirm exact callable tool names and parameters. Use getToolDocs if you need detailed documentation for a specific tool. In code, access tools via: server_name.tool_name(param=value). The server names used in code correspond to the human-readable names shown in this listing. This tool is generic and works with any set of servers connected at runtime. CALL THIS TOOL FIRST whenever the user references a server, tool, capability, or action that is not visible in your current tool list \u2014 connected MCP servers and their tools are NOT included in your top-level tool schema, so the only way to discover them is by calling listToolFiles. Examples that should trigger this tool: user names a server you don't recognize (e.g. 'localserver', 'mydb'), asks 'who am I on X', 'what can X do', 'does X have a tool for Y', or asks you to perform an action and you are unsure whether a matching tool exists. Do NOT tell the user a server or capability is unavailable until you have called listToolFiles and confirmed it is absent.",
+              "inputSchema": {
+                "type": "object"
+              },
+              "name": "listToolFiles"
+            },
+            {
+              "_meta": {
+                "ui": {
+                  "resourceUri": "ui://bifrost/bWNwX2FwcHNfZml4dHVyZQ/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw"
+                },
+                "ui/resourceUri": "ui://bifrost/bWNwX2FwcHNfZml4dHVyZQ/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw"
+              },
+              "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": true,
+                "idempotentHint": false,
+                "openWorldHint": true
+              },
+              "description": "Open the fixture MCP App",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "Message to return",
+                    "type": "string"
+                  }
+                }
+              },
+              "name": "mcp_apps_fixture-open_view",
+              "outputSchema": {
+                "type": "object",
+                "properties": {
+                  "instance": {
+                    "type": "string"
+                  },
+                  "message": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "instance",
+                  "message"
+                ]
+              }
+            },
+            {
+              "_meta": {
+                "ui": {
+                  "visibility": [
+                    "app"
+                  ]
+                }
+              },
+              "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": true,
+                "idempotentHint": false,
+                "openWorldHint": true
+              },
+              "description": "MCP App callback",
+              "inputSchema": {
+                "type": "object"
+              },
+              "name": "mcp_apps_fixture-read_state"
+            },
+            {
+              "_meta": {
+                "ui": {
+                  "visibility": [
+                    "app"
+                  ]
+                }
+              },
+              "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": true,
+                "idempotentHint": false,
+                "openWorldHint": true
+              },
+              "description": "MCP App callback",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "state": {
+                    "description": "Synthetic state to retain for this fixture process; limited to 256 bytes",
+                    "type": "string"
+                  }
+                }
+              },
+              "name": "mcp_apps_fixture-save_state"
+            },
+            {
+              "annotations": {},
+              "description": "Reads a virtual .pyi stub file for a specific MCP server, returning compact Python function signatures for all tools available on that server. The fileName should be in format servers/<serverName>.pyi as listed by listToolFiles. The function performs case-insensitive matching and removes the .pyi extension. This is the authoritative source for the exact callable tool names and parameters to use in executeToolCode. Each tool can be accessed in code via: serverName.tool_name(param=value). If the compact signature is not enough to understand a tool, use getToolDocs for detailed documentation. Workflow: listToolFiles -> readToolFile -> (optional) getToolDocs -> executeToolCode. IMPORTANT: If the response header shows 'Total lines: X (this is the complete file)', do NOT call this tool again with startLine/endLine - you already have the complete file.",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "endLine": {
+                    "description": "Optional 1-based ending line number for partial file read. Usually not needed - omit to read the entire file. Will be clamped to actual file size if too large.",
+                    "type": "number"
+                  },
+                  "fileName": {
+                    "description": "The virtual filename from listToolFiles in format: servers/<serverName>.pyi (e.g., 'servers/calculator.pyi')",
+                    "type": "string"
+                  },
+                  "startLine": {
+                    "description": "Optional 1-based starting line number for partial file read. Usually not needed - omit to read the entire file. Files are typically small (under 50 lines).",
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "fileName"
+                ]
+              },
+              "name": "readToolFile"
+            }
+          ]
+        }
+      },
+      "checks": [
+        {
+          "assertion": "tools/list returns an array",
+          "passed": true
+        },
+        {
+          "assertion": "App tool is discoverable",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "name": "direct-legacy-source.tools-list",
+      "http_status": 200,
+      "body": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+          "tools": [
+            {
+              "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": true,
+                "idempotentHint": false,
+                "openWorldHint": true
+              },
+              "description": "Return a tool error",
+              "inputSchema": {
+                "type": "object"
+              },
+              "name": "mcp_apps_fixture_second-fail_tool"
+            },
+            {
+              "_meta": {
+                "ui/resourceUri": "ui://bifrost/bWNwX2FwcHNfZml4dHVyZV9zZWNvbmQ/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw"
+              },
+              "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": true,
+                "idempotentHint": false,
+                "openWorldHint": true
+              },
+              "description": "Open the fixture MCP App",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "Message to return",
+                    "type": "string"
+                  }
+                }
+              },
+              "name": "mcp_apps_fixture_second-open_view",
+              "outputSchema": {
+                "type": "object",
+                "properties": {
+                  "instance": {
+                    "type": "string"
+                  },
+                  "message": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "instance",
+                  "message"
+                ]
+              }
+            },
+            {
+              "_meta": {
+                "ui": {
+                  "visibility": [
+                    "app"
+                  ]
+                }
+              },
+              "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": true,
+                "idempotentHint": false,
+                "openWorldHint": true
+              },
+              "description": "MCP App callback",
+              "inputSchema": {
+                "type": "object"
+              },
+              "name": "mcp_apps_fixture_second-read_state"
+            },
+            {
+              "_meta": {
+                "ui": {
+                  "visibility": [
+                    "app"
+                  ]
+                }
+              },
+              "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": true,
+                "idempotentHint": false,
+                "openWorldHint": true
+              },
+              "description": "MCP App callback",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "state": {
+                    "description": "Synthetic state to retain for this fixture process; limited to 256 bytes",
+                    "type": "string"
+                  }
+                }
+              },
+              "name": "mcp_apps_fixture_second-save_state"
+            },
+            {
+              "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": true,
+                "idempotentHint": false,
+                "openWorldHint": true
+              },
+              "description": "Return structured fixture data",
+              "inputSchema": {
+                "type": "object"
+              },
+              "name": "mcp_apps_fixture_second-structured_result"
+            }
+          ]
+        }
+      },
+      "checks": [
+        {
+          "assertion": "tools/list returns an array",
+          "passed": true
+        },
+        {
+          "assertion": "App tool is discoverable",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "name": "direct-modern-source.tools-list",
+      "http_status": 200,
+      "body": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+          "tools": [
+            {
+              "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": true,
+                "idempotentHint": false,
+                "openWorldHint": true
+              },
+              "description": "Return a tool error",
+              "inputSchema": {
+                "type": "object"
+              },
+              "name": "mcp_apps_fixture_modern-fail_tool"
+            },
+            {
+              "_meta": {
+                "ui": {
+                  "resourceUri": "ui://bifrost/bWNwX2FwcHNfZml4dHVyZV9tb2Rlcm4/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw"
+                }
+              },
+              "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": true,
+                "idempotentHint": false,
+                "openWorldHint": true
+              },
+              "description": "Open the fixture MCP App",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "Message to return",
+                    "type": "string"
+                  }
+                }
+              },
+              "name": "mcp_apps_fixture_modern-open_view",
+              "outputSchema": {
+                "type": "object",
+                "properties": {
+                  "instance": {
+                    "type": "string"
+                  },
+                  "message": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "instance",
+                  "message"
+                ]
+              }
+            },
+            {
+              "_meta": {
+                "ui": {
+                  "visibility": [
+                    "app"
+                  ]
+                }
+              },
+              "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": true,
+                "idempotentHint": false,
+                "openWorldHint": true
+              },
+              "description": "MCP App callback",
+              "inputSchema": {
+                "type": "object"
+              },
+              "name": "mcp_apps_fixture_modern-read_state"
+            },
+            {
+              "_meta": {
+                "ui": {
+                  "visibility": [
+                    "app"
+                  ]
+                }
+              },
+              "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": true,
+                "idempotentHint": false,
+                "openWorldHint": true
+              },
+              "description": "MCP App callback",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "state": {
+                    "description": "Synthetic state to retain for this fixture process; limited to 256 bytes",
+                    "type": "string"
+                  }
+                }
+              },
+              "name": "mcp_apps_fixture_modern-save_state"
+            },
+            {
+              "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": true,
+                "idempotentHint": false,
+                "openWorldHint": true
+              },
+              "description": "Return structured fixture data",
+              "inputSchema": {
+                "type": "object"
+              },
+              "name": "mcp_apps_fixture_modern-structured_result"
+            }
+          ]
+        }
+      },
+      "checks": [
+        {
+          "assertion": "tools/list returns an array",
+          "passed": true
+        },
+        {
+          "assertion": "App tool is discoverable",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "name": "direct.resources-list",
+      "http_status": 200,
+      "body": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+          "resources": [
+            {
+              "uri": "ui://bifrost/bWNwX2FwcHNfZml4dHVyZQ/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw",
+              "name": "mcp_apps_fixture-open_view",
+              "mimeType": "text/html;profile=mcp-app"
+            }
+          ]
+        }
+      },
+      "checks": [
+        {
+          "assertion": "resources/list returns an array",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "name": "direct.resources-read",
+      "http_status": 200,
+      "body": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+          "contents": [
+            {
+              "_meta": {
+                "ui": {
+                  "csp": {
+                    "resourceDomains": [
+                      "http://localhost:8080"
+                    ],
+                    "connectDomains": []
+                  }
+                }
+              },
+              "uri": "ui://bifrost/bWNwX2FwcHNfZml4dHVyZQ/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw",
+              "mimeType": "text/html;profile=mcp-app",
+              "text": "<!doctype html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"utf-8\">\n    <meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; script-src http://localhost:8080; style-src 'unsafe-inline'; connect-src 'none'; img-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'none'\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n    <title>Bifrost MCP Apps fixture</title>\n  </head>\n  <body>\n    <main data-testid=\"mcp-app-fixture\" data-status=\"loading\" data-notification-order=\"[]\" data-save-tool=\"save_state\" data-read-tool=\"read_state\">\n      <h1>MCP Apps fixture</h1>\n      <output data-testid=\"fixture-status\" aria-live=\"polite\">Waiting for host</output>\n      <pre data-testid=\"tool-partial-input\">No partial input received</pre>\n      <pre data-testid=\"tool-input\">No input received</pre>\n      <pre data-testid=\"tool-result\">No result received</pre>\n      <label>Saved state <input data-testid=\"state-input\" value=\"first-state\"></label>\n      <button data-testid=\"save-state\" type=\"button\">Save state</button>\n      <button data-testid=\"read-state\" type=\"button\">Read state</button>\n      <button data-testid=\"change-state\" type=\"button\">Change state</button>\n      <button data-testid=\"restore-state\" type=\"button\">Restore state</button>\n      <button data-testid=\"corrupt-state\" type=\"button\">Corrupt state (negative control)</button>\n      <pre data-testid=\"callback-result\">No callback yet</pre>\n    </main>\n    <script type=\"module\" src=\"http://localhost:8080/mcp-app-fixture.js\"></script>\n  </body>\n</html>"
+            }
+          ]
+        }
+      },
+      "checks": [
+        {
+          "assertion": "resource HTML MIME and CSP are relayed",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "name": "setup.virtual-mcps.before-attach",
+      "http_status": 200,
+      "body": {
+        "count": 2,
+        "limit": 25,
+        "offset": 0,
+        "total_count": 2,
+        "virtual_mcps": [
+          {
+            "id": 2,
+            "name": "MCP Apps limited fixture",
+            "endpoint_slug": "mcp-apps-limited-virtual",
+            "enabled": true,
+            "tools": [
+              {
+                "mcp_client_id": "8b034a33-eb23-4a38-908f-80b1b9a67a37",
+                "tool_names": [
+                  "open_view"
+                ]
+              }
+            ],
+            "virtual_key_ids": [],
+            "created_at": "2026-10-16T16:26:57Z",
+            "updated_at": "2026-10-16T16:26:57Z"
+          },
+          {
+            "id": 1,
+            "name": "MCP Apps full fixture",
+            "endpoint_slug": "mcp-apps-full-virtual",
+            "enabled": true,
+            "tools": [
+              {
+                "mcp_client_id": "8b034a33-eb23-4a38-908f-80b1b9a67a37",
+                "tool_names": [
+                  "*"
+                ]
+              },
+              {
+                "mcp_client_id": "d6cf27c1-1234-4f36-a75c-7e42103cf497",
+                "tool_names": [
+                  "*"
+                ]
+              }
+            ],
+            "virtual_key_ids": [],
+            "created_at": "2026-10-16T16:26:57Z",
+            "updated_at": "2026-10-16T16:26:57Z"
+          }
+        ]
+      },
+      "checks": []
+    },
+    {
+      "name": "setup.attach.mcp-apps-full-virtual",
+      "http_status": 200,
+      "body": {
+        "success": true
+      },
+      "checks": []
+    },
+    {
+      "name": "setup.attach.mcp-apps-limited-virtual",
+      "http_status": 200,
+      "body": {
+        "success": true
+      },
+      "checks": []
+    },
+    {
+      "name": "virtual-full.tools-list",
+      "http_status": 200,
+      "body": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+          "tools": [
+            {
+              "annotations": {},
+              "description": "Executes Python code in a sandboxed Starlark interpreter with MCP server tool access. Servers are exposed as global objects: result = serverName.toolName(param=\"value\"). This is the final step of the four-tool code mode workflow: listToolFiles -> readToolFile -> (optional) getToolDocs -> executeToolCode. If you have not already read a tool's .pyi stub in this conversation, do that before writing code. Do NOT guess callable tool names from natural language or stale assumptions; use the exact identifier returned by listToolFiles/readToolFile. STARLARK DIFFERENCES FROM PYTHON \u2014 READ BEFORE WRITING CODE: 1. NO try/except/finally/raise \u2014 error handling is not supported, and tool failures cannot be caught inside Starlark. 2. NO classes \u2014 use dicts and functions. 3. NO imports, direct network access, or direct filesystem access \u2014 use MCP tools instead. 4. NO is operator \u2014 use == for comparison. 5. NO f-strings \u2014 use % formatting: \"Hello %s, count=%d\" % (name, n). 6. Each executeToolCode call runs in a FRESH ISOLATED SCOPE \u2014 no variables, functions, or state persist between calls. Re-fetch data or store it via MCP tools (e.g., SQLite, FileSystem) if needed across calls. SYNTAX NOTES: \u2022 Synchronous calls \u2014 NO async/await: result = server.tool(arg=\"value\") \u2022 Use keyword arguments: server.tool(param=\"value\") NOT server.tool({\"param\": \"value\"}) \u2022 Access dict values with brackets: result[\"key\"] NOT result.key \u2022 Use print() for logging/debugging \u2022 List comprehensions: [x for x in items if x[\"active\"]] \u2022 String escapes work normally: \"line1\\nline2\" produces a newline \u2022 Triple-quoted strings for multiline: \"\"\"multi\\nline\"\"\" \u2022 chr(10) for newline character, chr(9) for tab \u2022 To return a value, assign to 'result': result = computed_value \u2022 MCP tool calls are timeout-limited; avoid long or infinite loops AVAILABLE BUILTINS: print, len, range, enumerate, zip, sorted, reversed, min, max, int, float, str, bool, list, dict, tuple, set, hasattr, getattr, type, chr, ord, any, all, hash, repr. RETRY POLICY: Retry after fixing syntax or logic errors, especially for read-only flows. Before rerunning code that already made tool calls, inspect prior outputs and avoid replaying stateful operations.",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "description": "Python (Starlark) code to execute. Tool calls are synchronous: result = server.tool(param=\"value\"). Use print() for logging. Assign to 'result' variable to return a value. Retry after fixing syntax or logic errors, especially for read-only flows. Before rerunning code that already made tool calls, inspect prior outputs and avoid replaying stateful operations. Example: items = server.list_items()\nfor item in items:\n    print(item[\"name\"])\nresult = items",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "name": "executeToolCode"
+            },
+            {
+              "annotations": {},
+              "description": "Get detailed documentation for a specific tool including full parameter descriptions, types, and usage examples. Use this when the compact signature from readToolFile is not sufficient to understand how to use a tool. Requires both server name and tool name as parameters.",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "server": {
+                    "description": "The server name (e.g., 'calculator'). Use listToolFiles to see available servers.",
+                    "type": "string"
+                  },
+                  "tool": {
+                    "description": "The tool name (e.g., 'add'). Use readToolFile to see available tools for a server.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "server",
+                  "tool"
+                ]
+              },
+              "name": "getToolDocs"
+            },
+            {
+              "annotations": {},
+              "description": "Returns a tree structure listing all virtual .pyi stub files available for connected MCP servers. Each server has a corresponding file (e.g., servers/<serverName>.pyi) that contains compact Python signatures for all tools in that server. Safe workflow: listToolFiles -> readToolFile -> (optional) getToolDocs -> executeToolCode. Use readToolFile before executeToolCode to read a specific server file and confirm exact callable tool names and parameters. Use getToolDocs if you need detailed documentation for a specific tool. In code, access tools via: server_name.tool_name(param=value). The server names used in code correspond to the human-readable names shown in this listing. This tool is generic and works with any set of servers connected at runtime. CALL THIS TOOL FIRST whenever the user references a server, tool, capability, or action that is not visible in your current tool list \u2014 connected MCP servers and their tools are NOT included in your top-level tool schema, so the only way to discover them is by calling listToolFiles. Examples that should trigger this tool: user names a server you don't recognize (e.g. 'localserver', 'mydb'), asks 'who am I on X', 'what can X do', 'does X have a tool for Y', or asks you to perform an action and you are unsure whether a matching tool exists. Do NOT tell the user a server or capability is unavailable until you have called listToolFiles and confirmed it is absent.",
+              "inputSchema": {
+                "type": "object"
+              },
+              "name": "listToolFiles"
+            },
+            {
+              "_meta": {
+                "ui": {
+                  "resourceUri": "ui://bifrost/bWNwX2FwcHNfZml4dHVyZQ/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw"
+                },
+                "ui/resourceUri": "ui://bifrost/bWNwX2FwcHNfZml4dHVyZQ/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw"
+              },
+              "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": true,
+                "idempotentHint": false,
+                "openWorldHint": true
+              },
+              "description": "Open the fixture MCP App",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "Message to return",
+                    "type": "string"
+                  }
+                }
+              },
+              "name": "mcp_apps_fixture-open_view",
+              "outputSchema": {
+                "type": "object",
+                "properties": {
+                  "instance": {
+                    "type": "string"
+                  },
+                  "message": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "instance",
+                  "message"
+                ]
+              }
+            },
+            {
+              "_meta": {
+                "ui": {
+                  "visibility": [
+                    "app"
+                  ]
+                }
+              },
+              "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": true,
+                "idempotentHint": false,
+                "openWorldHint": true
+              },
+              "description": "MCP App callback",
+              "inputSchema": {
+                "type": "object"
+              },
+              "name": "mcp_apps_fixture-read_state"
+            },
+            {
+              "_meta": {
+                "ui": {
+                  "visibility": [
+                    "app"
+                  ]
+                }
+              },
+              "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": true,
+                "idempotentHint": false,
+                "openWorldHint": true
+              },
+              "description": "MCP App callback",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "state": {
+                    "description": "Synthetic state to retain for this fixture process; limited to 256 bytes",
+                    "type": "string"
+                  }
+                }
+              },
+              "name": "mcp_apps_fixture-save_state"
+            },
+            {
+              "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": true,
+                "idempotentHint": false,
+                "openWorldHint": true
+              },
+              "description": "Return a tool error",
+              "inputSchema": {
+                "type": "object"
+              },
+              "name": "mcp_apps_fixture_second-fail_tool"
+            },
+            {
+              "_meta": {
+                "ui/resourceUri": "ui://bifrost/bWNwX2FwcHNfZml4dHVyZV9zZWNvbmQ/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw"
+              },
+              "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": true,
+                "idempotentHint": false,
+                "openWorldHint": true
+              },
+              "description": "Open the fixture MCP App",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "Message to return",
+                    "type": "string"
+                  }
+                }
+              },
+              "name": "mcp_apps_fixture_second-open_view",
+              "outputSchema": {
+                "type": "object",
+                "properties": {
+                  "instance": {
+                    "type": "string"
+                  },
+                  "message": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "instance",
+                  "message"
+                ]
+              }
+            },
+            {
+              "_meta": {
+                "ui": {
+                  "visibility": [
+                    "app"
+                  ]
+                }
+              },
+              "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": true,
+                "idempotentHint": false,
+                "openWorldHint": true
+              },
+              "description": "MCP App callback",
+              "inputSchema": {
+                "type": "object"
+              },
+              "name": "mcp_apps_fixture_second-read_state"
+            },
+            {
+              "_meta": {
+                "ui": {
+                  "visibility": [
+                    "app"
+                  ]
+                }
+              },
+              "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": true,
+                "idempotentHint": false,
+                "openWorldHint": true
+              },
+              "description": "MCP App callback",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "state": {
+                    "description": "Synthetic state to retain for this fixture process; limited to 256 bytes",
+                    "type": "string"
+                  }
+                }
+              },
+              "name": "mcp_apps_fixture_second-save_state"
+            },
+            {
+              "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": true,
+                "idempotentHint": false,
+                "openWorldHint": true
+              },
+              "description": "Return structured fixture data",
+              "inputSchema": {
+                "type": "object"
+              },
+              "name": "mcp_apps_fixture_second-structured_result"
+            },
+            {
+              "annotations": {},
+              "description": "Reads a virtual .pyi stub file for a specific MCP server, returning compact Python function signatures for all tools available on that server. The fileName should be in format servers/<serverName>.pyi as listed by listToolFiles. The function performs case-insensitive matching and removes the .pyi extension. This is the authoritative source for the exact callable tool names and parameters to use in executeToolCode. Each tool can be accessed in code via: serverName.tool_name(param=value). If the compact signature is not enough to understand a tool, use getToolDocs for detailed documentation. Workflow: listToolFiles -> readToolFile -> (optional) getToolDocs -> executeToolCode. IMPORTANT: If the response header shows 'Total lines: X (this is the complete file)', do NOT call this tool again with startLine/endLine - you already have the complete file.",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "endLine": {
+                    "description": "Optional 1-based ending line number for partial file read. Usually not needed - omit to read the entire file. Will be clamped to actual file size if too large.",
+                    "type": "number"
+                  },
+                  "fileName": {
+                    "description": "The virtual filename from listToolFiles in format: servers/<serverName>.pyi (e.g., 'servers/calculator.pyi')",
+                    "type": "string"
+                  },
+                  "startLine": {
+                    "description": "Optional 1-based starting line number for partial file read. Usually not needed - omit to read the entire file. Files are typically small (under 50 lines).",
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "fileName"
+                ]
+              },
+              "name": "readToolFile"
+            }
+          ]
+        }
+      },
+      "checks": [
+        {
+          "assertion": "tools/list returns an array",
+          "passed": true
+        },
+        {
+          "assertion": "App tool is discoverable",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "name": "virtual-full.resources-list",
+      "http_status": 200,
+      "body": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+          "resources": [
+            {
+              "uri": "ui://bifrost/bWNwX2FwcHNfZml4dHVyZQ/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw",
+              "name": "mcp_apps_fixture-open_view",
+              "mimeType": "text/html;profile=mcp-app"
+            },
+            {
+              "uri": "ui://bifrost/bWNwX2FwcHNfZml4dHVyZV9zZWNvbmQ/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw",
+              "name": "mcp_apps_fixture_second-open_view",
+              "mimeType": "text/html;profile=mcp-app"
+            }
+          ]
+        }
+      },
+      "checks": []
+    },
+    {
+      "name": "virtual-full.resources-read",
+      "http_status": 200,
+      "body": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+          "contents": [
+            {
+              "_meta": {
+                "ui": {
+                  "csp": {
+                    "connectDomains": [],
+                    "resourceDomains": [
+                      "http://localhost:8080"
+                    ]
+                  }
+                }
+              },
+              "uri": "ui://bifrost/bWNwX2FwcHNfZml4dHVyZQ/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw",
+              "mimeType": "text/html;profile=mcp-app",
+              "text": "<!doctype html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"utf-8\">\n    <meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; script-src http://localhost:8080; style-src 'unsafe-inline'; connect-src 'none'; img-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'none'\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n    <title>Bifrost MCP Apps fixture</title>\n  </head>\n  <body>\n    <main data-testid=\"mcp-app-fixture\" data-status=\"loading\" data-notification-order=\"[]\" data-save-tool=\"save_state\" data-read-tool=\"read_state\">\n      <h1>MCP Apps fixture</h1>\n      <output data-testid=\"fixture-status\" aria-live=\"polite\">Waiting for host</output>\n      <pre data-testid=\"tool-partial-input\">No partial input received</pre>\n      <pre data-testid=\"tool-input\">No input received</pre>\n      <pre data-testid=\"tool-result\">No result received</pre>\n      <label>Saved state <input data-testid=\"state-input\" value=\"first-state\"></label>\n      <button data-testid=\"save-state\" type=\"button\">Save state</button>\n      <button data-testid=\"read-state\" type=\"button\">Read state</button>\n      <button data-testid=\"change-state\" type=\"button\">Change state</button>\n      <button data-testid=\"restore-state\" type=\"button\">Restore state</button>\n      <button data-testid=\"corrupt-state\" type=\"button\">Corrupt state (negative control)</button>\n      <pre data-testid=\"callback-result\">No callback yet</pre>\n    </main>\n    <script type=\"module\" src=\"http://localhost:8080/mcp-app-fixture.js\"></script>\n  </body>\n</html>"
+            }
+          ]
+        }
+      },
+      "checks": []
+    },
+    {
+      "name": "virtual-limited.tools-list",
+      "http_status": 200,
+      "body": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+          "tools": [
+            {
+              "annotations": {},
+              "description": "Executes Python code in a sandboxed Starlark interpreter with MCP server tool access. Servers are exposed as global objects: result = serverName.toolName(param=\"value\"). This is the final step of the four-tool code mode workflow: listToolFiles -> readToolFile -> (optional) getToolDocs -> executeToolCode. If you have not already read a tool's .pyi stub in this conversation, do that before writing code. Do NOT guess callable tool names from natural language or stale assumptions; use the exact identifier returned by listToolFiles/readToolFile. STARLARK DIFFERENCES FROM PYTHON \u2014 READ BEFORE WRITING CODE: 1. NO try/except/finally/raise \u2014 error handling is not supported, and tool failures cannot be caught inside Starlark. 2. NO classes \u2014 use dicts and functions. 3. NO imports, direct network access, or direct filesystem access \u2014 use MCP tools instead. 4. NO is operator \u2014 use == for comparison. 5. NO f-strings \u2014 use % formatting: \"Hello %s, count=%d\" % (name, n). 6. Each executeToolCode call runs in a FRESH ISOLATED SCOPE \u2014 no variables, functions, or state persist between calls. Re-fetch data or store it via MCP tools (e.g., SQLite, FileSystem) if needed across calls. SYNTAX NOTES: \u2022 Synchronous calls \u2014 NO async/await: result = server.tool(arg=\"value\") \u2022 Use keyword arguments: server.tool(param=\"value\") NOT server.tool({\"param\": \"value\"}) \u2022 Access dict values with brackets: result[\"key\"] NOT result.key \u2022 Use print() for logging/debugging \u2022 List comprehensions: [x for x in items if x[\"active\"]] \u2022 String escapes work normally: \"line1\\nline2\" produces a newline \u2022 Triple-quoted strings for multiline: \"\"\"multi\\nline\"\"\" \u2022 chr(10) for newline character, chr(9) for tab \u2022 To return a value, assign to 'result': result = computed_value \u2022 MCP tool calls are timeout-limited; avoid long or infinite loops AVAILABLE BUILTINS: print, len, range, enumerate, zip, sorted, reversed, min, max, int, float, str, bool, list, dict, tuple, set, hasattr, getattr, type, chr, ord, any, all, hash, repr. RETRY POLICY: Retry after fixing syntax or logic errors, especially for read-only flows. Before rerunning code that already made tool calls, inspect prior outputs and avoid replaying stateful operations.",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "description": "Python (Starlark) code to execute. Tool calls are synchronous: result = server.tool(param=\"value\"). Use print() for logging. Assign to 'result' variable to return a value. Retry after fixing syntax or logic errors, especially for read-only flows. Before rerunning code that already made tool calls, inspect prior outputs and avoid replaying stateful operations. Example: items = server.list_items()\nfor item in items:\n    print(item[\"name\"])\nresult = items",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "name": "executeToolCode"
+            },
+            {
+              "annotations": {},
+              "description": "Get detailed documentation for a specific tool including full parameter descriptions, types, and usage examples. Use this when the compact signature from readToolFile is not sufficient to understand how to use a tool. Requires both server name and tool name as parameters.",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "server": {
+                    "description": "The server name (e.g., 'calculator'). Use listToolFiles to see available servers.",
+                    "type": "string"
+                  },
+                  "tool": {
+                    "description": "The tool name (e.g., 'add'). Use readToolFile to see available tools for a server.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "server",
+                  "tool"
+                ]
+              },
+              "name": "getToolDocs"
+            },
+            {
+              "annotations": {},
+              "description": "Returns a tree structure listing all virtual .pyi stub files available for connected MCP servers. Each server has a corresponding file (e.g., servers/<serverName>.pyi) that contains compact Python signatures for all tools in that server. Safe workflow: listToolFiles -> readToolFile -> (optional) getToolDocs -> executeToolCode. Use readToolFile before executeToolCode to read a specific server file and confirm exact callable tool names and parameters. Use getToolDocs if you need detailed documentation for a specific tool. In code, access tools via: server_name.tool_name(param=value). The server names used in code correspond to the human-readable names shown in this listing. This tool is generic and works with any set of servers connected at runtime. CALL THIS TOOL FIRST whenever the user references a server, tool, capability, or action that is not visible in your current tool list \u2014 connected MCP servers and their tools are NOT included in your top-level tool schema, so the only way to discover them is by calling listToolFiles. Examples that should trigger this tool: user names a server you don't recognize (e.g. 'localserver', 'mydb'), asks 'who am I on X', 'what can X do', 'does X have a tool for Y', or asks you to perform an action and you are unsure whether a matching tool exists. Do NOT tell the user a server or capability is unavailable until you have called listToolFiles and confirmed it is absent.",
+              "inputSchema": {
+                "type": "object"
+              },
+              "name": "listToolFiles"
+            },
+            {
+              "_meta": {
+                "ui": {
+                  "resourceUri": "ui://bifrost/bWNwX2FwcHNfZml4dHVyZQ/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw"
+                },
+                "ui/resourceUri": "ui://bifrost/bWNwX2FwcHNfZml4dHVyZQ/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw"
+              },
+              "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": true,
+                "idempotentHint": false,
+                "openWorldHint": true
+              },
+              "description": "Open the fixture MCP App",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "Message to return",
+                    "type": "string"
+                  }
+                }
+              },
+              "name": "mcp_apps_fixture-open_view",
+              "outputSchema": {
+                "type": "object",
+                "properties": {
+                  "instance": {
+                    "type": "string"
+                  },
+                  "message": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "instance",
+                  "message"
+                ]
+              }
+            },
+            {
+              "annotations": {},
+              "description": "Reads a virtual .pyi stub file for a specific MCP server, returning compact Python function signatures for all tools available on that server. The fileName should be in format servers/<serverName>.pyi as listed by listToolFiles. The function performs case-insensitive matching and removes the .pyi extension. This is the authoritative source for the exact callable tool names and parameters to use in executeToolCode. Each tool can be accessed in code via: serverName.tool_name(param=value). If the compact signature is not enough to understand a tool, use getToolDocs for detailed documentation. Workflow: listToolFiles -> readToolFile -> (optional) getToolDocs -> executeToolCode. IMPORTANT: If the response header shows 'Total lines: X (this is the complete file)', do NOT call this tool again with startLine/endLine - you already have the complete file.",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "endLine": {
+                    "description": "Optional 1-based ending line number for partial file read. Usually not needed - omit to read the entire file. Will be clamped to actual file size if too large.",
+                    "type": "number"
+                  },
+                  "fileName": {
+                    "description": "The virtual filename from listToolFiles in format: servers/<serverName>.pyi (e.g., 'servers/calculator.pyi')",
+                    "type": "string"
+                  },
+                  "startLine": {
+                    "description": "Optional 1-based starting line number for partial file read. Usually not needed - omit to read the entire file. Files are typically small (under 50 lines).",
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "fileName"
+                ]
+              },
+              "name": "readToolFile"
+            }
+          ]
+        }
+      },
+      "checks": [
+        {
+          "assertion": "tools/list returns an array",
+          "passed": true
+        },
+        {
+          "assertion": "App tool is discoverable",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "name": "virtual-limited.resources-list",
+      "http_status": 200,
+      "body": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+          "resources": [
+            {
+              "uri": "ui://bifrost/bWNwX2FwcHNfZml4dHVyZQ/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw",
+              "name": "mcp_apps_fixture-open_view",
+              "mimeType": "text/html;profile=mcp-app"
+            }
+          ]
+        }
+      },
+      "checks": []
+    },
+    {
+      "name": "virtual-limited.resources-read",
+      "http_status": 200,
+      "body": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+          "contents": [
+            {
+              "_meta": {
+                "ui": {
+                  "csp": {
+                    "connectDomains": [],
+                    "resourceDomains": [
+                      "http://localhost:8080"
+                    ]
+                  }
+                }
+              },
+              "uri": "ui://bifrost/bWNwX2FwcHNfZml4dHVyZQ/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw",
+              "mimeType": "text/html;profile=mcp-app",
+              "text": "<!doctype html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"utf-8\">\n    <meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; script-src http://localhost:8080; style-src 'unsafe-inline'; connect-src 'none'; img-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'none'\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n    <title>Bifrost MCP Apps fixture</title>\n  </head>\n  <body>\n    <main data-testid=\"mcp-app-fixture\" data-status=\"loading\" data-notification-order=\"[]\" data-save-tool=\"save_state\" data-read-tool=\"read_state\">\n      <h1>MCP Apps fixture</h1>\n      <output data-testid=\"fixture-status\" aria-live=\"polite\">Waiting for host</output>\n      <pre data-testid=\"tool-partial-input\">No partial input received</pre>\n      <pre data-testid=\"tool-input\">No input received</pre>\n      <pre data-testid=\"tool-result\">No result received</pre>\n      <label>Saved state <input data-testid=\"state-input\" value=\"first-state\"></label>\n      <button data-testid=\"save-state\" type=\"button\">Save state</button>\n      <button data-testid=\"read-state\" type=\"button\">Read state</button>\n      <button data-testid=\"change-state\" type=\"button\">Change state</button>\n      <button data-testid=\"restore-state\" type=\"button\">Restore state</button>\n      <button data-testid=\"corrupt-state\" type=\"button\">Corrupt state (negative control)</button>\n      <pre data-testid=\"callback-result\">No callback yet</pre>\n    </main>\n    <script type=\"module\" src=\"http://localhost:8080/mcp-app-fixture.js\"></script>\n  </body>\n</html>"
+            }
+          ]
+        }
+      },
+      "checks": []
+    },
+    {
+      "name": "aggregate-full.tools-list",
+      "http_status": 200,
+      "body": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+          "tools": [
+            {
+              "annotations": {},
+              "description": "Executes Python code in a sandboxed Starlark interpreter with MCP server tool access. Servers are exposed as global objects: result = serverName.toolName(param=\"value\"). This is the final step of the four-tool code mode workflow: listToolFiles -> readToolFile -> (optional) getToolDocs -> executeToolCode. If you have not already read a tool's .pyi stub in this conversation, do that before writing code. Do NOT guess callable tool names from natural language or stale assumptions; use the exact identifier returned by listToolFiles/readToolFile. STARLARK DIFFERENCES FROM PYTHON \u2014 READ BEFORE WRITING CODE: 1. NO try/except/finally/raise \u2014 error handling is not supported, and tool failures cannot be caught inside Starlark. 2. NO classes \u2014 use dicts and functions. 3. NO imports, direct network access, or direct filesystem access \u2014 use MCP tools instead. 4. NO is operator \u2014 use == for comparison. 5. NO f-strings \u2014 use % formatting: \"Hello %s, count=%d\" % (name, n). 6. Each executeToolCode call runs in a FRESH ISOLATED SCOPE \u2014 no variables, functions, or state persist between calls. Re-fetch data or store it via MCP tools (e.g., SQLite, FileSystem) if needed across calls. SYNTAX NOTES: \u2022 Synchronous calls \u2014 NO async/await: result = server.tool(arg=\"value\") \u2022 Use keyword arguments: server.tool(param=\"value\") NOT server.tool({\"param\": \"value\"}) \u2022 Access dict values with brackets: result[\"key\"] NOT result.key \u2022 Use print() for logging/debugging \u2022 List comprehensions: [x for x in items if x[\"active\"]] \u2022 String escapes work normally: \"line1\\nline2\" produces a newline \u2022 Triple-quoted strings for multiline: \"\"\"multi\\nline\"\"\" \u2022 chr(10) for newline character, chr(9) for tab \u2022 To return a value, assign to 'result': result = computed_value \u2022 MCP tool calls are timeout-limited; avoid long or infinite loops AVAILABLE BUILTINS: print, len, range, enumerate, zip, sorted, reversed, min, max, int, float, str, bool, list, dict, tuple, set, hasattr, getattr, type, chr, ord, any, all, hash, repr. RETRY POLICY: Retry after fixing syntax or logic errors, especially for read-only flows. Before rerunning code that already made tool calls, inspect prior outputs and avoid replaying stateful operations.",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "description": "Python (Starlark) code to execute. Tool calls are synchronous: result = server.tool(param=\"value\"). Use print() for logging. Assign to 'result' variable to return a value. Retry after fixing syntax or logic errors, especially for read-only flows. Before rerunning code that already made tool calls, inspect prior outputs and avoid replaying stateful operations. Example: items = server.list_items()\nfor item in items:\n    print(item[\"name\"])\nresult = items",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "name": "executeToolCode"
+            },
+            {
+              "annotations": {},
+              "description": "Get detailed documentation for a specific tool including full parameter descriptions, types, and usage examples. Use this when the compact signature from readToolFile is not sufficient to understand how to use a tool. Requires both server name and tool name as parameters.",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "server": {
+                    "description": "The server name (e.g., 'calculator'). Use listToolFiles to see available servers.",
+                    "type": "string"
+                  },
+                  "tool": {
+                    "description": "The tool name (e.g., 'add'). Use readToolFile to see available tools for a server.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "server",
+                  "tool"
+                ]
+              },
+              "name": "getToolDocs"
+            },
+            {
+              "annotations": {},
+              "description": "Returns a tree structure listing all virtual .pyi stub files available for connected MCP servers. Each server has a corresponding file (e.g., servers/<serverName>.pyi) that contains compact Python signatures for all tools in that server. Safe workflow: listToolFiles -> readToolFile -> (optional) getToolDocs -> executeToolCode. Use readToolFile before executeToolCode to read a specific server file and confirm exact callable tool names and parameters. Use getToolDocs if you need detailed documentation for a specific tool. In code, access tools via: server_name.tool_name(param=value). The server names used in code correspond to the human-readable names shown in this listing. This tool is generic and works with any set of servers connected at runtime. CALL THIS TOOL FIRST whenever the user references a server, tool, capability, or action that is not visible in your current tool list \u2014 connected MCP servers and their tools are NOT included in your top-level tool schema, so the only way to discover them is by calling listToolFiles. Examples that should trigger this tool: user names a server you don't recognize (e.g. 'localserver', 'mydb'), asks 'who am I on X', 'what can X do', 'does X have a tool for Y', or asks you to perform an action and you are unsure whether a matching tool exists. Do NOT tell the user a server or capability is unavailable until you have called listToolFiles and confirmed it is absent.",
+              "inputSchema": {
+                "type": "object"
+              },
+              "name": "listToolFiles"
+            },
+            {
+              "_meta": {
+                "ui": {
+                  "resourceUri": "ui://bifrost/bWNwX2FwcHNfZml4dHVyZQ/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw"
+                },
+                "ui/resourceUri": "ui://bifrost/bWNwX2FwcHNfZml4dHVyZQ/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw"
+              },
+              "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": true,
+                "idempotentHint": false,
+                "openWorldHint": true
+              },
+              "description": "Open the fixture MCP App",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "Message to return",
+                    "type": "string"
+                  }
+                }
+              },
+              "name": "mcp_apps_fixture-open_view",
+              "outputSchema": {
+                "type": "object",
+                "properties": {
+                  "instance": {
+                    "type": "string"
+                  },
+                  "message": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "instance",
+                  "message"
+                ]
+              }
+            },
+            {
+              "_meta": {
+                "ui": {
+                  "visibility": [
+                    "app"
+                  ]
+                }
+              },
+              "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": true,
+                "idempotentHint": false,
+                "openWorldHint": true
+              },
+              "description": "MCP App callback",
+              "inputSchema": {
+                "type": "object"
+              },
+              "name": "mcp_apps_fixture-read_state"
+            },
+            {
+              "_meta": {
+                "ui": {
+                  "visibility": [
+                    "app"
+                  ]
+                }
+              },
+              "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": true,
+                "idempotentHint": false,
+                "openWorldHint": true
+              },
+              "description": "MCP App callback",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "state": {
+                    "description": "Synthetic state to retain for this fixture process; limited to 256 bytes",
+                    "type": "string"
+                  }
+                }
+              },
+              "name": "mcp_apps_fixture-save_state"
+            },
+            {
+              "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": true,
+                "idempotentHint": false,
+                "openWorldHint": true
+              },
+              "description": "Return a tool error",
+              "inputSchema": {
+                "type": "object"
+              },
+              "name": "mcp_apps_fixture_modern-fail_tool"
+            },
+            {
+              "_meta": {
+                "ui": {
+                  "resourceUri": "ui://bifrost/bWNwX2FwcHNfZml4dHVyZV9tb2Rlcm4/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw"
+                }
+              },
+              "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": true,
+                "idempotentHint": false,
+                "openWorldHint": true
+              },
+              "description": "Open the fixture MCP App",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "Message to return",
+                    "type": "string"
+                  }
+                }
+              },
+              "name": "mcp_apps_fixture_modern-open_view",
+              "outputSchema": {
+                "type": "object",
+                "properties": {
+                  "instance": {
+                    "type": "string"
+                  },
+                  "message": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "instance",
+                  "message"
+                ]
+              }
+            },
+            {
+              "_meta": {
+                "ui": {
+                  "visibility": [
+                    "app"
+                  ]
+                }
+              },
+              "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": true,
+                "idempotentHint": false,
+                "openWorldHint": true
+              },
+              "description": "MCP App callback",
+              "inputSchema": {
+                "type": "object"
+              },
+              "name": "mcp_apps_fixture_modern-read_state"
+            },
+            {
+              "_meta": {
+                "ui": {
+                  "visibility": [
+                    "app"
+                  ]
+                }
+              },
+              "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": true,
+                "idempotentHint": false,
+                "openWorldHint": true
+              },
+              "description": "MCP App callback",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "state": {
+                    "description": "Synthetic state to retain for this fixture process; limited to 256 bytes",
+                    "type": "string"
+                  }
+                }
+              },
+              "name": "mcp_apps_fixture_modern-save_state"
+            },
+            {
+              "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": true,
+                "idempotentHint": false,
+                "openWorldHint": true
+              },
+              "description": "Return structured fixture data",
+              "inputSchema": {
+                "type": "object"
+              },
+              "name": "mcp_apps_fixture_modern-structured_result"
+            },
+            {
+              "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": true,
+                "idempotentHint": false,
+                "openWorldHint": true
+              },
+              "description": "Return a tool error",
+              "inputSchema": {
+                "type": "object"
+              },
+              "name": "mcp_apps_fixture_second-fail_tool"
+            },
+            {
+              "_meta": {
+                "ui/resourceUri": "ui://bifrost/bWNwX2FwcHNfZml4dHVyZV9zZWNvbmQ/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw"
+              },
+              "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": true,
+                "idempotentHint": false,
+                "openWorldHint": true
+              },
+              "description": "Open the fixture MCP App",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "Message to return",
+                    "type": "string"
+                  }
+                }
+              },
+              "name": "mcp_apps_fixture_second-open_view",
+              "outputSchema": {
+                "type": "object",
+                "properties": {
+                  "instance": {
+                    "type": "string"
+                  },
+                  "message": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "instance",
+                  "message"
+                ]
+              }
+            },
+            {
+              "_meta": {
+                "ui": {
+                  "visibility": [
+                    "app"
+                  ]
+                }
+              },
+              "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": true,
+                "idempotentHint": false,
+                "openWorldHint": true
+              },
+              "description": "MCP App callback",
+              "inputSchema": {
+                "type": "object"
+              },
+              "name": "mcp_apps_fixture_second-read_state"
+            },
+            {
+              "_meta": {
+                "ui": {
+                  "visibility": [
+                    "app"
+                  ]
+                }
+              },
+              "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": true,
+                "idempotentHint": false,
+                "openWorldHint": true
+              },
+              "description": "MCP App callback",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "state": {
+                    "description": "Synthetic state to retain for this fixture process; limited to 256 bytes",
+                    "type": "string"
+                  }
+                }
+              },
+              "name": "mcp_apps_fixture_second-save_state"
+            },
+            {
+              "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": true,
+                "idempotentHint": false,
+                "openWorldHint": true
+              },
+              "description": "Return structured fixture data",
+              "inputSchema": {
+                "type": "object"
+              },
+              "name": "mcp_apps_fixture_second-structured_result"
+            },
+            {
+              "annotations": {},
+              "description": "Reads a virtual .pyi stub file for a specific MCP server, returning compact Python function signatures for all tools available on that server. The fileName should be in format servers/<serverName>.pyi as listed by listToolFiles. The function performs case-insensitive matching and removes the .pyi extension. This is the authoritative source for the exact callable tool names and parameters to use in executeToolCode. Each tool can be accessed in code via: serverName.tool_name(param=value). If the compact signature is not enough to understand a tool, use getToolDocs for detailed documentation. Workflow: listToolFiles -> readToolFile -> (optional) getToolDocs -> executeToolCode. IMPORTANT: If the response header shows 'Total lines: X (this is the complete file)', do NOT call this tool again with startLine/endLine - you already have the complete file.",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "endLine": {
+                    "description": "Optional 1-based ending line number for partial file read. Usually not needed - omit to read the entire file. Will be clamped to actual file size if too large.",
+                    "type": "number"
+                  },
+                  "fileName": {
+                    "description": "The virtual filename from listToolFiles in format: servers/<serverName>.pyi (e.g., 'servers/calculator.pyi')",
+                    "type": "string"
+                  },
+                  "startLine": {
+                    "description": "Optional 1-based starting line number for partial file read. Usually not needed - omit to read the entire file. Files are typically small (under 50 lines).",
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "fileName"
+                ]
+              },
+              "name": "readToolFile"
+            }
+          ]
+        }
+      },
+      "checks": [
+        {
+          "assertion": "tools/list returns an array",
+          "passed": true
+        },
+        {
+          "assertion": "App tool is discoverable",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "name": "aggregate-full.resources-list",
+      "http_status": 200,
+      "body": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+          "resources": [
+            {
+              "uri": "ui://bifrost/bWNwX2FwcHNfZml4dHVyZQ/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw",
+              "name": "mcp_apps_fixture-open_view",
+              "mimeType": "text/html;profile=mcp-app"
+            },
+            {
+              "uri": "ui://bifrost/bWNwX2FwcHNfZml4dHVyZV9tb2Rlcm4/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw",
+              "name": "mcp_apps_fixture_modern-open_view",
+              "mimeType": "text/html;profile=mcp-app"
+            },
+            {
+              "uri": "ui://bifrost/bWNwX2FwcHNfZml4dHVyZV9zZWNvbmQ/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw",
+              "name": "mcp_apps_fixture_second-open_view",
+              "mimeType": "text/html;profile=mcp-app"
+            }
+          ]
+        }
+      },
+      "checks": []
+    },
+    {
+      "name": "aggregate-full.resources-read",
+      "http_status": 200,
+      "body": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+          "contents": [
+            {
+              "_meta": {
+                "ui": {
+                  "csp": {
+                    "connectDomains": [],
+                    "resourceDomains": [
+                      "http://localhost:8080"
+                    ]
+                  }
+                }
+              },
+              "uri": "ui://bifrost/bWNwX2FwcHNfZml4dHVyZQ/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw",
+              "mimeType": "text/html;profile=mcp-app",
+              "text": "<!doctype html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"utf-8\">\n    <meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; script-src http://localhost:8080; style-src 'unsafe-inline'; connect-src 'none'; img-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'none'\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n    <title>Bifrost MCP Apps fixture</title>\n  </head>\n  <body>\n    <main data-testid=\"mcp-app-fixture\" data-status=\"loading\" data-notification-order=\"[]\" data-save-tool=\"save_state\" data-read-tool=\"read_state\">\n      <h1>MCP Apps fixture</h1>\n      <output data-testid=\"fixture-status\" aria-live=\"polite\">Waiting for host</output>\n      <pre data-testid=\"tool-partial-input\">No partial input received</pre>\n      <pre data-testid=\"tool-input\">No input received</pre>\n      <pre data-testid=\"tool-result\">No result received</pre>\n      <label>Saved state <input data-testid=\"state-input\" value=\"first-state\"></label>\n      <button data-testid=\"save-state\" type=\"button\">Save state</button>\n      <button data-testid=\"read-state\" type=\"button\">Read state</button>\n      <button data-testid=\"change-state\" type=\"button\">Change state</button>\n      <button data-testid=\"restore-state\" type=\"button\">Restore state</button>\n      <button data-testid=\"corrupt-state\" type=\"button\">Corrupt state (negative control)</button>\n      <pre data-testid=\"callback-result\">No callback yet</pre>\n    </main>\n    <script type=\"module\" src=\"http://localhost:8080/mcp-app-fixture.js\"></script>\n  </body>\n</html>"
+            }
+          ]
+        }
+      },
+      "checks": []
+    },
+    {
+      "name": "aggregate.namespaced-callback",
+      "http_status": 200,
+      "body": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+          "content": [
+            {
+              "type": "text",
+              "text": "first:save_state"
+            }
+          ]
+        }
+      },
+      "checks": [
+        {
+          "assertion": "namespaced callback reaches first fixture source",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "name": "aggregate.second-source-callback-green-control",
+      "http_status": 200,
+      "body": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+          "content": [
+            {
+              "type": "text",
+              "text": "second:save_state"
+            }
+          ]
+        }
+      },
+      "checks": [
+        {
+          "assertion": "namespaced callback reaches second fixture source",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "name": "codemode.nested-error-prefix-value",
+      "http_status": 200,
+      "body": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+          "content": [
+            {
+              "type": "text",
+              "text": "Print output:\n[TOOL] errorTestServer.return_error response: \"Error: synthetic fixture error value\"\n\nExecution completed successfully.\nReturn value: \"Error: synthetic fixture error value\"\n\nEnvironment:\n  Available server keys: errorTestServer\nNote: This is a Starlark (Python subset) environment. Use MCP tools for external interactions."
+            }
+          ]
+        }
+      },
+      "checks": [
+        {
+          "assertion": "Error: prefix payload stays a successful script value",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "name": "codemode.outer-script-error-marker",
+      "http_status": 200,
+      "body": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+          "content": [
+            {
+              "type": "text",
+              "text": "Execution runtime error:\n\ncode.star:1:10: undefined: definitely_not_defined\n\nHints:\nVariable 'definitely_not_defined' is not defined.\nNote: Each executeToolCode call runs in a fresh scope \u2014 no variables persist between calls.\nAvailable server keys: errorTestServer\nAccess tools using: server_name.tool_name(param=\"value\")\n\nEnvironment:\n  Available server keys: errorTestServer"
+            }
+          ],
+          "isError": true
+        }
+      },
+      "checks": [
+        {
+          "assertion": "Starlark execution failure marks the outer result as an error",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "name": "codemode.nested-validation-green-control",
+      "http_status": 200,
+      "body": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+          "content": [
+            {
+              "type": "text",
+              "text": "Print output:\n[TOOL] errorTestServer.return_error response: \"Validation Error: Invalid input parameters provided\"\n\nExecution completed successfully.\nReturn value: \"Validation Error: Invalid input parameters provided\"\n\nEnvironment:\n  Available server keys: errorTestServer\nNote: This is a Starlark (Python subset) environment. Use MCP tools for external interactions."
+            }
+          ]
+        }
+      },
+      "checks": [
+        {
+          "assertion": "nested tool error remains a Starlark value",
+          "passed": true
+        }
+      ]
+    }
+  ]
+}

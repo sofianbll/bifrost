@@ -1,0 +1,11 @@
+goos: linux
+goarch: amd64
+pkg: github.com/maximhq/bifrost/transports/bifrost-http/handlers
+cpu: INTEL(R) XEON(R) PLATINUM 8573C
+BenchmarkMCPHTTPNoApp-5   	   87120	     14819 ns/op	    2419 B/op	      50 allocs/op
+BenchmarkMCPHTTPNoApp-5   	  115539	     10867 ns/op	    2417 B/op	      50 allocs/op
+BenchmarkMCPHTTPNoApp-5   	  110703	     12238 ns/op	    2416 B/op	      50 allocs/op
+BenchmarkMCPHTTPNoApp-5   	  112207	     12769 ns/op	    2422 B/op	      50 allocs/op
+BenchmarkMCPHTTPNoApp-5   	  110504	     12049 ns/op	    2435 B/op	      50 allocs/op
+PASS
+ok  	github.com/maximhq/bifrost/transports/bifrost-http/handlers	6.801s

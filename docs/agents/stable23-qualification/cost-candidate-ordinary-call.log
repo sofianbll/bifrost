@@ -1,0 +1,11 @@
+goos: linux
+goarch: amd64
+pkg: github.com/maximhq/bifrost/core/mcp
+cpu: INTEL(R) XEON(R) PLATINUM 8573C
+BenchmarkExecuteChatToolNoApps-5   	    7123	    186803 ns/op	   14451 B/op	     208 allocs/op
+BenchmarkExecuteChatToolNoApps-5   	    8097	    150287 ns/op	   14479 B/op	     208 allocs/op
+BenchmarkExecuteChatToolNoApps-5   	    6468	    182568 ns/op	   14354 B/op	     208 allocs/op
+BenchmarkExecuteChatToolNoApps-5   	    7152	    182280 ns/op	   14392 B/op	     208 allocs/op
+BenchmarkExecuteChatToolNoApps-5   	    6216	    195983 ns/op	   14434 B/op	     208 allocs/op
+PASS
+ok  	github.com/maximhq/bifrost/core/mcp	6.326s

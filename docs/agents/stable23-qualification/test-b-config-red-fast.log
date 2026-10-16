@@ -1,0 +1,33 @@
+[33m╔══════════════════════════════════════════════════════════════════════════════════════════════════╗[0m
+[33m║ config file /tmp/bifrost-test-2731962171/config.json does not include a "$schema" location. Set  ║[0m
+[33m║ it to "https://www.getbifrost.ai/schema" or your mirrored schema location to enable IDE          ║[0m
+[33m║ validation.                                                                                      ║[0m
+[33m╚══════════════════════════════════════════════════════════════════════════════════════════════════╝[0m
+
+[33m╔══════════════════════════════════════════════════════════════════════════════════════════════════╗[0m
+[33m║ config file /tmp/bifrost-test-2731962171/config.json does not include a "$schema" location. Set  ║[0m
+[33m║ it to "https://www.getbifrost.ai/schema" or your mirrored schema location to enable IDE          ║[0m
+[33m║ validation.                                                                                      ║[0m
+[33m╚══════════════════════════════════════════════════════════════════════════════════════════════════╝[0m
+
+--- FAIL: TestLoadConfig_FirstBootVirtualMCPAttachesFileDeclaredVirtualKey (41.93s)
+    --- FAIL: TestLoadConfig_FirstBootVirtualMCPAttachesFileDeclaredVirtualKey/boot_1 (17.16s)
+        config_test.go:25257: 
+            	Error Trace:	/tmp/stable23-36/transports/bifrost-http/lib/config_test.go:25257
+            	Error:      	Not equal: 
+            	            	expected: []string{"vk-first-boot"}
+            	            	actual  : []string{}
+            	            	
+            	            	Diff:
+            	            	--- Expected
+            	            	+++ Actual
+            	            	@@ -1,3 +1,2 @@
+            	            	-([]string) (len=1) {
+            	            	- (string) (len=13) "vk-first-boot"
+            	            	+([]string) {
+            	            	 }
+            	Test:       	TestLoadConfig_FirstBootVirtualMCPAttachesFileDeclaredVirtualKey/boot_1
+            	Messages:   	the same config file declares this Virtual MCP and virtual key, so first boot and restart must attach the key
+FAIL
+FAIL	github.com/maximhq/bifrost/transports/bifrost-http/lib	41.992s
+FAIL

@@ -1,0 +1,77 @@
+{
+  "gateway_sha256": "5f0dcf84a3ebf206cba91f97325fefbb179f89e2b746db8f581fdfc3ddd797c1",
+  "fixture_sha256": "57407c6ffe48ff4cebdca992aa5c45dfeb3335a221002cc3d347947de45d6f91",
+  "driver_head": "968d934ed4489f3fa0bb86fdae9197406c05b5fb",
+  "app_dir_reused": true,
+  "gateway_binary_reused": true,
+  "config_providers": {},
+  "gateway_environment_allowlist": [
+    "BIFROST_SETUP_TOKEN",
+    "GOMAXPROCS",
+    "HOME",
+    "LOG_LEVEL",
+    "PATH",
+    "TMPDIR",
+    "USE_INFISICAL"
+  ],
+  "phases": [
+    {
+      "phase": "firstboot",
+      "process_id": 101399,
+      "health_status": 200,
+      "virtual_mcp_api_status": 200,
+      "stored_virtual_key_ids": [
+        "vk-firstboot-grants-fixture"
+      ],
+      "http_status": 200,
+      "body": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+          "content": [
+            {
+              "type": "text",
+              "text": "{\"input\":\"firstboot-grant-204\",\"operation\":\"uppercase\",\"result\":\"FIRSTBOOT-GRANT-204\"}"
+            }
+          ]
+        }
+      },
+      "checks": [
+        {
+          "assertion": "file-declared grant invokes the stdio fixture tool",
+          "passed": true
+        }
+      ],
+      "same_app_dir": "/tmp/stable23-36-candidate-native-probes-54630233-firstboot-store"
+    },
+    {
+      "phase": "restart",
+      "process_id": 101415,
+      "health_status": 200,
+      "virtual_mcp_api_status": 200,
+      "stored_virtual_key_ids": [
+        "vk-firstboot-grants-fixture"
+      ],
+      "http_status": 200,
+      "body": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+          "content": [
+            {
+              "type": "text",
+              "text": "{\"input\":\"firstboot-grant-204\",\"operation\":\"uppercase\",\"result\":\"FIRSTBOOT-GRANT-204\"}"
+            }
+          ]
+        }
+      },
+      "checks": [
+        {
+          "assertion": "file-declared grant invokes the stdio fixture tool",
+          "passed": true
+        }
+      ],
+      "same_app_dir": "/tmp/stable23-36-candidate-native-probes-54630233-firstboot-store"
+    }
+  ]
+}

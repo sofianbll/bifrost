@@ -1,0 +1,6 @@
+{
+  "source_sha256": "8c2bb8e9d4025275e05ce887b7bebd2cb73c9008a958348ebe2cbe0d162ee0a0",
+  "real_order_skip_reason": "Go test emitted skip without a reason",
+  "empty_nonzero_broad_incorrectly_accepted": true,
+  "incorrect_verdict": "passed"
+}

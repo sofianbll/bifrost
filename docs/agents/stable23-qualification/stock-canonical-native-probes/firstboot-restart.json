@@ -1,0 +1,73 @@
+{
+  "gateway_sha256": "f58728f39a7d98f7a82b29563b40a9926ca7bc8a807e9ed0abc834bc3578c9fb",
+  "fixture_sha256": "57407c6ffe48ff4cebdca992aa5c45dfeb3335a221002cc3d347947de45d6f91",
+  "driver_head": "968d934ed4489f3fa0bb86fdae9197406c05b5fb",
+  "app_dir_reused": true,
+  "gateway_binary_reused": true,
+  "config_providers": {},
+  "gateway_environment_allowlist": [
+    "BIFROST_SETUP_TOKEN",
+    "GOMAXPROCS",
+    "HOME",
+    "LOG_LEVEL",
+    "PATH",
+    "TMPDIR",
+    "USE_INFISICAL"
+  ],
+  "phases": [
+    {
+      "phase": "firstboot",
+      "process_id": 87378,
+      "health_status": 200,
+      "virtual_mcp_api_status": 200,
+      "stored_virtual_key_ids": [],
+      "http_status": 403,
+      "body": {
+        "is_bifrost_error": false,
+        "status_code": 403,
+        "error": {
+          "message": "access_denied"
+        },
+        "extra_fields": {
+          "routing_info": {}
+        }
+      },
+      "checks": [
+        {
+          "assertion": "file-declared grant invokes the stdio fixture tool",
+          "passed": false
+        }
+      ],
+      "same_app_dir": "/tmp/stable23-36-stock-canonical-native-probes-firstboot-store"
+    },
+    {
+      "phase": "restart",
+      "process_id": 87393,
+      "health_status": 200,
+      "virtual_mcp_api_status": 200,
+      "stored_virtual_key_ids": [
+        "vk-firstboot-grants-fixture"
+      ],
+      "http_status": 200,
+      "body": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+          "content": [
+            {
+              "type": "text",
+              "text": "{\"input\":\"firstboot-grant-204\",\"operation\":\"uppercase\",\"result\":\"FIRSTBOOT-GRANT-204\"}"
+            }
+          ]
+        }
+      },
+      "checks": [
+        {
+          "assertion": "file-declared grant invokes the stdio fixture tool",
+          "passed": true
+        }
+      ],
+      "same_app_dir": "/tmp/stable23-36-stock-canonical-native-probes-firstboot-store"
+    }
+  ]
+}

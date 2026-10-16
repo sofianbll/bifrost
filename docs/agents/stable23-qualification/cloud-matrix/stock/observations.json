@@ -1,0 +1,207 @@
+{
+  "stock_source": "9237ec06672406e437b3cb33fc793ffd0403b3ae",
+  "driver_source": "968d934ed4489f3fa0bb86fdae9197406c05b5fb",
+  "binary_sha256": "f58728f39a7d98f7a82b29563b40a9926ca7bc8a807e9ed0abc834bc3578c9fb",
+  "probe_source_sha256": "79563ba272fdc55324158c3b91e4e1087d670e496550c849fee2250a39bd64e4",
+  "gateway_environment_allowlist": [
+    "BIFROST_E2E_SETUP_TOKEN",
+    "BIFROST_SETUP_TOKEN",
+    "CI",
+    "GOMAXPROCS",
+    "HOME",
+    "LOG_LEVEL",
+    "PATH",
+    "TMPDIR",
+    "USE_INFISICAL"
+  ],
+  "config_providers": {},
+  "setup_api_postseeding": [
+    {
+      "endpoint_slug": "mcp-apps-full-virtual",
+      "virtual_key_id": "vk-mcp-apps-full",
+      "setup": "configured setup-token API after gateway startup"
+    },
+    {
+      "endpoint_slug": "mcp-apps-limited-virtual",
+      "virtual_key_id": "vk-mcp-apps-limited",
+      "setup": "configured setup-token API after gateway startup"
+    }
+  ],
+  "seeded_contract_uris": {
+    "mcpAppsDirectUri": "ui://bifrost/bWNwX2FwcHNfZml4dHVyZQ/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw",
+    "mcpAppsVirtualUri": "ui://bifrost/bWNwX2FwcHNfZml4dHVyZQ/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw",
+    "mcpAppsAggUri1": "ui://bifrost/bWNwX2FwcHNfZml4dHVyZQ/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw",
+    "mcpAppsAggUri2": "ui://bifrost/bWNwX2FwcHNfZml4dHVyZV9zZWNvbmQ/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw",
+    "mcpAppsAggUri3": "ui://bifrost/bWNwX2FwcHNfZml4dHVyZV9tb2Rlcm4/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw",
+    "mcpAppsLegacyUri": "ui://bifrost/bWNwX2FwcHNfZml4dHVyZV9zZWNvbmQ/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw",
+    "mcpAppsModernUri": "ui://bifrost/bWNwX2FwcHNfZml4dHVyZV9tb2Rlcm4/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw"
+  },
+  "fixture_callback_hints": {
+    "mcp_apps_fixture": "mcp_apps_fixture",
+    "mcp_apps_fixture_second": "mcp_apps_fixture_second",
+    "mcp_apps_fixture_modern": "mcp_apps_fixture_modern"
+  },
+  "results": {
+    "mcp-apps": {
+      "exit_code": 1,
+      "requests": 39,
+      "assertions": 148,
+      "failed_assertions": [
+        {
+          "request": "MCP Apps fixture direct initialize negotiates UI",
+          "assertion": "UI extension negotiated"
+        },
+        {
+          "request": "MCP Apps fixture direct tools list preserves App metadata",
+          "assertion": "both URI fields and input schema survive discovery"
+        },
+        {
+          "request": "MCP Apps fixture direct tools list preserves App metadata",
+          "assertion": "supported output schema survives definition lookup"
+        },
+        {
+          "request": "MCP Apps fixture direct tools list preserves App metadata",
+          "assertion": "App-only callback is marked for host visibility"
+        },
+        {
+          "request": "MCP Apps fixture direct resources list returns array",
+          "assertion": "Response has content (text or tool_use)"
+        },
+        {
+          "request": "MCP Apps fixture direct resources list returns array",
+          "assertion": "resources/list returns array"
+        },
+        {
+          "request": "MCP Apps fixture direct resources read returns HTML and CSP",
+          "assertion": "Response has content (text or tool_use)"
+        },
+        {
+          "request": "MCP Apps fixture direct resources read returns HTML and CSP",
+          "assertion": "resource HTML MIME and CSP are relayed"
+        },
+        {
+          "request": "MCP Apps fixture direct structured tool result",
+          "assertion": "content structuredContent metadata and success marker survive"
+        },
+        {
+          "request": "MCP Apps fixture direct App callback remains callable",
+          "assertion": "Response has content (text or tool_use)"
+        },
+        {
+          "request": "MCP Apps fixture direct App callback remains callable",
+          "assertion": "App-only callback resolves on direct route"
+        },
+        {
+          "request": "MCP Apps fixture direct tool error marker",
+          "assertion": "fixture tool error remains isError"
+        },
+        {
+          "request": "MCP Apps fixture Virtual MCP full discovery",
+          "assertion": "Virtual MCP preserves both UI metadata fields"
+        },
+        {
+          "request": "MCP Apps fixture Virtual MCP full resource read",
+          "assertion": "Response has content (text or tool_use)"
+        },
+        {
+          "request": "MCP Apps fixture Virtual MCP full resource read",
+          "assertion": "Virtual MCP resource is readable with MIME and CSP"
+        },
+        {
+          "request": "MCP Apps fixture Virtual MCP limited discovery",
+          "assertion": "limited key sees only its allowed App tool"
+        },
+        {
+          "request": "MCP Apps fixture aggregate discovery and namespaced UI URIs",
+          "assertion": "aggregate namespaces sources and marks callbacks app-only"
+        },
+        {
+          "request": "MCP Apps fixture aggregate reads first source resource",
+          "assertion": "Response has content (text or tool_use)"
+        },
+        {
+          "request": "MCP Apps fixture aggregate reads first source resource",
+          "assertion": "first resource routes to its own source"
+        },
+        {
+          "request": "MCP Apps fixture aggregate reads second source resource",
+          "assertion": "Response has content (text or tool_use)"
+        },
+        {
+          "request": "MCP Apps fixture aggregate reads second source resource",
+          "assertion": "second resource routes to its own source"
+        },
+        {
+          "request": "MCP Apps fixture aggregate namespaced callback routes first",
+          "assertion": "Response has content (text or tool_use)"
+        },
+        {
+          "request": "MCP Apps fixture aggregate namespaced callback routes first",
+          "assertion": "namespaced callback reaches correct instance"
+        },
+        {
+          "request": "MCP Apps fixture aggregate structured result",
+          "assertion": "aggregate tool result keeps source identity and metadata"
+        },
+        {
+          "request": "MCP Apps fixture Code Mode client exposes native App metadata",
+          "assertion": "Code Mode preserves native App metadata and has no UI metadata itself"
+        },
+        {
+          "request": "MCP Apps fixture Code Mode direct App call preserves full result",
+          "assertion": "Response has content (text or tool_use)"
+        },
+        {
+          "request": "MCP Apps fixture Code Mode direct App call preserves full result",
+          "assertion": "native direct call retains App result contract"
+        },
+        {
+          "request": "MCP Apps fixture Code Mode script failure sets isError",
+          "assertion": "only sandbox script failure marks outer result isError"
+        },
+        {
+          "request": "MCP Apps fixture limited direct discovery",
+          "assertion": "MCP Apps fixture limited direct discovery"
+        },
+        {
+          "request": "MCP Apps fixture limited direct resource remains readable",
+          "assertion": "Response has content (text or tool_use)"
+        },
+        {
+          "request": "MCP Apps fixture limited direct resource remains readable",
+          "assertion": "MCP Apps fixture limited direct resource remains readable"
+        },
+        {
+          "request": "MCP Apps fixture limited aggregate discovery",
+          "assertion": "MCP Apps fixture limited aggregate discovery"
+        },
+        {
+          "request": "MCP Apps fixture direct legacy-only metadata remains routable",
+          "assertion": "legacy-only URI is rewritten and modern field stays absent"
+        },
+        {
+          "request": "MCP Apps fixture direct modern-only metadata remains routable",
+          "assertion": "modern-only URI is rewritten and legacy field stays absent"
+        }
+      ],
+      "skipped_assertions": 0
+    },
+    "codemode-errors": {
+      "exit_code": 1,
+      "requests": 3,
+      "assertions": 10,
+      "failed_assertions": [
+        {
+          "request": "Code Mode failed script sets outer isError (codemode-errors)",
+          "assertion": "Starlark execution failure marks the outer result as an error"
+        },
+        {
+          "request": "Code Mode nested Error prefix remains a value (codemode-errors)",
+          "assertion": "Error: prefix payload stays a successful script value"
+        }
+      ],
+      "skipped_assertions": 0
+    }
+  },
+  "classification": "source-neutral stock observations; no dev allowlist applied"
+}

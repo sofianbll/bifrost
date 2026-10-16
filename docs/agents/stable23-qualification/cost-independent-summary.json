@@ -1,0 +1,172 @@
+{
+  "baseline/BenchmarkMCPHTTPNoApp-5": {
+    "n": 5,
+    "ns_range": [
+      12584.0,
+      14455.0
+    ],
+    "ns_median": 12999.0,
+    "B_range": [
+      2437,
+      2454
+    ],
+    "B_median": 2440,
+    "alloc_range": [
+      52,
+      52
+    ]
+  },
+  "baseline/BenchmarkGetAvailableToolsNoApps-5": {
+    "n": 5,
+    "ns_range": [
+      2782.0,
+      3444.0
+    ],
+    "ns_median": 3107.0,
+    "B_range": [
+      2048,
+      2048
+    ],
+    "B_median": 2048,
+    "alloc_range": [
+      9,
+      9
+    ]
+  },
+  "baseline/BenchmarkExecuteChatToolNoApps-5": {
+    "n": 5,
+    "ns_range": [
+      219829.0,
+      298234.0
+    ],
+    "ns_median": 223262.0,
+    "B_range": [
+      14379,
+      14459
+    ],
+    "B_median": 14440,
+    "alloc_range": [
+      208,
+      208
+    ]
+  },
+  "baseline/BenchmarkCodeModeNestedToolResponse/success-5": {
+    "n": 5,
+    "ns_range": [
+      78401.0,
+      97838.0
+    ],
+    "ns_median": 91470.0,
+    "B_range": [
+      17732,
+      17972
+    ],
+    "B_median": 17851,
+    "alloc_range": [
+      275,
+      276
+    ]
+  },
+  "baseline/BenchmarkCodeModeNestedToolResponse/protocol_error_value-5": {
+    "n": 5,
+    "ns_range": [
+      91947.0,
+      123930.0
+    ],
+    "ns_median": 103095.0,
+    "B_range": [
+      17296,
+      17946
+    ],
+    "B_median": 17757,
+    "alloc_range": [
+      273,
+      273
+    ]
+  },
+  "candidate/BenchmarkMCPHTTPNoApp-5": {
+    "n": 5,
+    "ns_range": [
+      10867.0,
+      14819.0
+    ],
+    "ns_median": 12238.0,
+    "B_range": [
+      2416,
+      2435
+    ],
+    "B_median": 2419,
+    "alloc_range": [
+      50,
+      50
+    ]
+  },
+  "candidate/BenchmarkGetAvailableToolsNoApps-5": {
+    "n": 5,
+    "ns_range": [
+      2306.0,
+      3064.0
+    ],
+    "ns_median": 2594.0,
+    "B_range": [
+      2048,
+      2048
+    ],
+    "B_median": 2048,
+    "alloc_range": [
+      9,
+      9
+    ]
+  },
+  "candidate/BenchmarkExecuteChatToolNoApps-5": {
+    "n": 5,
+    "ns_range": [
+      150287.0,
+      195983.0
+    ],
+    "ns_median": 182568.0,
+    "B_range": [
+      14354,
+      14479
+    ],
+    "B_median": 14434,
+    "alloc_range": [
+      208,
+      208
+    ]
+  },
+  "candidate/BenchmarkCodeModeNestedToolResponse/success-5": {
+    "n": 5,
+    "ns_range": [
+      76961.0,
+      85983.0
+    ],
+    "ns_median": 80214.0,
+    "B_range": [
+      17656,
+      18059
+    ],
+    "B_median": 17847,
+    "alloc_range": [
+      275,
+      275
+    ]
+  },
+  "candidate/BenchmarkCodeModeNestedToolResponse/protocol_error_value-5": {
+    "n": 5,
+    "ns_range": [
+      78195.0,
+      100372.0
+    ],
+    "ns_median": 89695.0,
+    "B_range": [
+      18374,
+      18744
+    ],
+    "B_median": 18528,
+    "alloc_range": [
+      287,
+      287
+    ]
+  }
+}

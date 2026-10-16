@@ -1,0 +1,62 @@
+{
+  "stock_source": "9237ec06672406e437b3cb33fc793ffd0403b3ae",
+  "candidate_source": "54630233a79dabdb681facb0de97d10227bafe83",
+  "driver_source": "968d934ed4489f3fa0bb86fdae9197406c05b5fb",
+  "binary_sha256": "5f0dcf84a3ebf206cba91f97325fefbb179f89e2b746db8f581fdfc3ddd797c1",
+  "probe_source_sha256": "550e6138a1983eef571cea18980c108d192933bd4125dc939625aad435e6a283",
+  "gateway_environment_allowlist": [
+    "BIFROST_E2E_SETUP_TOKEN",
+    "BIFROST_SETUP_TOKEN",
+    "CI",
+    "GOMAXPROCS",
+    "HOME",
+    "LOG_LEVEL",
+    "PATH",
+    "TMPDIR",
+    "USE_INFISICAL"
+  ],
+  "config_providers": {},
+  "setup_api_postseeding": [
+    {
+      "endpoint_slug": "mcp-apps-full-virtual",
+      "virtual_key_id": "vk-mcp-apps-full",
+      "setup": "configured setup-token API after gateway startup"
+    },
+    {
+      "endpoint_slug": "mcp-apps-limited-virtual",
+      "virtual_key_id": "vk-mcp-apps-limited",
+      "setup": "configured setup-token API after gateway startup"
+    }
+  ],
+  "seeded_contract_uris": {
+    "mcpAppsDirectUri": "ui://bifrost/bWNwX2FwcHNfZml4dHVyZQ/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw",
+    "mcpAppsVirtualUri": "ui://bifrost/bWNwX2FwcHNfZml4dHVyZQ/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw",
+    "mcpAppsAggUri1": "ui://bifrost/bWNwX2FwcHNfZml4dHVyZQ/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw",
+    "mcpAppsAggUri2": "ui://bifrost/bWNwX2FwcHNfZml4dHVyZV9zZWNvbmQ/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw",
+    "mcpAppsAggUri3": "ui://bifrost/bWNwX2FwcHNfZml4dHVyZV9tb2Rlcm4/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw",
+    "mcpAppsLegacyUri": "ui://bifrost/bWNwX2FwcHNfZml4dHVyZV9zZWNvbmQ/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw",
+    "mcpAppsModernUri": "ui://bifrost/bWNwX2FwcHNfZml4dHVyZV9tb2Rlcm4/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw"
+  },
+  "fixture_callback_hints": {
+    "mcp_apps_fixture": "mcp_apps_fixture",
+    "mcp_apps_fixture_second": "mcp_apps_fixture_second",
+    "mcp_apps_fixture_modern": "mcp_apps_fixture_modern"
+  },
+  "results": {
+    "mcp-apps": {
+      "exit_code": 0,
+      "requests": 39,
+      "assertions": 148,
+      "failed_assertions": [],
+      "skipped_assertions": 0
+    },
+    "codemode-errors": {
+      "exit_code": 0,
+      "requests": 3,
+      "assertions": 10,
+      "failed_assertions": [],
+      "skipped_assertions": 0
+    }
+  },
+  "classification": "candidate must pass every selected assertion; same immutable fixture source as observed stable stock"
+}

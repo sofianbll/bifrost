@@ -1,0 +1,8 @@
+--- FAIL: TestExecuteToolCodeCanUseProtocolMarkedRemoteErrorsAsValues (0.01s)
+    --- FAIL: TestExecuteToolCodeCanUseProtocolMarkedRemoteErrorsAsValues/unmarked_Error_prefix_is_a_value (0.01s)
+        toolerrormarker_test.go:203: outer isError=true, want false: "Execution runtime error:\n\ntool call failed: remote rejected\n\nHints:\nCheck the error message above for details.\nAvailable server keys: server\nUse: result = server_name.tool_name(param=\"value\")\nAccess dict values with brackets: result[\"key\"]\n\nEnvironment:\n  Available server keys: server"
+    --- FAIL: TestExecuteToolCodeCanUseProtocolMarkedRemoteErrorsAsValues/protocol_error_with_Error_prefix (0.00s)
+        toolerrormarker_test.go:203: outer isError=true, want false: "Execution runtime error:\n\ntool call failed: remote rejected\n\nHints:\nCheck the error message above for details.\nAvailable server keys: server\nUse: result = server_name.tool_name(param=\"value\")\nAccess dict values with brackets: result[\"key\"]\n\nEnvironment:\n  Available server keys: server"
+FAIL
+FAIL	github.com/maximhq/bifrost/core/mcp/codemode/starlark	0.021s
+FAIL
