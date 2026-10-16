@@ -317,7 +317,7 @@ type hiddenMCPToolManager struct{ *mcpAppsToolManager }
 func (*hiddenMCPToolManager) GetAvailableMCPTools(context.Context) []schemas.ChatTool { return nil }
 
 func TestCallToolRefusesHiddenToolWithoutDisclosingItsName(t *testing.T) {
-	tool := schemas.ChatTool{Type: schemas.ChatToolTypeFunction, Function: &schemas.ChatToolFunction{Name: "private-client-secret_tool", Parameters: &schemas.ToolFunctionParameters{Type: "object", Properties: schemas.NewOrderedMapFromPairs()}}, MCPApp: &schemas.MCPAppToolMetadata{SourceClient: "private-client", Visibility: []string{"app"}}}
+	tool := schemas.ChatTool{Type: schemas.ChatToolTypeFunction, Function: &schemas.ChatToolFunction{Name: "private-client-secret_tool", Parameters: &schemas.ToolFunctionParameters{Type: "object", Properties: schemas.NewOrderedMapFromPairs()}}, Annotations: &schemas.MCPToolAnnotations{MCPApp: &schemas.MCPAppToolMetadata{SourceClient: "private-client", Visibility: []string{"app"}}}}
 	tm := &hiddenMCPToolManager{mcpAppsToolManager: &mcpAppsToolManager{tools: []schemas.ChatTool{tool}}}
 	h := &MCPServerHandler{toolManager: tm, config: &lib.Config{ClientConfig: &configstore.ClientConfig{}}}
 	h.mcpServer.Store(h.buildServer([]schemas.ChatTool{tool}))
@@ -336,7 +336,7 @@ func TestCallToolPreservesNativeMCPAppResultAndUsesEffectiveFallback(t *testing.
 			Name:       "app-client-open_view",
 			Parameters: &schemas.ToolFunctionParameters{Type: "object", Properties: schemas.NewOrderedMapFromPairs()},
 		},
-		MCPApp: &schemas.MCPAppToolMetadata{ResourceURI: "ui://shared/view", SourceClient: "client", ModernURI: true},
+		Annotations: &schemas.MCPToolAnnotations{MCPApp: &schemas.MCPAppToolMetadata{ResourceURI: "ui://shared/view", SourceClient: "client", ModernURI: true}},
 	}
 	for _, test := range []struct {
 		name       string
@@ -396,14 +396,14 @@ func TestToolsListPreservesAndQualifiesMCPAppMetadata(t *testing.T) {
 			Name:       "app-client-open_view",
 			Parameters: &schemas.ToolFunctionParameters{Type: "object", Properties: schemas.NewOrderedMapFromPairs()},
 		},
-		MCPApp: &schemas.MCPAppToolMetadata{
+		Annotations: &schemas.MCPToolAnnotations{MCPApp: &schemas.MCPAppToolMetadata{
 			RawDefinition: []byte(`{"name":"open_view","inputSchema":{"type":"object","properties":{}},"_meta":{"ui":{"resourceUri":"ui://shared/view","visibility":["app"]},"ui/resourceUri":"ui://shared/view"}}`),
 			ResourceURI:   "ui://shared/view",
 			Visibility:    []string{"app"},
 			SourceClient:  "mcp_apps_fixture",
 			ModernURI:     true,
 			LegacyURI:     true,
-		},
+		}},
 	}
 	tm := &mcpAppsToolManager{tools: []schemas.ChatTool{appTool}}
 	h := &MCPServerHandler{toolManager: tm, config: &lib.Config{ClientConfig: &configstore.ClientConfig{}}}
@@ -436,8 +436,8 @@ func TestToolsListPreservesAndQualifiesMCPAppMetadata(t *testing.T) {
 func TestResourcesListAndReadAreSourceQualified(t *testing.T) {
 	const upstreamURI = "ui://shared/view"
 	tools := []schemas.ChatTool{
-		{Type: schemas.ChatToolTypeFunction, Function: &schemas.ChatToolFunction{Name: "first-open_view"}, MCPApp: &schemas.MCPAppToolMetadata{SourceClient: "first", ResourceURI: upstreamURI, ModernURI: true}},
-		{Type: schemas.ChatToolTypeFunction, Function: &schemas.ChatToolFunction{Name: "second-open_view"}, MCPApp: &schemas.MCPAppToolMetadata{SourceClient: "second", ResourceURI: upstreamURI, ModernURI: true}},
+		{Type: schemas.ChatToolTypeFunction, Function: &schemas.ChatToolFunction{Name: "first-open_view"}, Annotations: &schemas.MCPToolAnnotations{MCPApp: &schemas.MCPAppToolMetadata{SourceClient: "first", ResourceURI: upstreamURI, ModernURI: true}}},
+		{Type: schemas.ChatToolTypeFunction, Function: &schemas.ChatToolFunction{Name: "second-open_view"}, Annotations: &schemas.MCPToolAnnotations{MCPApp: &schemas.MCPAppToolMetadata{SourceClient: "second", ResourceURI: upstreamURI, ModernURI: true}}},
 	}
 	tm := &mcpAppsToolManager{tools: tools}
 	h := &MCPServerHandler{toolManager: tm, config: &lib.Config{ClientConfig: &configstore.ClientConfig{}}}

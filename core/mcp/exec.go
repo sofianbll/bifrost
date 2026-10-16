@@ -122,14 +122,15 @@ func (m *MCPManager) executeToolWithHooks(
 }
 
 func clearStaleNativeMCPAppResult(resp *schemas.BifrostMCPResponse) {
-	if resp == nil || len(resp.NativeMCPAppResult) == 0 || sha256.Sum256(resp.NativeMCPAppResult) != resp.NativeAppResultHash {
+	raw, resultHash, messageHash := resp.GetNativeMCPAppResult()
+	if len(raw) == 0 || sha256.Sum256(raw) != resultHash {
 		return
 	}
 	// A post-hook that changed the compatibility ChatMessage while leaving the
 	// native payload untouched has redacted/blocked the effective result. Do
 	// not leak the pre-hook wire result back to the App.
-	if hashMCPAppMessage(resp.ChatMessage) != resp.NativeAppMessageHash {
-		resp.NativeMCPAppResult = nil
+	if hashMCPAppMessage(resp.ChatMessage) != messageHash {
+		resp.ClearNativeMCPAppResult()
 	}
 }
 
@@ -331,7 +332,8 @@ func (m *MCPManager) ExecuteMCPAppTool(ctx *schemas.BifrostContext, toolCall *sc
 	if result == nil {
 		return nil, nil, nil
 	}
-	return result.ChatMessage, append(json.RawMessage(nil), result.NativeMCPAppResult...), nil
+	raw, _, _ := result.GetNativeMCPAppResult()
+	return result.ChatMessage, append(json.RawMessage(nil), raw...), nil
 }
 
 // ExecuteResponsesTool executes an MCP tool call and returns the result as a responses

@@ -493,8 +493,8 @@ func (m *MCPManager) runListToolsWithHooks(ctx context.Context, conn *client.Cli
 	// Retain source identity alongside app metadata after PostHooks have had their
 	// chance to redact or replace the discovered catalog.
 	for name, tool := range resp.Tools {
-		if tool.MCPApp != nil {
-			tool.MCPApp.SourceClient = clientName
+		if metadata := tool.MCPAppMetadata(); metadata != nil {
+			metadata.SourceClient = clientName
 			resp.Tools[name] = tool
 		}
 	}

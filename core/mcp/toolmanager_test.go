@@ -85,9 +85,9 @@ func makeTool(name string) schemas.ChatTool {
 
 func TestGetAvailableToolsKeepsAppOnlyToolsOutOfModelCatalog(t *testing.T) {
 	appOnly := makeTool("test-client-open")
-	appOnly.MCPApp = &schemas.MCPAppToolMetadata{Visibility: []string{"app"}}
+	appOnly.SetMCPAppMetadata(&schemas.MCPAppToolMetadata{Visibility: []string{"app"}})
 	modelAndApp := makeTool("test-client-search")
-	modelAndApp.MCPApp = &schemas.MCPAppToolMetadata{Visibility: []string{"app", "model"}}
+	modelAndApp.SetMCPAppMetadata(&schemas.MCPAppToolMetadata{Visibility: []string{"app", "model"}})
 	plain := makeTool("test-client-plain")
 	manager := NewToolsManager(nil, &mockToolClientManager{tools: []schemas.ChatTool{appOnly, modelAndApp, plain}}, nil, nil, defaultLogger)
 	ctx := schemas.NewBifrostContext(context.Background(), schemas.NoDeadline)
@@ -98,7 +98,7 @@ func TestGetAvailableToolsKeepsAppOnlyToolsOutOfModelCatalog(t *testing.T) {
 
 func TestGetAvailableToolsForMCPIncludesAppsFromCodeModeClients(t *testing.T) {
 	appOnly := makeTool("test-client-open_view")
-	appOnly.MCPApp = &schemas.MCPAppToolMetadata{Visibility: []string{"app"}}
+	appOnly.SetMCPAppMetadata(&schemas.MCPAppToolMetadata{Visibility: []string{"app"}})
 	ordinary := makeTool("test-client-structured_result")
 	manager := NewToolsManager(nil, &mockToolClientManager{tools: []schemas.ChatTool{appOnly, ordinary}, codeMode: true}, nil, nil, defaultLogger)
 	ctx := schemas.NewBifrostContext(context.Background(), schemas.NoDeadline)

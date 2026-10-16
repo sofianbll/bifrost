@@ -374,7 +374,8 @@ func (m *MCPManager) ReadMCPAppResource(ctx *schemas.BifrostContext, toolName, u
 	}
 	for clientName, tools := range m.toolsManager.clientManager.GetToolPerClient(ctx) {
 		for _, tool := range tools {
-			if tool.Function != nil && tool.Function.Name == toolName && tool.MCPApp != nil && tool.MCPApp.ResourceURI == upstreamURI {
+			appMetadata := tool.MCPAppMetadata()
+			if tool.Function != nil && tool.Function.Name == toolName && appMetadata != nil && appMetadata.ResourceURI == upstreamURI {
 				request.ClientName = clientName
 				break
 			}
@@ -393,7 +394,8 @@ func (m *MCPManager) ReadMCPAppResource(ctx *schemas.BifrostContext, toolName, u
 		var state *schemas.MCPClientState
 		for clientName, tools := range m.toolsManager.clientManager.GetToolPerClient(ctx) {
 			for _, tool := range tools {
-				if tool.Function != nil && tool.Function.Name == preReq.ToolName && tool.MCPApp != nil && tool.MCPApp.ResourceURI == preReq.URI {
+				appMetadata := tool.MCPAppMetadata()
+				if tool.Function != nil && tool.Function.Name == preReq.ToolName && appMetadata != nil && appMetadata.ResourceURI == preReq.URI {
 					state = m.toolsManager.clientManager.GetClientByName(clientName)
 					break
 				}
@@ -427,12 +429,15 @@ func (m *MCPManager) ReadMCPAppResource(ctx *schemas.BifrostContext, toolName, u
 		if encodeErr != nil {
 			return nil, encodeErr
 		}
-		return &schemas.BifrostMCPResponse{MCPAppResourceResult: encoded}, nil
+		response := &schemas.BifrostMCPResponse{}
+		response.SetMCPAppResourceResult(encoded)
+		return response, nil
 	})
-	if bErr != nil || response == nil || len(response.MCPAppResourceResult) == 0 {
+	resourceResult := response.GetMCPAppResourceResult()
+	if bErr != nil || len(resourceResult) == 0 {
 		return nil, fmt.Errorf("resource is unavailable")
 	}
-	result, err := mcp.ParseReadResourceResult(&response.MCPAppResourceResult)
+	result, err := mcp.ParseReadResourceResult(&resourceResult)
 	if err != nil || result == nil {
 		return nil, fmt.Errorf("resource is unavailable")
 	}
