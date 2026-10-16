@@ -273280,6 +273280,311 @@
           }
         }
       ]
+    },
+    {
+      "name": "251. MCP Apps native standalone (openai mcp-apps-native-standalone)",
+      "description": "Standalone native MCP Apps wire coverage for issue #25. The self-contained profile in tests/e2e/api/provider_config/mcp-apps-native-standalone starts the repository fixture over stdio and provisions one synthetic key for one client. These direct /mcp cases pin explicit UI extension negotiation, App metadata and source visibility, qualified resource listing/reading with MIME and security metadata, and native open_view result fidelity. Run with FEATURE=\"mcp-apps-native-standalone\" and no external provider.",
+      "item": [
+        {
+          "name": "POST /mcp - negotiate MCP Apps UI extension - openai mcp-apps-native-standalone - #25",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('standalone MCP request succeeds', function () {",
+                  "  pm.expect(pm.response.code, 'failed: ' + pm.response.text()).to.eql(200);",
+                  "  var body = pm.response.json();",
+                  "  pm.expect(body.jsonrpc, 'failed: ' + pm.response.text()).to.eql('2.0');",
+                  "  pm.expect(body.error, 'failed: ' + pm.response.text()).to.eql(undefined);",
+                  "  pm.expect(body.result, 'failed: ' + pm.response.text()).to.be.an('object');",
+                  "  var ext = body.result.capabilities.extensions['io.modelcontextprotocol/ui'];",
+                  "  pm.expect(ext, 'server did not negotiate MCP Apps UI: ' + pm.response.text()).to.be.an('object');",
+                  "  pm.expect(ext.mimeTypes, 'missing negotiated UI MIME type: ' + pm.response.text()).to.include('text/html;profile=mcp-app');",
+                  "  pm.expect(body.result.protocolVersion).to.eql('2025-06-18');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-mcp-apps-native-standalone"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 1,\n  \"method\": \"initialize\",\n  \"params\": {\n    \"protocolVersion\": \"2025-06-18\",\n    \"capabilities\": {\n      \"extensions\": {\n        \"io.modelcontextprotocol/ui\": {\n          \"mimeTypes\": [\n            \"text/html;profile=mcp-app\"\n          ]\n        }\n      }\n    },\n    \"clientInfo\": {\n      \"name\": \"mcp-apps-native-standalone-harness\",\n      \"version\": \"1.0.0\"\n    }\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /mcp - list native app tools, metadata, and hidden ordinary tools - openai mcp-apps-native-standalone - #25",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('standalone MCP request succeeds', function () {",
+                  "  pm.expect(pm.response.code, 'failed: ' + pm.response.text()).to.eql(200);",
+                  "  var body = pm.response.json();",
+                  "  pm.expect(body.jsonrpc, 'failed: ' + pm.response.text()).to.eql('2.0');",
+                  "  pm.expect(body.error, 'failed: ' + pm.response.text()).to.eql(undefined);",
+                  "  pm.expect(body.result, 'failed: ' + pm.response.text()).to.be.an('object');",
+                  "  var tools = body.result.tools;",
+                  "  var app = tools.find(function (t) { return t.name === 'mcp_apps_native_standalone-open_view'; });",
+                  "  pm.expect(app, 'native App tool is not visible: ' + pm.response.text()).to.be.an('object');",
+                  "  pm.expect(app._meta.ui.resourceUri).to.eql('ui://bifrost/bWNwX2FwcHNfbmF0aXZlX3N0YW5kYWxvbmU/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw');",
+                  "  pm.expect(app._meta['ui/resourceUri']).to.eql('ui://bifrost/bWNwX2FwcHNfbmF0aXZlX3N0YW5kYWxvbmU/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw');",
+                  "  var save = tools.find(function (t) { return t.name === 'mcp_apps_native_standalone-save_state'; });",
+                  "  var read = tools.find(function (t) { return t.name === 'mcp_apps_native_standalone-read_state'; });",
+                  "  pm.expect(save._meta.ui.visibility).to.include('app');",
+                  "  pm.expect(read._meta.ui.visibility).to.include('app');",
+                  "  var ordinary = tools.find(function (t) { return t.name === 'mcp_apps_native_standalone-structured_result'; });",
+                  "  pm.expect(ordinary, 'ordinary tool should remain available to this non-CodeMode source').to.be.an('object');",
+                  "  pm.expect(ordinary._meta && ordinary._meta.ui).to.eql(undefined);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-mcp-apps-native-standalone"
+              },
+              {
+                "key": "MCP-Protocol-Version",
+                "value": "2025-06-18"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 1,\n  \"method\": \"tools/list\",\n  \"params\": {}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /mcp - list source-qualified HTML resources and MIME - openai mcp-apps-native-standalone - #25",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('standalone MCP request succeeds', function () {",
+                  "  pm.expect(pm.response.code, 'failed: ' + pm.response.text()).to.eql(200);",
+                  "  var body = pm.response.json();",
+                  "  pm.expect(body.jsonrpc, 'failed: ' + pm.response.text()).to.eql('2.0');",
+                  "  pm.expect(body.error, 'failed: ' + pm.response.text()).to.eql(undefined);",
+                  "  pm.expect(body.result, 'failed: ' + pm.response.text()).to.be.an('object');",
+                  "  var resource = body.result.resources.find(function (r) { return r.uri === 'ui://bifrost/bWNwX2FwcHNfbmF0aXZlX3N0YW5kYWxvbmU/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw'; });",
+                  "  pm.expect(resource, 'qualified HTML resource missing: ' + pm.response.text()).to.be.an('object');",
+                  "  pm.expect(resource.mimeType).to.eql('text/html;profile=mcp-app');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-mcp-apps-native-standalone"
+              },
+              {
+                "key": "MCP-Protocol-Version",
+                "value": "2025-06-18"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 1,\n  \"method\": \"resources/list\",\n  \"params\": {}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /mcp - read qualified App HTML and security metadata - openai mcp-apps-native-standalone - #25",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('standalone MCP request succeeds', function () {",
+                  "  pm.expect(pm.response.code, 'failed: ' + pm.response.text()).to.eql(200);",
+                  "  var body = pm.response.json();",
+                  "  pm.expect(body.jsonrpc, 'failed: ' + pm.response.text()).to.eql('2.0');",
+                  "  pm.expect(body.error, 'failed: ' + pm.response.text()).to.eql(undefined);",
+                  "  pm.expect(body.result, 'failed: ' + pm.response.text()).to.be.an('object');",
+                  "  var resource = body.result.contents[0];",
+                  "  pm.expect(resource.uri).to.eql('ui://bifrost/bWNwX2FwcHNfbmF0aXZlX3N0YW5kYWxvbmU/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw');",
+                  "  pm.expect(resource.mimeType).to.eql('text/html;profile=mcp-app');",
+                  "  pm.expect(resource.text).to.include('data-testid=\"mcp-app-fixture\"');",
+                  "  var ui = resource._meta.ui;",
+                  "  pm.expect(ui.csp.resourceDomains).to.eql(['http://localhost:8080']);",
+                  "  pm.expect(ui.csp.connectDomains).to.eql([]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-mcp-apps-native-standalone"
+              },
+              {
+                "key": "MCP-Protocol-Version",
+                "value": "2025-06-18"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 1,\n  \"method\": \"resources/read\",\n  \"params\": {\n    \"uri\": \"ui://bifrost/bWNwX2FwcHNfbmF0aXZlX3N0YW5kYWxvbmU/dWk6Ly9tY3AtYXBwcy10ZXN0LXNlcnZlci92aWV3Lmh0bWw\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /mcp - call App and preserve native structured result - openai mcp-apps-native-standalone - #25",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('standalone MCP request succeeds', function () {",
+                  "  pm.expect(pm.response.code, 'failed: ' + pm.response.text()).to.eql(200);",
+                  "  var body = pm.response.json();",
+                  "  pm.expect(body.jsonrpc, 'failed: ' + pm.response.text()).to.eql('2.0');",
+                  "  pm.expect(body.error, 'failed: ' + pm.response.text()).to.eql(undefined);",
+                  "  pm.expect(body.result, 'failed: ' + pm.response.text()).to.be.an('object');",
+                  "  pm.expect(body.result.isError).to.not.eql(true);",
+                  "  var text = body.result.content.filter(function (part) { return part.type === 'text'; })[0].text;",
+                  "  var result = JSON.parse(text);",
+                  "  pm.expect(result.instance).to.eql('standalone');",
+                  "  pm.expect(result.message).to.eql('standalone-native-result');",
+                  "  pm.expect(body.result.structuredContent).to.eql({instance:'standalone',message:'standalone-native-result'});",
+                  "  pm.expect(body.result._meta.fixture).to.eql('standalone');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json, text/event-stream"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer sk-bf-mcp-apps-native-standalone"
+              },
+              {
+                "key": "MCP-Protocol-Version",
+                "value": "2025-06-18"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 1,\n  \"method\": \"tools/call\",\n  \"params\": {\n    \"name\": \"mcp_apps_native_standalone-open_view\",\n    \"arguments\": {\n      \"message\": \"standalone-native-result\"\n    }\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mcp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mcp"
+              ]
+            }
+          }
+        }
+      ]
     }
   ]
 }
