@@ -31,11 +31,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: issue-25
-            product_pin: 6b77e5e175632d31b50a35901fa94f0ae7574160
-            fixture_scopes: mcp-apps
+          - name: integration
+            product_pin: integration
+            fixture_scopes: mcp-apps,codemode-errors
             comparison_mode: strict
-            extra_firstboot: false
+            extra_firstboot: true
             reference_host: true
     env:
       STOCK_SOURCE: 83258b776c68e1e3d2c1ca0d08a31c2e5811344f
@@ -111,6 +111,7 @@ jobs:
             (cd core && go test -race ./mcp/... -count=1)
             (cd framework && go test -race ./configstore/... -run 'Test.*MCP' -count=1)
             (cd transports && go test -race ./bifrost-http/handlers -run 'Test.*MCP|TestCallTool|TestToolsList|TestInitialize' -count=1)
+            (cd transports && go test -race ./bifrost-http/server -run '^TestBifrostHTTPServerImplementsMCPAppsRelaySeams$' -count=1)
             (cd examples/mcps/mcp-apps-test-server && GOWORK=off go test ./... -count=1)
             if [ "$MATRIX_NAME" = integration ]; then
               (cd transports && go test -race ./bifrost-http/lib -run '^(TestLoadConfig_FirstBootVirtualMCPAttachesFileDeclaredVirtualKey|TestLoadConfig_FullConfigFile_FreshDB|TestReconcileVirtualMCPsConfig.*|TestSourceOfTruthConfigJSON_MCPMissingLeavesDBUntouched|TestSourceOfTruthConfigJSON_MCPPresentEmptyPrunesDB|TestSourceOfTruthConfigJSON_InvalidOpenAPIDeclarationKeepsStoredClient|TestLoadConfig_InferenceAuthSetupFailures|TestLoadConfig_GovernanceAuthConfig_PersistsFromFirstImport)$' -count=1)
