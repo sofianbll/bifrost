@@ -101,6 +101,43 @@ func TestStdioToolListMetadataVariants(t *testing.T) {
 	}
 }
 
+func TestStdioOpenViewValidatesSuppliedMessageType(t *testing.T) {
+	initialize := `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"fixture-test","version":"1"}}}`
+	initialized := `{"jsonrpc":"2.0","method":"notifications/initialized"}`
+	responses := runStdio(t, []string{"first", "dual"}, initialize, initialized,
+		`{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"open_view","arguments":{}}}`,
+		`{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"open_view","arguments":{"message":"hello"}}}`,
+		`{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"open_view","arguments":{"message":42}}}`,
+	)
+	var call struct {
+		Result struct {
+			IsError bool `json:"isError"`
+			Content []struct {
+				Text string `json:"text"`
+			} `json:"content"`
+			StructuredContent openViewOutput `json:"structuredContent"`
+		} `json:"result"`
+	}
+	for index, wantMessage := range []string{"", "hello"} {
+		if err := json.Unmarshal(responses[index+1], &call); err != nil {
+			t.Fatal(err)
+		}
+		if call.Result.IsError || call.Result.StructuredContent.Instance != "first" || call.Result.StructuredContent.Message != wantMessage {
+			t.Fatalf("open_view response %d = %+v, want successful optional message %q", index, call.Result, wantMessage)
+		}
+		var content openViewOutput
+		if len(call.Result.Content) != 1 || json.Unmarshal([]byte(call.Result.Content[0].Text), &content) != nil || content.Instance != "first" || content.Message != wantMessage {
+			t.Fatalf("open_view content %d = %+v, want instance=first message=%q", index, call.Result.Content, wantMessage)
+		}
+	}
+	if err := json.Unmarshal(responses[3], &call); err != nil {
+		t.Fatal(err)
+	}
+	if !call.Result.IsError || len(call.Result.Content) != 1 || call.Result.Content[0].Text != "message must be a string" {
+		t.Fatalf("open_view invalid message response = %+v, want an MCP tool error", call.Result)
+	}
+}
+
 func TestStdioStateCallbacksPersistWithinOneFixtureProcess(t *testing.T) {
 	maxState := strings.Repeat("x", maxSyntheticStateBytes)
 	initialize := `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"fixture-test","version":"1"}}}`
