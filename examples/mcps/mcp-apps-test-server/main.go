@@ -88,7 +88,13 @@ func main() {
 	}
 	tool.Meta = &mcp.Meta{AdditionalFields: toolMeta}
 	s.AddTool(tool, func(_ context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		message, _ := req.RequireString("message")
+		message, err := req.RequireString("message")
+		if err != nil {
+			if _, provided := req.GetArguments()["message"]; provided {
+				return mcp.NewToolResultError("message must be a string"), nil
+			}
+			message = ""
+		}
 		return result(instance, message), nil
 	})
 	savedState := ""
